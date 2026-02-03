@@ -1,7 +1,7 @@
 import React from 'react';
 import { Star, MapPin, Calendar, CheckCircle, ArrowLeft, ShieldCheck, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
-import { sellers, listings } from '@/lib/data';
+import { sellers, listings, categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 
 interface PageProps {
@@ -94,8 +94,8 @@ export default async function SellerProfile({ params }: PageProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sellerListings.map(item => (
                   <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 hover:border-blue-200 transition-colors cursor-pointer group">
-                    <div className="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center text-blue-300 font-black text-2xl shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                      {item.title[0]}
+                    <div className="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center text-3xl shrink-0 group-hover:bg-blue-600 group-hover:scale-105 transition-all">
+                      {categoryEmojis[item.category] || '✨'}
                     </div>
                     <div className="flex flex-col justify-center">
                       <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.title}</h3>

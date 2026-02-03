@@ -1,9 +1,17 @@
 export const listings = [
-  { id: 1, sellerId: "carlos-123", title: "Coffee Maker", price: "₡15,000", location: [9.9281, -84.0907] as [number, number], rating: 4.8, type: 'seller', owner: "Carlos" },
-  { id: 2, sellerId: "maria-456", title: "Mountain Bike", price: "₡120,000", location: [9.9333, -84.0833] as [number, number], rating: 4.5, type: 'seller', owner: "Maria" },
-  { id: 3, sellerId: "luis-789", title: "Delivery Pro", price: "Varies", location: [9.9350, -84.1000] as [number, number], rating: 5.0, type: 'driver', owner: "Express Luis" },
-  { id: 4, sellerId: "ana-012", title: "Local Honey", price: "₡5,000", location: [9.9180, -84.0700] as [number, number], rating: 4.9, type: 'seller', owner: "Ana" },
+  { id: 1, sellerId: "carlos-123", title: "Coffee Maker", price: "₡15,000", category: "Home", location: [9.9281, -84.0907] as [number, number], rating: 4.8, type: 'seller', owner: "Carlos" },
+  { id: 2, sellerId: "maria-456", title: "Mountain Bike", price: "₡120,000", category: "Vehicles", location: [9.9333, -84.0833] as [number, number], rating: 4.5, type: 'seller', owner: "Maria" },
+  { id: 3, sellerId: "luis-789", title: "Delivery Pro", price: "Varies", category: "Delivery", location: [9.9350, -84.1000] as [number, number], rating: 5.0, type: 'driver', owner: "Express Luis" },
+  { id: 4, sellerId: "ana-012", title: "Local Honey", price: "₡5,000", category: "Home", location: [9.9180, -84.0700] as [number, number], rating: 4.9, type: 'seller', owner: "Ana" },
 ];
+
+export const categoryEmojis: Record<string, string> = {
+  'Electronics': '🔌',
+  'Home': '🏠',
+  'Vehicles': '🚲',
+  'Delivery': '📦',
+  'Other': '✨'
+};
 
 export const sellers = [
   {

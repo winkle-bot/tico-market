@@ -5,7 +5,7 @@ import { Search, MapPin, Star, Truck, Menu, X, PlusCircle, User } from 'lucide-r
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { listings } from '@/lib/data';
+import { listings, categoryEmojis } from '@/lib/data';
 
 // Dynamic import for Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -355,7 +355,9 @@ function ListingCard({ item }: { item: any }) {
       <div className="aspect-square bg-gray-100 relative overflow-hidden">
         {/* Placeholder for real images */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <span className="text-blue-200 font-bold text-4xl">{item.title[0]}</span>
+          <span className="text-6xl filter drop-shadow-sm transition-transform duration-500 group-hover:scale-125">
+            {categoryEmojis[item.category] || '✨'}
+          </span>
         </div>
         
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-bold shadow-sm text-blue-600">
