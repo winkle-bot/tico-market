@@ -7,7 +7,10 @@
       "description": "Cafetera semi-automática, 2 años de uso, funciona perfectamente. Incluye espumador de leche y manual original. Ideal para amantes del café.",
       "price": "₡85,000",
       "category": "Electronics",
-      "location": [9.9342, -84.0875],
+      "location": [
+        9.9342,
+        -84.0875
+      ],
       "rating": 4.8,
       "type": "seller",
       "owner": "Carlos Jiménez"
@@ -19,7 +22,10 @@
       "description": "Trek Marlin 5, talla M, frenos hidráulicos, 21 velocidades. Perfecta para trails y uso urbano. Incluye casco y luces.",
       "price": "₡320,000",
       "category": "Sports",
-      "location": [9.9378, -84.1234],
+      "location": [
+        9.9378,
+        -84.1234
+      ],
       "rating": 4.5,
       "type": "seller",
       "owner": "María Solano"
@@ -31,8 +37,11 @@
       "description": "Servicio de mensajería express. Entregas mismo día en todo el Gran Área Metropolitana. Moto propia, puntualidad garantizada.",
       "price": "Desde ₡2,500",
       "category": "Services",
-      "location": [9.9350, -84.1000],
-      "rating": 5.0,
+      "location": [
+        9.935,
+        -84.1
+      ],
+      "rating": 5,
       "type": "driver",
       "owner": "Luis Mora"
     },
@@ -43,7 +52,10 @@
       "description": "Miel pura de apicultura orgánica en Heredia. Sin aditivos ni procesos industriales. Cristalización natural garantizada.",
       "price": "₡6,500",
       "category": "Food",
-      "location": [9.9985, -84.1167],
+      "location": [
+        9.9985,
+        -84.1167
+      ],
       "rating": 4.9,
       "type": "seller",
       "owner": "Ana Campos"
@@ -55,7 +67,10 @@
       "description": "iPhone 13 Pro en excelente estado. Batería al 89%, incluye cargador original y case. Liberado para cualquier operador.",
       "price": "₡485,000",
       "category": "Electronics",
-      "location": [9.9322, -84.0312],
+      "location": [
+        9.9322,
+        -84.0312
+      ],
       "rating": 4.7,
       "type": "seller",
       "owner": "José Vargas"
@@ -67,7 +82,10 @@
       "description": "Sofá seccional en L, tela gris oscuro, 6 meses de uso. Cojines reversibles, patas de madera. Transporte negociable.",
       "price": "₡280,000",
       "category": "Home",
-      "location": [9.9213, -84.0456],
+      "location": [
+        9.9213,
+        -84.0456
+      ],
       "rating": 4.6,
       "type": "seller",
       "owner": "Sofía Arias"
@@ -79,7 +97,10 @@
       "description": "Yaris Sport 2019, automático, 45,000 km, único dueño. RTV y marchamo al día. A/C, vidrios eléctricos.",
       "price": "₡9,500,000",
       "category": "Vehicles",
-      "location": [9.9567, -84.0823],
+      "location": [
+        9.9567,
+        -84.0823
+      ],
       "rating": 4.9,
       "type": "seller",
       "owner": "Pedro Castillo"
@@ -91,7 +112,10 @@
       "description": "Lote de vestidos de novia usados una vez, diferentes tallas (S-L). Ideales para reventa o alquiler. Se venden juntos.",
       "price": "₡350,000",
       "category": "Fashion",
-      "location": [9.9256, -84.0634],
+      "location": [
+        9.9256,
+        -84.0634
+      ],
       "rating": 4.4,
       "type": "seller",
       "owner": "Lucía Hernández"
@@ -103,8 +127,11 @@
       "description": "PS5 versión con disco, poco uso. Incluye 2 DualSense y 3 juegos físicos (FIFA 24, God of War, Spider-Man 2).",
       "price": "₡395,000",
       "category": "Electronics",
-      "location": [9.9897, -84.1023],
-      "rating": 5.0,
+      "location": [
+        9.9897,
+        -84.1023
+      ],
+      "rating": 5,
       "type": "seller",
       "owner": "Marcos Rojas"
     },
@@ -115,7 +142,10 @@
       "description": "Instructora certificada. Clases personalizadas en la comodidad de tu hogar. Hatha, Vinyasa y meditación. GAM.",
       "price": "₡15,000/sesión",
       "category": "Services",
-      "location": [9.9145, -84.0512],
+      "location": [
+        9.9145,
+        -84.0512
+      ],
       "rating": 4.8,
       "type": "seller",
       "owner": "Carmen Villalobos"
@@ -127,7 +157,10 @@
       "description": "Mesa de madera de cedro, hecha a mano. 180x90cm con 6 sillas. Estilo farmhouse. Entrega en GAM.",
       "price": "₡420,000",
       "category": "Home",
-      "location": [9.9478, -84.1567],
+      "location": [
+        9.9478,
+        -84.1567
+      ],
       "rating": 4.7,
       "type": "seller",
       "owner": "David Méndez"
@@ -139,7 +172,10 @@
       "description": "MacBook Air M2, 8GB RAM, 256GB SSD, color Midnight. 10 ciclos de batería, como nuevo. Cargador original incluido.",
       "price": "₡680,000",
       "category": "Electronics",
-      "location": [9.9234, -84.0989],
+      "location": [
+        9.9234,
+        -84.0989
+      ],
       "rating": 4.9,
       "type": "seller",
       "owner": "Isabel Montero"
@@ -151,7 +187,10 @@
       "description": "Empanadas caseras horneadas. Variedades: carne, pollo, jamón y queso, caprese. Pedidos con 24h de anticipación.",
       "price": "₡8,500",
       "category": "Food",
-      "location": [9.9312, -84.0756],
+      "location": [
+        9.9312,
+        -84.0756
+      ],
       "rating": 4.8,
       "type": "seller",
       "owner": "Roberto González"
@@ -163,7 +202,10 @@
       "description": "Moto Suzuki Gixxer 150cc, 12,000 km. Documentos al día, servicio reciente. Ideal para ciudad y ahorro de combustible.",
       "price": "₡1,850,000",
       "category": "Vehicles",
-      "location": [9.9645, -84.0834],
+      "location": [
+        9.9645,
+        -84.0834
+      ],
       "rating": 4.6,
       "type": "seller",
       "owner": "Andrea Salas"
@@ -175,7 +217,10 @@
       "description": "Set completo: barra olímpica, 80kg en discos, rack, 2 mancuernas ajustables. Perfecto para gym en casa.",
       "price": "₡185,000",
       "category": "Sports",
-      "location": [9.9189, -84.0678],
+      "location": [
+        9.9189,
+        -84.0678
+      ],
       "rating": 4.5,
       "type": "seller",
       "owner": "Fernando Núñez"
@@ -187,7 +232,10 @@
       "description": "Paca de ropa americana de marca, 50 piezas. Nike, Adidas, Levi's, Tommy. Ideal para reventa o feria.",
       "price": "₡75,000",
       "category": "Fashion",
-      "location": [9.9378, -84.0912],
+      "location": [
+        9.9378,
+        -84.0912
+      ],
       "rating": 4.3,
       "type": "seller",
       "owner": "Daniela Mora"
@@ -199,7 +247,10 @@
       "description": "Refrigeradora Samsung 14 pies, dispensador de agua y hielo. Funciona perfectamente, se vende por cambio de casa.",
       "price": "₡195,000",
       "category": "Home",
-      "location": [9.9856, -84.1234],
+      "location": [
+        9.9856,
+        -84.1234
+      ],
       "rating": 4.7,
       "type": "seller",
       "owner": "Edgar Jiménez"
@@ -211,8 +262,11 @@
       "description": "Fotografía de eventos, retratos, productos. Equipo profesional Canon. Incluye edición y entrega digital.",
       "price": "Desde ₡45,000",
       "category": "Services",
-      "location": [9.9423, -84.0567],
-      "rating": 5.0,
+      "location": [
+        9.9423,
+        -84.0567
+      ],
+      "rating": 5,
       "type": "seller",
       "owner": "Natalia Quesada"
     },
@@ -223,7 +277,10 @@
       "description": "Sony A7III full frame, 25k disparos. Lente kit 28-70mm. Incluye batería extra y bolso. Estado 9/10.",
       "price": "₡850,000",
       "category": "Electronics",
-      "location": [9.9534, -84.0789],
+      "location": [
+        9.9534,
+        -84.0789
+      ],
       "rating": 4.9,
       "type": "seller",
       "owner": "Miguel Calderón"
@@ -235,7 +292,10 @@
       "description": "Tamales tradicionales ticos. Masa de maíz, cerdo, arroz, garbanzos. Se hacen por encargo, mínimo 1 docena.",
       "price": "₡15,000",
       "category": "Food",
-      "location": [9.9178, -84.0845],
+      "location": [
+        9.9178,
+        -84.0845
+      ],
       "rating": 4.9,
       "type": "seller",
       "owner": "Paula Chacón"
@@ -247,7 +307,10 @@
       "description": "Kayak sit-on-top, 3m de largo, muy estable. Incluye remo doble y chaleco. Ideal para ríos y lagos.",
       "price": "₡165,000",
       "category": "Sports",
-      "location": [9.9012, -84.0923],
+      "location": [
+        9.9012,
+        -84.0923
+      ],
       "rating": 4.6,
       "type": "seller",
       "owner": "Alex Vindas"
@@ -259,7 +322,10 @@
       "description": "ThinkPad T480, i5 8va gen, 16GB RAM, 512GB SSD. Ideal para trabajo remoto. Batería nueva.",
       "price": "₡285,000",
       "category": "Electronics",
-      "location": [9.9678, -84.1123],
+      "location": [
+        9.9678,
+        -84.1123
+      ],
       "rating": 4.7,
       "type": "seller",
       "owner": "Mónica Retana"
@@ -271,7 +337,10 @@
       "description": "Tucson 2018, motor 2.0, 4x4, 68,000 km. Cámara reversa, sensores, asientos en cuero. Impecable.",
       "price": "₡14,200,000",
       "category": "Vehicles",
-      "location": [9.9289, -84.0634],
+      "location": [
+        9.9289,
+        -84.0634
+      ],
       "rating": 4.8,
       "type": "seller",
       "owner": "Raúl Obando"
@@ -283,8 +352,11 @@
       "description": "Set de ollas Tramontina acero inoxidable, nueva sin usar. Regalo de boda duplicado. Con caja original.",
       "price": "₡95,000",
       "category": "Home",
-      "location": [9.9456, -84.0878],
-      "rating": 5.0,
+      "location": [
+        9.9456,
+        -84.0878
+      ],
+      "rating": 5,
       "type": "seller",
       "owner": "Catalina Brenes"
     },
@@ -295,7 +367,10 @@
       "description": "Nike Air Max 90 blancos, talla 42, usados 2 veces. Incluyen caja original. Precio negociable.",
       "price": "₡48,000",
       "category": "Fashion",
-      "location": [9.9123, -84.0567],
+      "location": [
+        9.9123,
+        -84.0567
+      ],
       "rating": 4.4,
       "type": "seller",
       "owner": "Óscar Valverde"
@@ -351,5 +426,18 @@
       "favorites": []
     }
   ],
-  "messages": []
+  "messages": [
+    {
+      "id": 1770157850761,
+      "listingId": 1,
+      "buyerId": "jose-555",
+      "buyerName": "José Vargas",
+      "sellerId": "carlos-123",
+      "sellerName": "Carlos Jiménez",
+      "senderId": "jose-555",
+      "text": "Hola, está disponible la cafetera?",
+      "createdAt": "2026-02-03T22:30:50.761Z",
+      "read": false
+    }
+  ]
 }

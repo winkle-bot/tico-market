@@ -1,17 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, MapPin, Truck, Share2, Heart, ChevronLeft, ShieldCheck, User, MessageCircle } from 'lucide-react';
+import { Star, MapPin, Truck, Share2, Heart, ChevronLeft, ShieldCheck, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import ChatModal from '@/components/ChatModal';
 
 export default function ListingDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { user } = useAuth();
   const [id, setId] = useState<string | null>(null);
   const [listing, setListing] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     params.then(p => setId(p.id));
@@ -45,6 +49,15 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        listing={listing}
+        currentUser={user}
+        onAuthRequired={() => setIsAuthModalOpen(true)}
+      />
+
       {/* Header / Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -131,7 +144,10 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Active Seller</p>
                     </div>
                   </Link>
-                  <button className="p-3 bg-white hover:bg-blue-600 hover:text-white rounded-2xl border border-gray-100 shadow-sm transition-all group">
+                  <button 
+                    onClick={() => setIsChatOpen(true)}
+                    className="p-3 bg-white hover:bg-blue-600 hover:text-white rounded-2xl border border-gray-100 shadow-sm transition-all group"
+                  >
                     <MessageCircle className="w-5 h-5" />
                   </button>
                 </div>
@@ -142,12 +158,12 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
                   </div>
                   <div className="flex-1 bg-white p-3 rounded-2xl border border-gray-100 text-center">
                     <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Response</div>
-                    <div className="font-black text-gray-900">< 1 hr</div>
+                    <div className="font-black text-gray-900">&lt; 1 hr</div>
                   </div>
                 </div>
               </div>
 
-              {/* Description Placeholder */}
+              {/* Description */}
               <div className="mb-8">
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Description</h2>
                 <p className="text-gray-600 leading-relaxed font-medium">
@@ -160,8 +176,11 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
                 <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[24px] transition-all shadow-2xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-3">
                   <Truck className="w-5 h-5" /> Book Express Delivery
                 </button>
-                <button className="px-8 bg-gray-900 hover:bg-black text-white font-black rounded-[24px] transition-all uppercase tracking-widest text-sm">
-                  Contact
+                <button 
+                  onClick={() => setIsChatOpen(true)}
+                  className="px-8 bg-gray-900 hover:bg-black text-white font-black rounded-[24px] transition-all uppercase tracking-widest text-sm flex items-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" /> Message
                 </button>
               </div>
             </div>
@@ -176,8 +195,11 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
           <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
             <Truck className="w-4 h-4" /> Express Delivery
           </button>
-          <button className="px-6 bg-gray-900 hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs">
-            Contact
+          <button 
+            onClick={() => setIsChatOpen(true)}
+            className="px-6 bg-gray-900 hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs flex items-center gap-2"
+          >
+            <MessageCircle className="w-4 h-4" /> Chat
           </button>
         </div>
       </div>
