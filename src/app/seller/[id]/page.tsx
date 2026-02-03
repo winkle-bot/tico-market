@@ -5,13 +5,20 @@ import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X } fr
 import Link from 'next/link';
 import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import ChatModal from '@/components/ChatModal';
 
 export default function SellerProfile({ params }: { params: Promise<{ id: string }> }) {
+  const { user } = useAuth();
   const [id, setId] = useState<string | null>(null);
   const [seller, setSeller] = useState<any>(null);
   const [sellerListings, setSellerListings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showListingPicker, setShowListingPicker] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     params.then(p => setId(p.id));
@@ -88,7 +95,20 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                 <div className="w-full h-px bg-gray-100 my-8" />
 
                 <div className="w-full flex flex-col gap-3">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => {
+                      if (sellerListings.length === 1) {
+                        // If only one listing, go directly to chat
+                        setSelectedListing(sellerListings[0]);
+                        setIsChatOpen(true);
+                      } else if (sellerListings.length > 1) {
+                        // Show picker if multiple listings
+                        setShowListingPicker(true);
+                      }
+                    }}
+                    disabled={sellerListings.length === 0}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <MessageCircle className="w-5 h-5" /> Message Seller
                   </button>
                   <Link 
@@ -172,6 +192,85 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </main>
+
+      {/* Listing Picker Modal */}
+      <AnimatePresence>
+        {showListingPicker && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowListingPicker(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-gray-900 text-lg">Select a Listing</h3>
+                  <p className="text-sm text-gray-500">Which item do you want to discuss?</p>
+                </div>
+                <button
+                  onClick={() => setShowListingPicker(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+                {sellerListings.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedListing(item);
+                      setShowListingPicker(false);
+                      setIsChatOpen(true);
+                    }}
+                    className="w-full p-4 rounded-2xl border border-gray-100 flex gap-4 hover:border-blue-300 hover:bg-blue-50 transition-all text-left group"
+                  >
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl">{categoryEmojis[item.category] || '✨'}</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-center min-w-0">
+                      <h4 className="font-bold text-gray-900 group-hover:text-blue-600 truncate">{item.title}</h4>
+                      <p className="text-blue-600 font-black text-sm">{item.price}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Modal */}
+      {selectedListing && (
+        <ChatModal
+          isOpen={isChatOpen}
+          onClose={() => {
+            setIsChatOpen(false);
+            setSelectedListing(null);
+          }}
+          listing={{
+            id: selectedListing.id,
+            title: selectedListing.title,
+            sellerId: selectedListing.sellerId,
+            owner: selectedListing.owner,
+            imageUrl: selectedListing.imageUrl
+          }}
+          currentUser={user}
+          onAuthRequired={() => setIsAuthModalOpen(true)}
+        />
+      )}
     </div>
   );
 }
