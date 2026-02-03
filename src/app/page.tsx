@@ -258,15 +258,15 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={() => setIsSellModalOpen(true)}
-                className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+                className="flex items-center gap-1 bg-blue-600 sm:bg-transparent text-white sm:text-gray-600 hover:text-blue-600 font-bold px-3 py-1.5 sm:px-0 sm:py-0 rounded-full transition-all text-xs sm:text-base active:scale-95"
               >
-                <PlusCircle className="w-5 h-5" /> Sell
+                <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" /> Sell
               </button>
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                <User className="w-6 h-6" />
+              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                <User className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
               <button className="md:hidden p-2">
                 <Menu className="w-6 h-6" />
