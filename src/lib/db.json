@@ -1,125 +1,355 @@
 {
   "listings": [
     {
-      "id": 1770147366770,
-      "title": "Medicine",
-      "price": "₡21",
-      "category": "Other",
-      "sellerId": "user-1770147335306",
-      "owner": "Codirealll",
-      "rating": 5,
-      "type": "seller",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
-      "imageUrl": "/uploads/1770147366768-266275.jpg",
-      "privateKey": null,
-      "verified": false
-    },
-    {
-      "id": 1770147091613,
-      "title": "A kid",
-      "price": "₡123000",
-      "category": "Other",
-      "sellerId": "user-1770147041810",
-      "owner": "RealCodi",
-      "rating": 5,
-      "type": "seller",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
-      "imageUrl": "/uploads/1770147091579-266274.jpg",
-      "privateKey": null,
-      "verified": false
-    },
-    {
-      "id": 1770146288686,
-      "title": "Slide",
-      "price": "₡100000",
-      "category": "Home",
-      "sellerId": "c0dii-user",
-      "owner": "Codi",
-      "rating": 5,
-      "type": "seller",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
-      "imageUrl": "/uploads/1770146288630-image.jpg"
-    },
-    {
       "id": 1,
       "sellerId": "carlos-123",
-      "title": "Coffee Maker",
-      "price": "₡15,000",
-      "category": "Home",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
+      "title": "Cafetera KRUPS Professional",
+      "description": "Cafetera semi-automática, 2 años de uso, funciona perfectamente. Incluye espumador de leche y manual original. Ideal para amantes del café.",
+      "price": "₡85,000",
+      "category": "Electronics",
+      "location": [9.9342, -84.0875],
       "rating": 4.8,
       "type": "seller",
-      "owner": "Carlos"
+      "owner": "Carlos Jiménez"
     },
     {
       "id": 2,
       "sellerId": "maria-456",
-      "title": "Mountain Bike",
-      "price": "₡120,000",
-      "category": "Vehicles",
-      "location": [
-        9.9333,
-        -84.0833
-      ],
+      "title": "Bicicleta de Montaña Trek Marlin 5",
+      "description": "Trek Marlin 5, talla M, frenos hidráulicos, 21 velocidades. Perfecta para trails y uso urbano. Incluye casco y luces.",
+      "price": "₡320,000",
+      "category": "Sports",
+      "location": [9.9378, -84.1234],
       "rating": 4.5,
       "type": "seller",
-      "owner": "Maria"
+      "owner": "María Solano"
     },
     {
       "id": 3,
       "sellerId": "luis-789",
-      "title": "Delivery Pro",
-      "price": "Varies",
-      "category": "Delivery",
-      "location": [
-        9.935,
-        -84.1
-      ],
-      "rating": 5,
+      "title": "Express Delivery GAM",
+      "description": "Servicio de mensajería express. Entregas mismo día en todo el Gran Área Metropolitana. Moto propia, puntualidad garantizada.",
+      "price": "Desde ₡2,500",
+      "category": "Services",
+      "location": [9.9350, -84.1000],
+      "rating": 5.0,
       "type": "driver",
-      "owner": "Express Luis"
+      "owner": "Luis Mora"
     },
     {
       "id": 4,
       "sellerId": "ana-012",
-      "title": "Local Honey",
-      "price": "₡5,000",
-      "category": "Home",
-      "location": [
-        9.918,
-        -84.07
-      ],
+      "title": "Miel de Abeja Artesanal 500ml",
+      "description": "Miel pura de apicultura orgánica en Heredia. Sin aditivos ni procesos industriales. Cristalización natural garantizada.",
+      "price": "₡6,500",
+      "category": "Food",
+      "location": [9.9985, -84.1167],
       "rating": 4.9,
       "type": "seller",
-      "owner": "Ana"
+      "owner": "Ana Campos"
+    },
+    {
+      "id": 5,
+      "sellerId": "jose-555",
+      "title": "iPhone 13 Pro 256GB",
+      "description": "iPhone 13 Pro en excelente estado. Batería al 89%, incluye cargador original y case. Liberado para cualquier operador.",
+      "price": "₡485,000",
+      "category": "Electronics",
+      "location": [9.9322, -84.0312],
+      "rating": 4.7,
+      "type": "seller",
+      "owner": "José Vargas"
+    },
+    {
+      "id": 6,
+      "sellerId": "sofia-666",
+      "title": "Sofá Seccional 3 Piezas",
+      "description": "Sofá seccional en L, tela gris oscuro, 6 meses de uso. Cojines reversibles, patas de madera. Transporte negociable.",
+      "price": "₡280,000",
+      "category": "Home",
+      "location": [9.9213, -84.0456],
+      "rating": 4.6,
+      "type": "seller",
+      "owner": "Sofía Arias"
+    },
+    {
+      "id": 7,
+      "sellerId": "pedro-777",
+      "title": "Toyota Yaris 2019 Automático",
+      "description": "Yaris Sport 2019, automático, 45,000 km, único dueño. RTV y marchamo al día. A/C, vidrios eléctricos.",
+      "price": "₡9,500,000",
+      "category": "Vehicles",
+      "location": [9.9567, -84.0823],
+      "rating": 4.9,
+      "type": "seller",
+      "owner": "Pedro Castillo"
+    },
+    {
+      "id": 8,
+      "sellerId": "lucia-888",
+      "title": "Vestidos de Novia (Lote 5 piezas)",
+      "description": "Lote de vestidos de novia usados una vez, diferentes tallas (S-L). Ideales para reventa o alquiler. Se venden juntos.",
+      "price": "₡350,000",
+      "category": "Fashion",
+      "location": [9.9256, -84.0634],
+      "rating": 4.4,
+      "type": "seller",
+      "owner": "Lucía Hernández"
+    },
+    {
+      "id": 9,
+      "sellerId": "marcos-999",
+      "title": "PlayStation 5 + 2 Controles",
+      "description": "PS5 versión con disco, poco uso. Incluye 2 DualSense y 3 juegos físicos (FIFA 24, God of War, Spider-Man 2).",
+      "price": "₡395,000",
+      "category": "Electronics",
+      "location": [9.9897, -84.1023],
+      "rating": 5.0,
+      "type": "seller",
+      "owner": "Marcos Rojas"
+    },
+    {
+      "id": 10,
+      "sellerId": "carmen-101",
+      "title": "Clases de Yoga en Casa",
+      "description": "Instructora certificada. Clases personalizadas en la comodidad de tu hogar. Hatha, Vinyasa y meditación. GAM.",
+      "price": "₡15,000/sesión",
+      "category": "Services",
+      "location": [9.9145, -84.0512],
+      "rating": 4.8,
+      "type": "seller",
+      "owner": "Carmen Villalobos"
+    },
+    {
+      "id": 11,
+      "sellerId": "david-111",
+      "title": "Mesa de Comedor Rústica 6 puestos",
+      "description": "Mesa de madera de cedro, hecha a mano. 180x90cm con 6 sillas. Estilo farmhouse. Entrega en GAM.",
+      "price": "₡420,000",
+      "category": "Home",
+      "location": [9.9478, -84.1567],
+      "rating": 4.7,
+      "type": "seller",
+      "owner": "David Méndez"
+    },
+    {
+      "id": 12,
+      "sellerId": "isabel-222",
+      "title": "MacBook Air M2 2023",
+      "description": "MacBook Air M2, 8GB RAM, 256GB SSD, color Midnight. 10 ciclos de batería, como nuevo. Cargador original incluido.",
+      "price": "₡680,000",
+      "category": "Electronics",
+      "location": [9.9234, -84.0989],
+      "rating": 4.9,
+      "type": "seller",
+      "owner": "Isabel Montero"
+    },
+    {
+      "id": 13,
+      "sellerId": "roberto-333",
+      "title": "Empanadas Argentinas (Docena)",
+      "description": "Empanadas caseras horneadas. Variedades: carne, pollo, jamón y queso, caprese. Pedidos con 24h de anticipación.",
+      "price": "₡8,500",
+      "category": "Food",
+      "location": [9.9312, -84.0756],
+      "rating": 4.8,
+      "type": "seller",
+      "owner": "Roberto González"
+    },
+    {
+      "id": 14,
+      "sellerId": "andrea-444",
+      "title": "Suzuki Gixxer 150 2022",
+      "description": "Moto Suzuki Gixxer 150cc, 12,000 km. Documentos al día, servicio reciente. Ideal para ciudad y ahorro de combustible.",
+      "price": "₡1,850,000",
+      "category": "Vehicles",
+      "location": [9.9645, -84.0834],
+      "rating": 4.6,
+      "type": "seller",
+      "owner": "Andrea Salas"
+    },
+    {
+      "id": 15,
+      "sellerId": "fernando-556",
+      "title": "Juego de Pesas y Mancuernas",
+      "description": "Set completo: barra olímpica, 80kg en discos, rack, 2 mancuernas ajustables. Perfecto para gym en casa.",
+      "price": "₡185,000",
+      "category": "Sports",
+      "location": [9.9189, -84.0678],
+      "rating": 4.5,
+      "type": "seller",
+      "owner": "Fernando Núñez"
+    },
+    {
+      "id": 16,
+      "sellerId": "daniela-667",
+      "title": "Ropa Americana Premium (Paca)",
+      "description": "Paca de ropa americana de marca, 50 piezas. Nike, Adidas, Levi's, Tommy. Ideal para reventa o feria.",
+      "price": "₡75,000",
+      "category": "Fashion",
+      "location": [9.9378, -84.0912],
+      "rating": 4.3,
+      "type": "seller",
+      "owner": "Daniela Mora"
+    },
+    {
+      "id": 17,
+      "sellerId": "edgar-778",
+      "title": "Refrigeradora Samsung 2 Puertas",
+      "description": "Refrigeradora Samsung 14 pies, dispensador de agua y hielo. Funciona perfectamente, se vende por cambio de casa.",
+      "price": "₡195,000",
+      "category": "Home",
+      "location": [9.9856, -84.1234],
+      "rating": 4.7,
+      "type": "seller",
+      "owner": "Edgar Jiménez"
+    },
+    {
+      "id": 18,
+      "sellerId": "natalia-889",
+      "title": "Servicio de Fotografía Profesional",
+      "description": "Fotografía de eventos, retratos, productos. Equipo profesional Canon. Incluye edición y entrega digital.",
+      "price": "Desde ₡45,000",
+      "category": "Services",
+      "location": [9.9423, -84.0567],
+      "rating": 5.0,
+      "type": "seller",
+      "owner": "Natalia Quesada"
+    },
+    {
+      "id": 19,
+      "sellerId": "miguel-990",
+      "title": "Cámara Sony A7III + Lente 28-70mm",
+      "description": "Sony A7III full frame, 25k disparos. Lente kit 28-70mm. Incluye batería extra y bolso. Estado 9/10.",
+      "price": "₡850,000",
+      "category": "Electronics",
+      "location": [9.9534, -84.0789],
+      "rating": 4.9,
+      "type": "seller",
+      "owner": "Miguel Calderón"
+    },
+    {
+      "id": 20,
+      "sellerId": "paula-102",
+      "title": "Tamales Navideños (Docena)",
+      "description": "Tamales tradicionales ticos. Masa de maíz, cerdo, arroz, garbanzos. Se hacen por encargo, mínimo 1 docena.",
+      "price": "₡15,000",
+      "category": "Food",
+      "location": [9.9178, -84.0845],
+      "rating": 4.9,
+      "type": "seller",
+      "owner": "Paula Chacón"
+    },
+    {
+      "id": 21,
+      "sellerId": "alex-203",
+      "title": "Kayak Individual + Remo",
+      "description": "Kayak sit-on-top, 3m de largo, muy estable. Incluye remo doble y chaleco. Ideal para ríos y lagos.",
+      "price": "₡165,000",
+      "category": "Sports",
+      "location": [9.9012, -84.0923],
+      "rating": 4.6,
+      "type": "seller",
+      "owner": "Alex Vindas"
+    },
+    {
+      "id": 22,
+      "sellerId": "monica-304",
+      "title": "Laptop Lenovo ThinkPad T480",
+      "description": "ThinkPad T480, i5 8va gen, 16GB RAM, 512GB SSD. Ideal para trabajo remoto. Batería nueva.",
+      "price": "₡285,000",
+      "category": "Electronics",
+      "location": [9.9678, -84.1123],
+      "rating": 4.7,
+      "type": "seller",
+      "owner": "Mónica Retana"
+    },
+    {
+      "id": 23,
+      "sellerId": "raul-405",
+      "title": "Hyundai Tucson 2018 4x4",
+      "description": "Tucson 2018, motor 2.0, 4x4, 68,000 km. Cámara reversa, sensores, asientos en cuero. Impecable.",
+      "price": "₡14,200,000",
+      "category": "Vehicles",
+      "location": [9.9289, -84.0634],
+      "rating": 4.8,
+      "type": "seller",
+      "owner": "Raúl Obando"
+    },
+    {
+      "id": 24,
+      "sellerId": "catalina-506",
+      "title": "Juego de Ollas Tramontina 10 piezas",
+      "description": "Set de ollas Tramontina acero inoxidable, nueva sin usar. Regalo de boda duplicado. Con caja original.",
+      "price": "₡95,000",
+      "category": "Home",
+      "location": [9.9456, -84.0878],
+      "rating": 5.0,
+      "type": "seller",
+      "owner": "Catalina Brenes"
+    },
+    {
+      "id": 25,
+      "sellerId": "oscar-607",
+      "title": "Tenis Nike Air Max 90",
+      "description": "Nike Air Max 90 blancos, talla 42, usados 2 veces. Incluyen caja original. Precio negociable.",
+      "price": "₡48,000",
+      "category": "Fashion",
+      "location": [9.9123, -84.0567],
+      "rating": 4.4,
+      "type": "seller",
+      "owner": "Óscar Valverde"
     }
   ],
   "users": [
     {
-      "id": "user-1770147335306",
-      "email": "codi@example.com",
-      "name": "Codirealll",
-      "joined": "2026-02-03T19:35:35.306Z",
-      "verified": false
+      "id": "carlos-123",
+      "email": "carlos@ejemplo.com",
+      "name": "Carlos Jiménez",
+      "joined": "2024-01-15T00:00:00.000Z",
+      "verified": true,
+      "favorites": []
     },
     {
-      "id": "user-1770147041810",
-      "email": "realcodi@example.com",
-      "name": "RealCodi",
-      "joined": "2026-02-03T19:30:41.810Z",
-      "verified": false
+      "id": "maria-456",
+      "email": "maria@ejemplo.com",
+      "name": "María Solano",
+      "joined": "2023-12-01T00:00:00.000Z",
+      "verified": true,
+      "favorites": []
+    },
+    {
+      "id": "luis-789",
+      "email": "luis@ejemplo.com",
+      "name": "Luis Mora",
+      "joined": "2024-02-01T00:00:00.000Z",
+      "verified": true,
+      "favorites": []
+    },
+    {
+      "id": "ana-012",
+      "email": "ana@ejemplo.com",
+      "name": "Ana Campos",
+      "joined": "2023-11-01T00:00:00.000Z",
+      "verified": true,
+      "favorites": []
+    },
+    {
+      "id": "jose-555",
+      "email": "jose@ejemplo.com",
+      "name": "José Vargas",
+      "joined": "2024-01-20T00:00:00.000Z",
+      "verified": false,
+      "favorites": []
+    },
+    {
+      "id": "sofia-666",
+      "email": "sofia@ejemplo.com",
+      "name": "Sofía Arias",
+      "joined": "2024-02-10T00:00:00.000Z",
+      "verified": false,
+      "favorites": []
     }
-  ]
+  ],
+  "messages": []
 }

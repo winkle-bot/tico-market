@@ -6,12 +6,27 @@ export const listings = [
 ];
 
 export const categoryEmojis: Record<string, string> = {
-  'Electronics': '🔌',
+  'Electronics': '💻',
   'Home': '🏠',
-  'Vehicles': '🚲',
+  'Vehicles': '🚗',
   'Delivery': '📦',
+  'Food': '🍽️',
+  'Services': '🛠️',
+  'Fashion': '👗',
+  'Sports': '⚽',
   'Other': '✨'
 };
+
+export const categories = [
+  'Electronics',
+  'Home',
+  'Vehicles',
+  'Food',
+  'Services',
+  'Fashion',
+  'Sports',
+  'Other'
+];
 
 export const sellers = [
   {

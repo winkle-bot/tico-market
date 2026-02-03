@@ -489,7 +489,7 @@ function ListingCard({ item }: { item: any }) {
   const isOwner = user?.id === item.sellerId;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative">
+    <Link href={`/listing/${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative">
       {isOwner && (
         <div className="absolute top-3 left-3 z-10 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
           My Listing
@@ -532,12 +532,12 @@ function ListingCard({ item }: { item: any }) {
         </div>
         
         <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
-          <Link href={`/seller/${item.sellerId}`} className="flex items-center gap-2 group/seller">
+          <div onClick={(e) => { e.preventDefault(); window.location.href = `/seller/${item.sellerId}`; }} className="flex items-center gap-2 group/seller cursor-pointer">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs ring-2 ring-white shadow-sm group-hover/seller:bg-blue-600 group-hover/seller:text-white transition-all">
               {item.owner[0]}
             </div>
             <span className="text-sm font-bold text-gray-700 group-hover/seller:text-blue-600">{item.owner}</span>
-          </Link>
+          </div>
           
           <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg text-orange-600 font-black text-xs">
             <Star className="w-3.5 h-3.5 fill-current" />
@@ -551,7 +551,7 @@ function ListingCard({ item }: { item: any }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -576,8 +576,14 @@ function MapView({ items }: { items: any[] }) {
                      <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Rating: {item.rating} ⭐</span>
                   </div>
                   <Link 
+                    href={`/listing/${item.id}`}
+                    className="block w-full bg-blue-600 text-white text-[10px] py-2.5 rounded-lg text-center uppercase font-black tracking-widest hover:bg-blue-700 transition-colors mt-2"
+                  >
+                    View Details
+                  </Link>
+                  <Link 
                     href={`/seller/${item.sellerId}`}
-                    className="block w-full bg-black text-white text-[10px] py-2.5 rounded-lg text-center uppercase font-black tracking-widest hover:bg-blue-600 transition-colors mt-2"
+                    className="block w-full bg-black text-white text-[10px] py-2.5 rounded-lg text-center uppercase font-black tracking-widest hover:bg-blue-600 transition-colors mt-1"
                   >
                     View Seller Profile
                   </Link>
