@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
-import { sellers, categoryEmojis } from '@/lib/data';
+import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -20,20 +20,28 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
   useEffect(() => {
     if (!id) return;
     
-    const foundSeller = sellers.find((s) => s.id === id);
-    if (!foundSeller) {
-      setSeller('not_found');
-      setIsLoading(false);
-      return;
-    }
-    setSeller(foundSeller);
+    const fetchData = async () => {
+      try {
+        const userRes = await fetch(`/api/users/${id}`);
+        if (!userRes.ok) {
+          setSeller('not_found');
+          setIsLoading(false);
+          return;
+        }
+        const userData = await userRes.json();
+        setSeller(userData);
 
-    fetch('/api/listings')
-      .then(res => res.json())
-      .then(data => {
-        setSellerListings(data.filter((l: any) => l.sellerId === id));
+        const listingsRes = await fetch('/api/listings');
+        const listingsData = await listingsRes.json();
+        setSellerListings(listingsData.filter((l: any) => l.sellerId === id));
+      } catch (err) {
+        setSeller('not_found');
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, [id]);
 
   if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
@@ -57,13 +65,13 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                 
                 <h1 className="text-3xl font-black text-gray-900 mb-1 flex items-center gap-2">
                   {seller.name}
-                  <CheckCircle className="w-6 h-6 text-blue-500 fill-current" />
+                  {seller.verified && <CheckCircle className="w-6 h-6 text-blue-500 fill-current" />}
                 </h1>
                 
                 <div className="flex items-center gap-2 text-orange-500 font-black text-lg mb-6">
                   <Star className="w-5 h-5 fill-current" />
                   {seller.rating} 
-                  <span className="text-gray-400 font-medium text-sm">({seller.reviews.length} reviews)</span>
+                  <span className="text-gray-400 font-medium text-sm">({seller.reviews?.length || 0} reviews)</span>
                 </div>
 
                 <div className="w-full space-y-4 text-left">
@@ -139,7 +147,7 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                 Recent Reviews
               </h2>
               <div className="space-y-8">
-                {seller.reviews.map(review => (
+                {seller.reviews && seller.reviews.length > 0 ? seller.reviews.map((review: any) => (
                   <div key={review.id} className="relative pl-6 border-l-2 border-blue-100">
                     <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-blue-600" />
                     <div className="flex items-center justify-between mb-2">
@@ -155,7 +163,9 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                       {review.comment}
                     </p>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-gray-400 font-medium italic">No reviews yet.</p>
+                )}
               </div>
             </div>
 
