@@ -5,7 +5,7 @@ import { Search, MapPin, Star, Truck, Menu, X, PlusCircle, User, LogOut, Key, Sh
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { categoryEmojis } from '@/lib/data';
+import { categoryEmojis, categories } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 
 // Dynamic import for Leaflet components to avoid SSR issues
@@ -26,6 +26,7 @@ export default function Home() {
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [newItem, setNewItem] = useState<{title: string, price: string, category: string, image: File | null}>({ title: '', price: '', category: 'Electronics', image: null });
   const [localListings, setLocalListings] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
@@ -51,6 +52,26 @@ export default function Home() {
   };
 
   const drivers = localListings.filter(l => l.type === 'driver');
+
+  // Filter listings by search query and selected categories
+  const filteredListings = localListings.filter(item => {
+    const matchesSearch = searchQuery === '' || 
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = selectedCategories.length === 0 || 
+      selectedCategories.includes(item.category);
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -292,10 +313,9 @@ export default function Home() {
                           value={newItem.category}
                           onChange={(e) => setNewItem({...newItem, category: e.target.value})}
                         >
-                          <option>Electronics</option>
-                          <option>Home</option>
-                          <option>Vehicles</option>
-                          <option>Other</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{categoryEmojis[cat]} {cat}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -429,11 +449,29 @@ export default function Home() {
                 Map View
               </button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-1 no-scrollbar text-sm font-medium text-gray-500">
-              <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100 whitespace-nowrap">San José</span>
-              <span className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100 whitespace-nowrap hover:bg-gray-100 cursor-pointer">Electronics</span>
-              <span className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100 whitespace-nowrap hover:bg-gray-100 cursor-pointer">Home</span>
-              <span className="bg-gray-50 px-3 py-1 rounded-full border border-gray-100 whitespace-nowrap hover:bg-gray-100 cursor-pointer">Delivery</span>
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-sm font-medium text-gray-500">
+              {selectedCategories.length > 0 && (
+                <button 
+                  onClick={() => setSelectedCategories([])}
+                  className="bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 whitespace-nowrap hover:bg-red-100 transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Clear
+                </button>
+              )}
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => toggleCategory(category)}
+                  className={`px-3 py-1 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                    selectedCategories.includes(category)
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>{categoryEmojis[category]}</span>
+                  {category}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -449,9 +487,29 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                     className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                   >
-                    {localListings.map((item) => (
-                      <ListingCard key={item.id} item={item} />
-                    ))}
+                    {filteredListings.length > 0 ? (
+                      filteredListings.map((item) => (
+                        <ListingCard key={item.id} item={item} />
+                      ))
+                    ) : (
+                      <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <Search className="w-10 h-10 text-gray-300" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">No listings found</h3>
+                        <p className="text-gray-500 font-medium max-w-md">
+                          {searchQuery ? `No results for "${searchQuery}"` : 'No listings match the selected filters'}
+                        </p>
+                        {(searchQuery || selectedCategories.length > 0) && (
+                          <button 
+                            onClick={() => { setSearchQuery(''); setSelectedCategories([]); }}
+                            className="mt-4 px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div 
@@ -461,7 +519,7 @@ export default function Home() {
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 z-0"
                   >
-                    <MapView items={localListings} />
+                    <MapView items={filteredListings} />
                   </motion.div>
                 )}
           </AnimatePresence>
