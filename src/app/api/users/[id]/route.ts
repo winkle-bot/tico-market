@@ -1,21 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const DB_PATH = path.join(process.cwd(), 'src/lib/db.json');
-
-let cachedDB: any = null;
-
-async function readDB() {
-  if (cachedDB) return cachedDB;
-  try {
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    cachedDB = JSON.parse(data);
-    return cachedDB;
-  } catch (e) {
-    return { listings: [], users: [] };
-  }
-}
+import { readDB } from '@/lib/db-provider';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -1,6 +1,23 @@
 {
   "listings": [
     {
+      "id": 1770147366770,
+      "title": "Medicine",
+      "price": "₡21",
+      "category": "Other",
+      "sellerId": "user-1770147335306",
+      "owner": "Codirealll",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770147366768-266275.jpg",
+      "privateKey": null,
+      "verified": false
+    },
+    {
       "id": 1770147091613,
       "title": "A kid",
       "price": "₡123000",
@@ -31,36 +48,6 @@
         -84.0907
       ],
       "imageUrl": "/uploads/1770146288630-image.jpg"
-    },
-    {
-      "id": 1770146288615,
-      "title": "Slide",
-      "price": "₡100000",
-      "category": "Home",
-      "sellerId": "c0dii-user",
-      "owner": "Codi",
-      "rating": 5,
-      "type": "seller",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
-      "imageUrl": "/uploads/1770146288608-image.jpg"
-    },
-    {
-      "id": 1770146151543,
-      "title": "Samster",
-      "price": "₡1800900",
-      "category": "Other",
-      "sellerId": "c0dii-user",
-      "owner": "Codi",
-      "rating": 5,
-      "type": "seller",
-      "location": [
-        9.9281,
-        -84.0907
-      ],
-      "imageUrl": "/uploads/1770146151512-266273.jpg"
     },
     {
       "id": 1,
@@ -119,5 +106,20 @@
       "owner": "Ana"
     }
   ],
-  "users": []
+  "users": [
+    {
+      "id": "user-1770147335306",
+      "email": "codi@example.com",
+      "name": "Codirealll",
+      "joined": "2026-02-03T19:35:35.306Z",
+      "verified": false
+    },
+    {
+      "id": "user-1770147041810",
+      "email": "realcodi@example.com",
+      "name": "RealCodi",
+      "joined": "2026-02-03T19:30:41.810Z",
+      "verified": false
+    }
+  ]
 }

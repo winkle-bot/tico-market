@@ -1,27 +1,9 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { readDB, writeDB } from '@/lib/db-provider';
 
-const DB_PATH = path.join(process.cwd(), 'src/lib/db.json');
 const UPLOADS_DIR = path.join(process.cwd(), 'public/uploads');
-
-let cachedDB: any = null;
-
-async function readDB() {
-  if (cachedDB) return cachedDB;
-  try {
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    cachedDB = JSON.parse(data);
-    return cachedDB;
-  } catch (e) {
-    return { listings: [] };
-  }
-}
-
-async function writeDB(data: any) {
-  cachedDB = data;
-  await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
-}
 
 export async function GET() {
   const db = await readDB();
@@ -59,7 +41,7 @@ export async function POST(request: Request) {
     const user = db.users.find((u: any) => u.id === sellerId);
     
     const listing = {
-      id: Date.now(), // More robust than length + 1
+      id: Date.now(),
       title,
       price,
       category,
@@ -69,7 +51,7 @@ export async function POST(request: Request) {
       type,
       location: [lat, lng],
       imageUrl,
-      privateKey, // Returned only on creation for anonymous users
+      privateKey,
       verified: user?.verified || false
     };
 
