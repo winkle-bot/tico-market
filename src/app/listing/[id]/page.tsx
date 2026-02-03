@@ -7,6 +7,7 @@ import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import ChatModal from '@/components/ChatModal';
+import { ListingDetailSkeleton } from '@/components/Skeletons';
 
 export default function ListingDetails({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
@@ -82,7 +83,7 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
     }
   };
 
-  if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading item...</div>;
+  if (isLoading) return <ListingDetailSkeleton />;
   if (listing === 'not_found') return notFound();
 
   return (

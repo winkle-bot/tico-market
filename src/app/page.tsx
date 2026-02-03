@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { categoryEmojis, categories } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
+import { ListingGridSkeleton } from '@/components/Skeletons';
 
 // Dynamic import for Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -29,11 +30,15 @@ export default function Home() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isListingsLoading, setIsListingsLoading] = useState(true);
 
   React.useEffect(() => {
+    setIsListingsLoading(true);
     fetch('/api/listings')
       .then(res => res.json())
-      .then(data => setLocalListings(data));
+      .then(data => setLocalListings(data))
+      .finally(() => setIsListingsLoading(false));
   }, []);
 
   const handleAuth = async () => {
@@ -426,13 +431,121 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <button className="md:hidden p-2 text-gray-600">
+              <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-gray-600">
                 <Menu className="w-6 h-6" />
               </button>
             </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-[100] md:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl"
+            >
+              <div className="p-4 border-b flex justify-between items-center">
+                <span className="text-xl font-bold text-blue-600">TicoMarket</span>
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {/* Mobile Search */}
+              <div className="p-4 border-b">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Categories */}
+              <div className="p-4 border-b">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        toggleCategory(cat);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-colors ${
+                        selectedCategories.includes(cat)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {categoryEmojis[cat]} {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Menu Links */}
+              <div className="p-4">
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                        {user.name[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">{user.name}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link 
+                      href="/account"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                    >
+                      <User className="w-5 h-5 text-gray-400" />
+                      <span className="font-bold text-gray-700">My Account</span>
+                    </Link>
+                    <button
+                      onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 p-3 hover:bg-red-50 rounded-xl transition-colors w-full text-left"
+                    >
+                      <LogOut className="w-5 h-5 text-red-500" />
+                      <span className="font-bold text-red-600">Logout</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setIsMobileMenuOpen(false); setIsAuthModalOpen(true); }}
+                    className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-colors"
+                  >
+                    Sign In / Sign Up
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1 flex flex-col">
         {/* Toggle & Filter Bar */}
@@ -482,7 +595,16 @@ export default function Home() {
         {/* Content Area */}
         <div className="flex-1 relative bg-gray-50/50">
           <AnimatePresence mode="wait">
-                {view === 'list' ? (
+                {isListingsLoading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <ListingGridSkeleton count={8} />
+                  </motion.div>
+                ) : view === 'list' ? (
                   <motion.div 
                     key="list"
                     initial={{ opacity: 0, y: 10 }}
