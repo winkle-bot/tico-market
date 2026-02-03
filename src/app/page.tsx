@@ -20,10 +20,10 @@ export default function Home() {
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
-  const [sellStep, setSellStep] = useState(1);
   const [newItem, setNewItem] = useState({ title: '', price: '', category: 'Electronics' });
+  const [localListings, setLocalListings] = useState(listings);
 
-  const drivers = listings.filter(l => l.type === 'driver');
+  const drivers = localListings.filter(l => l.type === 'driver');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -223,6 +223,18 @@ export default function Home() {
 
                 <button 
                   onClick={() => {
+                    const listing = {
+                      id: localListings.length + 1,
+                      sellerId: "c0dii-user",
+                      title: newItem.title,
+                      price: `₡${newItem.price}`,
+                      category: newItem.category,
+                      location: [9.9281, -84.0907],
+                      rating: 5.0,
+                      type: 'seller',
+                      owner: "Codi"
+                    };
+                    setLocalListings([listing, ...localListings]);
                     alert(`Listing created: ${newItem.title}!`);
                     setIsSellModalOpen(false);
                     setNewItem({ title: '', price: '', category: 'Electronics' });
@@ -306,29 +318,29 @@ export default function Home() {
         {/* Content Area */}
         <div className="flex-1 relative bg-gray-50/50">
           <AnimatePresence mode="wait">
-            {view === 'list' ? (
-              <motion.div 
-                key="list"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
-                {listings.map((item) => (
-                  <ListingCard key={item.id} item={item} />
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="map"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-0"
-              >
-                <MapView items={listings} />
-              </motion.div>
-            )}
+                {view === 'list' ? (
+                  <motion.div 
+                    key="list"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  >
+                    {localListings.map((item) => (
+                      <ListingCard key={item.id} item={item} />
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="map"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-0"
+                  >
+                    <MapView items={localListings} />
+                  </motion.div>
+                )}
           </AnimatePresence>
         </div>
       </main>
