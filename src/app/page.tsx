@@ -20,7 +20,7 @@ export default function Home() {
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
-  const [newItem, setNewItem] = useState({ title: '', price: '', category: 'Electronics' });
+  const [newItem, setNewItem] = useState<{title: string, price: string, category: string, image: File | null}>({ title: '', price: '', category: 'Electronics', image: null });
   const [localListings, setLocalListings] = useState<any[]>([]);
 
   React.useEffect(() => {
@@ -227,23 +227,35 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Image</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 focus:border-blue-500 focus:outline-none font-bold text-gray-400 transition-all cursor-pointer"
+                    onChange={(e) => setNewItem({...newItem, image: e.target.files?.[0] || null})}
+                  />
+                </div>
+
                 <button 
                   onClick={async () => {
-                    const listing = {
-                      sellerId: "c0dii-user",
-                      title: newItem.title,
-                      price: `₡${newItem.price}`,
-                      category: newItem.category,
-                      location: [9.9281, -84.0907],
-                      rating: 5.0,
-                      type: 'seller',
-                      owner: "Codi"
-                    };
+                    const formData = new FormData();
+                    formData.append('title', newItem.title);
+                    formData.append('price', `₡${newItem.price}`);
+                    formData.append('category', newItem.category);
+                    formData.append('sellerId', "c0dii-user");
+                    formData.append('owner', "Codi");
+                    formData.append('rating', "5.0");
+                    formData.append('type', "seller");
+                    formData.append('lat', "9.9281");
+                    formData.append('lng', "-84.0907");
+                    if (newItem.image) {
+                      formData.append('image', newItem.image);
+                    }
                     
                     const res = await fetch('/api/listings', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(listing)
+                      body: formData
                     });
                     
                     if (res.ok) {
@@ -251,7 +263,7 @@ export default function Home() {
                       setLocalListings([created, ...localListings]);
                       alert(`Listing created: ${newItem.title}!`);
                       setIsSellModalOpen(false);
-                      setNewItem({ title: '', price: '', category: 'Electronics' });
+                      setNewItem({ title: '', price: '', category: 'Electronics', image: null });
                     }
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
@@ -380,12 +392,19 @@ function ListingCard({ item }: { item: any }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
       <div className="aspect-square bg-gray-100 relative overflow-hidden">
-        {/* Placeholder for real images */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <span className="text-6xl filter drop-shadow-sm transition-transform duration-500 group-hover:scale-125">
-            {categoryEmojis[item.category] || '✨'}
-          </span>
-        </div>
+        {item.imageUrl ? (
+          <img 
+            src={item.imageUrl} 
+            alt={item.title} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+            <span className="text-6xl filter drop-shadow-sm transition-transform duration-500 group-hover:scale-125">
+              {categoryEmojis[item.category] || '✨'}
+            </span>
+          </div>
+        )}
         
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-bold shadow-sm text-blue-600">
           {item.price}
