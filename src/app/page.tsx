@@ -417,6 +417,9 @@ export default function Home() {
                 
                 {user && (
                   <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 z-50">
+                    <Link href="/account" className="w-full flex items-center gap-2 p-3 text-gray-700 font-bold text-sm hover:bg-gray-50 rounded-xl transition-colors">
+                      <User className="w-4 h-4" /> My Account
+                    </Link>
                     <button onClick={logout} className="w-full flex items-center gap-2 p-3 text-red-600 font-bold text-sm hover:bg-red-50 rounded-xl transition-colors">
                       <LogOut className="w-4 h-4" /> Logout
                     </button>

@@ -44,6 +44,44 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
     fetchListing();
   }, [id]);
 
+  // Check if listing is in user's favorites
+  useEffect(() => {
+    if (user && listing && listing.id) {
+      fetch(`/api/users/${user.id}`)
+        .then(res => res.json())
+        .then(userData => {
+          if (userData.favorites && userData.favorites.includes(listing.id)) {
+            setIsLiked(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user, listing]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    const newLiked = !isLiked;
+    setIsLiked(newLiked);
+
+    try {
+      await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggleFavorite',
+          listingId: listing.id
+        })
+      });
+    } catch (err) {
+      // Revert on error
+      setIsLiked(!newLiked);
+    }
+  };
+
   if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading item...</div>;
   if (listing === 'not_found') return notFound();
 
@@ -69,7 +107,7 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
               <Share2 className="w-5 h-5" />
             </button>
             <button 
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={toggleFavorite}
               className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${isLiked ? 'text-red-500' : 'text-gray-600'}`}
             >
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />

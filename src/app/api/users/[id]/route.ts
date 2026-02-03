@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readDB } from '@/lib/db-provider';
+import { readDB, writeDB } from '@/lib/db-provider';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -18,10 +18,56 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       joined: user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "Recently",
       location: user.location || "Costa Rica",
       bio: user.bio || "No bio yet.",
-      reviews: user.reviews || []
+      reviews: user.reviews || [],
+      favorites: user.favorites || []
     };
     
     return NextResponse.json(profile);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const db = await readDB();
+    
+    const userIndex = db.users.findIndex((u: any) => u.id === id);
+    
+    if (userIndex === -1) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    
+    const user = db.users[userIndex];
+    
+    // Handle favorite actions
+    if (body.action === 'addFavorite') {
+      if (!user.favorites) user.favorites = [];
+      if (!user.favorites.includes(body.listingId)) {
+        user.favorites.push(body.listingId);
+      }
+    } else if (body.action === 'removeFavorite') {
+      if (user.favorites) {
+        user.favorites = user.favorites.filter((id: number) => id !== body.listingId);
+      }
+    } else if (body.action === 'toggleFavorite') {
+      if (!user.favorites) user.favorites = [];
+      if (user.favorites.includes(body.listingId)) {
+        user.favorites = user.favorites.filter((id: number) => id !== body.listingId);
+      } else {
+        user.favorites.push(body.listingId);
+      }
+    } else {
+      // Generic update
+      Object.assign(user, body);
+    }
+    
+    db.users[userIndex] = user;
+    await writeDB(db);
+    
+    return NextResponse.json(user);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
