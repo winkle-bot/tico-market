@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, MapPin, Star, Truck, Menu, X, PlusCircle, User } from 'lucide-react';
+import { Search, MapPin, Star, Truck, Menu, X, PlusCircle, User, LogOut, Key, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { listings, categoryEmojis } from '@/lib/data';
+import { categoryEmojis } from '@/lib/data';
+import { useAuth } from '@/context/AuthContext';
 
 // Dynamic import for Leaflet components to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -14,14 +15,19 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
 export default function Home() {
+  const { user, login, logout } = useAuth();
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [newItem, setNewItem] = useState<{title: string, price: string, category: string, image: File | null}>({ title: '', price: '', category: 'Electronics', image: null });
   const [localListings, setLocalListings] = useState<any[]>([]);
+  const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
   React.useEffect(() => {
     fetch('/api/listings')
@@ -29,10 +35,51 @@ export default function Home() {
       .then(data => setLocalListings(data));
   }, []);
 
+  const handleAuth = async () => {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      body: JSON.stringify({ ...authForm, action: authMode })
+    });
+    if (res.ok) {
+      const userData = await res.json();
+      login(userData);
+      setIsAuthModalOpen(false);
+    } else {
+      const err = await res.json();
+      alert(err.error);
+    }
+  };
+
   const drivers = localListings.filter(l => l.type === 'driver');
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Auth Modal */}
+      <AnimatePresence>
+        {isAuthModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAuthModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
+              <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">{authMode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
+              <div className="space-y-4">
+                {authMode === 'signup' && (
+                  <input type="text" placeholder="Full Name" className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold" value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} />
+                )}
+                <input type="email" placeholder="Email Address" className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} />
+                <input type="password" placeholder="Password" className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} />
+                <button onClick={handleAuth} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-xl shadow-blue-200">{authMode === 'login' ? 'Login' : 'Sign Up'}</button>
+                <p className="text-center text-sm font-bold text-gray-400">
+                  {authMode === 'login' ? "Don't have an account?" : "Already have an account?"} 
+                  <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="text-blue-600 ml-1">
+                    {authMode === 'login' ? 'Sign Up' : 'Login'}
+                  </button>
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Booking Modal */}
       <AnimatePresence>
         {isBookingModalOpen && (
@@ -158,7 +205,10 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsSellModalOpen(false)}
+              onClick={() => {
+                setIsSellModalOpen(false);
+                setGeneratedKey(null);
+              }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
@@ -172,7 +222,10 @@ export default function Home() {
                   List Your Item
                 </h2>
                 <button 
-                  onClick={() => setIsSellModalOpen(false)}
+                  onClick={() => {
+                    setIsSellModalOpen(false);
+                    setGeneratedKey(null);
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <X className="w-6 h-6 text-gray-400" />
@@ -180,96 +233,122 @@ export default function Home() {
               </div>
 
               <div className="p-6 space-y-6">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Title</label>
-                  <input 
-                    type="text" 
-                    placeholder="What are you selling?" 
-                    className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
-                    value={newItem.title}
-                    onChange={(e) => setNewItem({...newItem, title: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Price (₡)</label>
-                    <input 
-                      type="text" 
-                      placeholder="15,000" 
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
-                      value={newItem.price}
-                      onChange={(e) => setNewItem({...newItem, price: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Category</label>
-                    <select 
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 transition-all appearance-none"
-                      value={newItem.category}
-                      onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                {generatedKey ? (
+                  <div className="text-center py-8 space-y-6">
+                    <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <ShieldCheck className="w-10 h-10" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-gray-900 uppercase mb-2">Item Posted!</h3>
+                      <p className="text-gray-500 font-medium">Since you're not logged in, save this private key to edit or delete your post later:</p>
+                    </div>
+                    <div className="bg-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-300">
+                      <span className="text-3xl font-black text-blue-600 tracking-widest select-all">{generatedKey}</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setIsSellModalOpen(false);
+                        setGeneratedKey(null);
+                      }}
+                      className="w-full bg-black text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm"
                     >
-                      <option>Electronics</option>
-                      <option>Home</option>
-                      <option>Vehicles</option>
-                      <option>Other</option>
-                    </select>
+                      Got it, close
+                    </button>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {!user && (
+                      <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex gap-3 items-center mb-2">
+                        <Key className="w-5 h-5 text-orange-600" />
+                        <p className="text-xs font-bold text-orange-800">You are posting as a <span className="underline cursor-pointer" onClick={() => { setIsSellModalOpen(false); setIsAuthModalOpen(true); }}>Guest</span>. You'll get a private key to manage this post.</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Title</label>
+                      <input 
+                        type="text" 
+                        placeholder="What are you selling?" 
+                        className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                        value={newItem.title}
+                        onChange={(e) => setNewItem({...newItem, title: e.target.value})}
+                      />
+                    </div>
 
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-4 items-start">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-blue-900 uppercase tracking-tight">Location Tagged</p>
-                    <p className="text-sm font-medium text-blue-700">San José, Costa Rica</p>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Price (₡)</label>
+                        <input 
+                          type="text" 
+                          placeholder="15,000" 
+                          className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                          value={newItem.price}
+                          onChange={(e) => setNewItem({...newItem, price: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                        <select 
+                          className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 transition-all appearance-none"
+                          value={newItem.category}
+                          onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                        >
+                          <option>Electronics</option>
+                          <option>Home</option>
+                          <option>Vehicles</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Image</label>
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 focus:border-blue-500 focus:outline-none font-bold text-gray-400 transition-all cursor-pointer"
-                    onChange={(e) => setNewItem({...newItem, image: e.target.files?.[0] || null})}
-                  />
-                </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Image</label>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 focus:border-blue-500 focus:outline-none font-bold text-gray-400 transition-all cursor-pointer"
+                        onChange={(e) => setNewItem({...newItem, image: e.target.files?.[0] || null})}
+                      />
+                    </div>
 
-                <button 
-                  onClick={async () => {
-                    const formData = new FormData();
-                    formData.append('title', newItem.title);
-                    formData.append('price', `₡${newItem.price}`);
-                    formData.append('category', newItem.category);
-                    formData.append('sellerId', "c0dii-user");
-                    formData.append('owner', "Codi");
-                    formData.append('rating', "5.0");
-                    formData.append('type', "seller");
-                    formData.append('lat', "9.9281");
-                    formData.append('lng', "-84.0907");
-                    if (newItem.image) {
-                      formData.append('image', newItem.image);
-                    }
-                    
-                    const res = await fetch('/api/listings', {
-                      method: 'POST',
-                      body: formData
-                    });
-                    
-                    if (res.ok) {
-                      const created = await res.json();
-                      setLocalListings([created, ...localListings]);
-                      alert(`Listing created: ${newItem.title}!`);
-                      setIsSellModalOpen(false);
-                      setNewItem({ title: '', price: '', category: 'Electronics', image: null });
-                    }
-                  }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
-                >
-                  <PlusCircle className="w-5 h-5" /> Post Listing
-                </button>
+                    <button 
+                      onClick={async () => {
+                        const formData = new FormData();
+                        formData.append('title', newItem.title);
+                        formData.append('price', `₡${newItem.price}`);
+                        formData.append('category', newItem.category);
+                        formData.append('sellerId', user?.id || "");
+                        formData.append('owner', user?.name || "Guest");
+                        formData.append('rating', "5.0");
+                        formData.append('type', "seller");
+                        formData.append('lat', "9.9281");
+                        formData.append('lng', "-84.0907");
+                        if (newItem.image) {
+                          formData.append('image', newItem.image);
+                        }
+                        
+                        const res = await fetch('/api/listings', {
+                          method: 'POST',
+                          body: formData
+                        });
+                        
+                        if (res.ok) {
+                          const created = await res.json();
+                          setLocalListings([created, ...localListings]);
+                          if (!user) {
+                            setGeneratedKey(created.privateKey);
+                          } else {
+                            alert(`Listing created: ${newItem.title}!`);
+                            setIsSellModalOpen(false);
+                          }
+                          setNewItem({ title: '', price: '', category: 'Electronics', image: null });
+                        }
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                    >
+                      <PlusCircle className="w-5 h-5" /> Post Listing
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
@@ -300,14 +379,31 @@ export default function Home() {
             <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={() => setIsSellModalOpen(true)}
-                className="flex items-center gap-1 bg-blue-600 sm:bg-transparent text-white sm:text-gray-600 hover:text-blue-600 font-bold px-3 py-1.5 sm:px-0 sm:py-0 rounded-full transition-all text-xs sm:text-base active:scale-95"
+                className="flex items-center gap-1 bg-blue-600 text-white font-bold px-4 py-2 rounded-full transition-all text-xs sm:text-sm active:scale-95 shadow-lg shadow-blue-100"
               >
-                <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" /> Sell
+                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Sell Something</span><span className="sm:hidden">Sell</span>
               </button>
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-                <User className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-              <button className="md:hidden p-2">
+              
+              <div className="relative group">
+                <button 
+                  onClick={() => !user && setIsAuthModalOpen(true)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-2"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
+                    {user ? <span className="font-bold text-blue-600">{user.name[0]}</span> : <User className="w-5 h-5" />}
+                  </div>
+                  {user && <span className="hidden sm:inline font-bold text-sm text-gray-700">{user.name.split(' ')[0]}</span>}
+                </button>
+                
+                {user && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 z-50">
+                    <button onClick={logout} className="w-full flex items-center gap-2 p-3 text-red-600 font-bold text-sm hover:bg-red-50 rounded-xl transition-colors">
+                      <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button className="md:hidden p-2 text-gray-600">
                 <Menu className="w-6 h-6" />
               </button>
             </div>
@@ -389,8 +485,16 @@ export default function Home() {
 }
 
 function ListingCard({ item }: { item: any }) {
+  const { user } = useAuth();
+  const isOwner = user?.id === item.sellerId;
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative">
+      {isOwner && (
+        <div className="absolute top-3 left-3 z-10 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+          My Listing
+        </div>
+      )}
       <div className="aspect-square bg-gray-100 relative overflow-hidden">
         {item.imageUrl ? (
           <img 
@@ -440,6 +544,12 @@ function ListingCard({ item }: { item: any }) {
             {item.rating}
           </div>
         </div>
+        
+        {item.verified && (
+          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 w-fit px-2 py-1 rounded-md">
+            <ShieldCheck className="w-3 h-3" /> Verified Seller
+          </div>
+        )}
       </div>
     </div>
   );

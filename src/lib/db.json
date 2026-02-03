@@ -1,8 +1,106 @@
 {
   "listings": [
-    { "id": 1, "sellerId": "carlos-123", "title": "Coffee Maker", "price": "₡15,000", "category": "Home", "location": [9.9281, -84.0907], "rating": 4.8, "type": "seller", "owner": "Carlos" },
-    { "id": 2, "sellerId": "maria-456", "title": "Mountain Bike", "price": "₡120,000", "category": "Vehicles", "location": [9.9333, -84.0833], "rating": 4.5, "type": "seller", "owner": "Maria" },
-    { "id": 3, "sellerId": "luis-789", "title": "Delivery Pro", "price": "Varies", "category": "Delivery", "location": [9.9350, -84.1000], "rating": 5.0, "type": "driver", "owner": "Express Luis" },
-    { "id": 4, "sellerId": "ana-012", "title": "Local Honey", "price": "₡5,000", "category": "Home", "location": [9.9180, -84.0700], "rating": 4.9, "type": "seller", "owner": "Ana" }
-  ]
+    {
+      "id": 1770146288686,
+      "title": "Slide",
+      "price": "₡100000",
+      "category": "Home",
+      "sellerId": "c0dii-user",
+      "owner": "Codi",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770146288630-image.jpg"
+    },
+    {
+      "id": 1770146288615,
+      "title": "Slide",
+      "price": "₡100000",
+      "category": "Home",
+      "sellerId": "c0dii-user",
+      "owner": "Codi",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770146288608-image.jpg"
+    },
+    {
+      "id": 1770146151543,
+      "title": "Samster",
+      "price": "₡1800900",
+      "category": "Other",
+      "sellerId": "c0dii-user",
+      "owner": "Codi",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770146151512-266273.jpg"
+    },
+    {
+      "id": 1,
+      "sellerId": "carlos-123",
+      "title": "Coffee Maker",
+      "price": "₡15,000",
+      "category": "Home",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "rating": 4.8,
+      "type": "seller",
+      "owner": "Carlos"
+    },
+    {
+      "id": 2,
+      "sellerId": "maria-456",
+      "title": "Mountain Bike",
+      "price": "₡120,000",
+      "category": "Vehicles",
+      "location": [
+        9.9333,
+        -84.0833
+      ],
+      "rating": 4.5,
+      "type": "seller",
+      "owner": "Maria"
+    },
+    {
+      "id": 3,
+      "sellerId": "luis-789",
+      "title": "Delivery Pro",
+      "price": "Varies",
+      "category": "Delivery",
+      "location": [
+        9.935,
+        -84.1
+      ],
+      "rating": 5,
+      "type": "driver",
+      "owner": "Express Luis"
+    },
+    {
+      "id": 4,
+      "sellerId": "ana-012",
+      "title": "Local Honey",
+      "price": "₡5,000",
+      "category": "Home",
+      "location": [
+        9.918,
+        -84.07
+      ],
+      "rating": 4.9,
+      "type": "seller",
+      "owner": "Ana"
+    }
+  ],
+  "users": []
 }

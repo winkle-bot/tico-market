@@ -53,17 +53,24 @@ export async function POST(request: Request) {
     }
 
     const db = await readDB();
+    const privateKey = !sellerId ? Math.random().toString(36).substring(2, 10).toUpperCase() : null;
+    
+    // Find user to check verification
+    const user = db.users.find((u: any) => u.id === sellerId);
+    
     const listing = {
       id: Date.now(), // More robust than length + 1
       title,
       price,
       category,
-      sellerId,
+      sellerId: sellerId || `anon-${Date.now()}`,
       owner,
       rating,
       type,
       location: [lat, lng],
-      imageUrl
+      imageUrl,
+      privateKey, // Returned only on creation for anonymous users
+      verified: user?.verified || false
     };
 
     db.listings.unshift(listing);
