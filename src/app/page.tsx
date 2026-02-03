@@ -19,6 +19,9 @@ export default function Home() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+  const [sellStep, setSellStep] = useState(1);
+  const [newItem, setNewItem] = useState({ title: '', price: '', category: 'Electronics' });
 
   const drivers = listings.filter(l => l.type === 'driver');
 
@@ -141,6 +144,99 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* Sell Modal */}
+      <AnimatePresence>
+        {isSellModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSellModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b flex justify-between items-center">
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                  List Your Item
+                </h2>
+                <button 
+                  onClick={() => setIsSellModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Title</label>
+                  <input 
+                    type="text" 
+                    placeholder="What are you selling?" 
+                    className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                    value={newItem.title}
+                    onChange={(e) => setNewItem({...newItem, title: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Price (₡)</label>
+                    <input 
+                      type="text" 
+                      placeholder="15,000" 
+                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                      value={newItem.price}
+                      onChange={(e) => setNewItem({...newItem, price: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                    <select 
+                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 transition-all appearance-none"
+                      value={newItem.category}
+                      onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    >
+                      <option>Electronics</option>
+                      <option>Home</option>
+                      <option>Vehicles</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-4 items-start">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-900 uppercase tracking-tight">Location Tagged</p>
+                    <p className="text-sm font-medium text-blue-700">San José, Costa Rica</p>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    alert(`Listing created: ${newItem.title}!`);
+                    setIsSellModalOpen(false);
+                    setNewItem({ title: '', price: '', category: 'Electronics' });
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                >
+                  <PlusCircle className="w-5 h-5" /> Post Listing
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Navigation */}
       <nav className="bg-white border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,7 +259,10 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-blue-600 font-medium">
+              <button 
+                onClick={() => setIsSellModalOpen(true)}
+                className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+              >
                 <PlusCircle className="w-5 h-5" /> Sell
               </button>
               <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full">
