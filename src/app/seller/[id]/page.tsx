@@ -1,22 +1,43 @@
-import React from 'react';
-import { Star, MapPin, Calendar, CheckCircle, ArrowLeft, ShieldCheck, MessageCircle } from 'lucide-react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
-import { sellers, listings, categoryEmojis } from '@/lib/data';
+import { sellers, categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
+import { motion } from 'framer-motion';
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+export default function SellerProfile({ params }: { params: Promise<{ id: string }> }) {
+  const [id, setId] = useState<string | null>(null);
+  const [seller, setSeller] = useState<any>(null);
+  const [sellerListings, setSellerListings] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-export default async function SellerProfile({ params }: PageProps) {
-  const { id } = await params;
-  const seller = sellers.find((s) => s.id === id);
+  useEffect(() => {
+    params.then(p => setId(p.id));
+  }, [params]);
 
-  if (!seller) {
-    notFound();
-  }
+  useEffect(() => {
+    if (!id) return;
+    
+    const foundSeller = sellers.find((s) => s.id === id);
+    if (!foundSeller) {
+      setSeller('not_found');
+      setIsLoading(false);
+      return;
+    }
+    setSeller(foundSeller);
 
-  const sellerListings = listings.filter((l) => l.sellerId === id);
+    fetch('/api/listings')
+      .then(res => res.json())
+      .then(data => {
+        setSellerListings(data.filter((l: any) => l.sellerId === id));
+        setIsLoading(false);
+      });
+  }, [id]);
+
+  if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
+  if (seller === 'not_found') return notFound();
 
   return (
     <div className="min-h-screen bg-gray-50">
