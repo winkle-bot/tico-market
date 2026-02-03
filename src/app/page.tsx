@@ -21,7 +21,13 @@ export default function Home() {
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({ title: '', price: '', category: 'Electronics' });
-  const [localListings, setLocalListings] = useState(listings);
+  const [localListings, setLocalListings] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    fetch('/api/listings')
+      .then(res => res.json())
+      .then(data => setLocalListings(data));
+  }, []);
 
   const drivers = localListings.filter(l => l.type === 'driver');
 
@@ -222,9 +228,8 @@ export default function Home() {
                 </div>
 
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     const listing = {
-                      id: localListings.length + 1,
                       sellerId: "c0dii-user",
                       title: newItem.title,
                       price: `₡${newItem.price}`,
@@ -234,10 +239,20 @@ export default function Home() {
                       type: 'seller',
                       owner: "Codi"
                     };
-                    setLocalListings([listing, ...localListings]);
-                    alert(`Listing created: ${newItem.title}!`);
-                    setIsSellModalOpen(false);
-                    setNewItem({ title: '', price: '', category: 'Electronics' });
+                    
+                    const res = await fetch('/api/listings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(listing)
+                    });
+                    
+                    if (res.ok) {
+                      const created = await res.json();
+                      setLocalListings([created, ...localListings]);
+                      alert(`Listing created: ${newItem.title}!`);
+                      setIsSellModalOpen(false);
+                      setNewItem({ title: '', price: '', category: 'Electronics' });
+                    }
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
                 >
