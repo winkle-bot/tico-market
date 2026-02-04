@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Package, Heart, MessageCircle, Settings, LogOut, Edit2, Trash2, Plus, ChevronLeft } from 'lucide-react';
+import { User, Package, Heart, MessageCircle, Settings, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -11,8 +11,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AccountPage() {
   const { user, logout, isLoading: authLoading, toggleFavorite, refreshUser } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'messages'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages'>('listings');
   const [myListings, setMyListings] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +58,13 @@ export default function AccountPage() {
       if (messagesRes.ok) {
         const convs = await messagesRes.json();
         setConversations(convs);
+      }
+      
+      // Load orders
+      const ordersRes = await fetch(`/api/orders?userId=${user.id}`);
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData);
       }
     } catch (err) {
       console.error('Error loading account data:', err);
@@ -248,6 +256,7 @@ export default function AccountPage() {
           <div className="flex gap-2">
             {[
               { id: 'listings', label: 'My Listings', icon: Package, count: myListings.length },
+              { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length },
               { id: 'favorites', label: 'Favorites', icon: Heart, count: favorites.length },
               { id: 'messages', label: 'Messages', icon: MessageCircle, count: conversations.length }
             ].map(tab => (
@@ -339,6 +348,11 @@ export default function AccountPage() {
               </div>
             )}
 
+            {/* Orders Tab */}
+            {activeTab === 'orders' && (
+              <OrdersTab orders={orders} userId={user.id} onStatusChange={loadData} />
+            )}
+
             {/* Favorites Tab */}
             {activeTab === 'favorites' && (
               <div className="space-y-4">
@@ -428,6 +442,217 @@ export default function AccountPage() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Orders Tab Component
+function OrdersTab({ 
+  orders, 
+  userId, 
+  onStatusChange 
+}: { 
+  orders: any[]; 
+  userId: string;
+  onStatusChange: () => void;
+}) {
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, userId })
+      });
+      
+      if (res.ok) {
+        onStatusChange();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update order');
+      }
+    } catch (err) {
+      alert('Error updating order');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      confirmed: 'bg-blue-100 text-blue-700 border-blue-200',
+      in_transit: 'bg-purple-100 text-purple-700 border-purple-200',
+      completed: 'bg-green-100 text-green-700 border-green-200',
+      cancelled: 'bg-red-100 text-red-700 border-red-200',
+    };
+    const icons: Record<string, React.ReactNode> = {
+      pending: <Clock className="w-3 h-3" />,
+      confirmed: <CheckCircle className="w-3 h-3" />,
+      in_transit: <Truck className="w-3 h-3" />,
+      completed: <CheckCircle className="w-3 h-3" />,
+      cancelled: <XCircle className="w-3 h-3" />,
+    };
+    const labels: Record<string, string> = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      in_transit: 'In Transit',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    };
+    
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border ${styles[status] || styles.pending}`}>
+        {icons[status]}
+        {labels[status] || status}
+      </span>
+    );
+  };
+
+  if (orders.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <ShoppingBag className="w-10 h-10 text-gray-300" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">No orders yet</h3>
+        <p className="text-gray-500">Your purchases and sales will appear here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {orders.map(order => {
+        const isSeller = order.sellerId === userId;
+        const isBuyer = order.buyerId === userId;
+        
+        return (
+          <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
+            {/* Order header */}
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  {getStatusBadge(order.status)}
+                  <span className="text-xs text-gray-400">
+                    {new Date(order.createdAt).toLocaleDateString('es-CR')}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isSeller ? `Buyer: ${order.buyerName}` : `Seller: ${order.sellerName}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 text-xs font-bold">
+                {order.type === 'pickup' ? (
+                  <span className="text-green-600 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Pickup
+                  </span>
+                ) : (
+                  <span className="text-blue-600 flex items-center gap-1">
+                    <Truck className="w-3 h-3" /> Delivery
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Order content */}
+            <div className="flex gap-4 mb-4">
+              <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                {order.listingSnapshot?.imageUrl ? (
+                  <img src={order.listingSnapshot.imageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <Link 
+                  href={`/listing/${order.listingId}`}
+                  className="font-bold text-gray-900 hover:text-blue-600 transition-colors line-clamp-1"
+                >
+                  {order.listingSnapshot?.title || 'Unknown Item'}
+                </Link>
+                <p className="text-blue-600 font-bold text-lg">{order.listingSnapshot?.price}</p>
+                {order.type === 'delivery' && order.deliveryFee && (
+                  <p className="text-xs text-gray-500">+ ₡{order.deliveryFee.toLocaleString()} delivery</p>
+                )}
+              </div>
+            </div>
+
+            {/* Location/Address info */}
+            {order.type === 'pickup' && order.pickupLocation && (
+              <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
+                <p className="font-bold text-gray-900">{order.pickupLocation.name}</p>
+                <p className="text-gray-600">{order.pickupLocation.address}</p>
+                {order.scheduledWindow && (
+                  <p className="text-blue-600 mt-1">Preferred: {order.scheduledWindow}</p>
+                )}
+              </div>
+            )}
+            {order.type === 'delivery' && order.deliveryAddress && (
+              <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
+                <p className="font-bold text-gray-900">Deliver to:</p>
+                <p className="text-gray-600">{order.deliveryAddress}</p>
+              </div>
+            )}
+
+            {/* Notes */}
+            {order.notes && (
+              <div className="bg-yellow-50 rounded-xl p-3 mb-4 text-sm border border-yellow-100">
+                <p className="text-yellow-800">📝 {order.notes}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            {order.status === 'pending' && isSeller && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                  className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Confirm Order
+                </button>
+                <button
+                  onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                  className="px-4 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Decline
+                </button>
+              </div>
+            )}
+            {order.status === 'confirmed' && isSeller && (
+              <div className="flex gap-2">
+                {order.type === 'delivery' && (
+                  <button
+                    onClick={() => updateOrderStatus(order.id, 'in_transit')}
+                    className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
+                  >
+                    Mark In Transit
+                  </button>
+                )}
+                <button
+                  onClick={() => updateOrderStatus(order.id, 'completed')}
+                  className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
+                >
+                  Mark Completed
+                </button>
+              </div>
+            )}
+            {order.status === 'in_transit' && isSeller && (
+              <button
+                onClick={() => updateOrderStatus(order.id, 'completed')}
+                className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
+              >
+                Mark Completed
+              </button>
+            )}
+            {order.status === 'pending' && isBuyer && (
+              <button
+                onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
+              >
+                Cancel Order
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

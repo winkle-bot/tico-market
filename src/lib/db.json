@@ -1,6 +1,40 @@
 {
   "listings": [
     {
+      "id": 1770231316968,
+      "title": "Cutiepie",
+      "price": "₡1🍄",
+      "category": "Fashion",
+      "sellerId": "user-1770159021630",
+      "owner": "Realcodi",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770231316964-265485.jpg",
+      "privateKey": null,
+      "verified": false
+    },
+    {
+      "id": 1770231107281,
+      "title": "Capybara",
+      "price": "₡1000000",
+      "category": "Home",
+      "sellerId": "user-1770230960352",
+      "owner": "Sam",
+      "rating": 5,
+      "type": "seller",
+      "location": [
+        9.9281,
+        -84.0907
+      ],
+      "imageUrl": "/uploads/1770231107278-ai-generated-cute-capybara-under-beach-sun-umbrella-resting-on-shore-of-sea-or-river-animals-theme-hydrochoerus-hydrochaeris-generative-ai-photo[1].jpg",
+      "privateKey": null,
+      "verified": false
+    },
+    {
       "id": 1770230238622,
       "title": "Junk",
       "price": "₡1000",
@@ -425,7 +459,58 @@
       "name": "Carlos Jiménez",
       "joined": "2024-01-15T00:00:00.000Z",
       "verified": true,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": true,
+      "pickupLocations": [
+        {
+          "id": "loc-carlos-1",
+          "name": "Mi Casa - Escazú",
+          "address": "Escazú Centro, 100m norte del Mas x Menos",
+          "coords": [
+            9.9342,
+            -84.0875
+          ],
+          "schedule": {
+            "monday": [
+              {
+                "start": "09:00",
+                "end": "18:00"
+              }
+            ],
+            "tuesday": [
+              {
+                "start": "09:00",
+                "end": "18:00"
+              }
+            ],
+            "wednesday": [
+              {
+                "start": "09:00",
+                "end": "18:00"
+              }
+            ],
+            "thursday": [
+              {
+                "start": "09:00",
+                "end": "18:00"
+              }
+            ],
+            "friday": [
+              {
+                "start": "09:00",
+                "end": "18:00"
+              }
+            ],
+            "saturday": [
+              {
+                "start": "10:00",
+                "end": "14:00"
+              }
+            ]
+          },
+          "notes": "Llamar al llegar. Portón negro."
+        }
+      ]
     },
     {
       "id": "maria-456",
@@ -433,7 +518,76 @@
       "name": "María Solano",
       "joined": "2023-12-01T00:00:00.000Z",
       "verified": true,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": true,
+      "pickupLocations": [
+        {
+          "id": "loc-maria-1",
+          "name": "Oficina Sabana",
+          "address": "La Sabana Norte, Edificio Torre Rohrmoser, piso 3",
+          "coords": [
+            9.9378,
+            -84.1234
+          ],
+          "schedule": {
+            "monday": [
+              {
+                "start": "08:00",
+                "end": "17:00"
+              }
+            ],
+            "tuesday": [
+              {
+                "start": "08:00",
+                "end": "17:00"
+              }
+            ],
+            "wednesday": [
+              {
+                "start": "08:00",
+                "end": "17:00"
+              }
+            ],
+            "thursday": [
+              {
+                "start": "08:00",
+                "end": "17:00"
+              }
+            ],
+            "friday": [
+              {
+                "start": "08:00",
+                "end": "15:00"
+              }
+            ]
+          },
+          "notes": "Recepción en primer piso"
+        },
+        {
+          "id": "loc-maria-2",
+          "name": "Casa - Heredia",
+          "address": "San Francisco de Heredia, Residencial El Castillo",
+          "coords": [
+            9.9985,
+            -84.1167
+          ],
+          "schedule": {
+            "saturday": [
+              {
+                "start": "09:00",
+                "end": "17:00"
+              }
+            ],
+            "sunday": [
+              {
+                "start": "10:00",
+                "end": "14:00"
+              }
+            ]
+          },
+          "notes": "Solo fines de semana"
+        }
+      ]
     },
     {
       "id": "luis-789",
@@ -441,7 +595,9 @@
       "name": "Luis Mora",
       "joined": "2024-02-01T00:00:00.000Z",
       "verified": true,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": true,
+      "pickupLocations": []
     },
     {
       "id": "ana-012",
@@ -449,7 +605,58 @@
       "name": "Ana Campos",
       "joined": "2023-11-01T00:00:00.000Z",
       "verified": true,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": false,
+      "pickupLocations": [
+        {
+          "id": "loc-ana-1",
+          "name": "Feria del Agricultor Zapote",
+          "address": "Feria de Zapote, puesto #42",
+          "coords": [
+            9.9185,
+            -84.0512
+          ],
+          "schedule": {
+            "saturday": [
+              {
+                "start": "06:00",
+                "end": "12:00"
+              }
+            ]
+          },
+          "notes": "Solo sábados en la feria"
+        },
+        {
+          "id": "loc-ana-2",
+          "name": "Finca en Heredia",
+          "address": "San Isidro de Heredia, 2km norte de la iglesia",
+          "coords": [
+            10.0234,
+            -84.0567
+          ],
+          "schedule": {
+            "monday": [
+              {
+                "start": "14:00",
+                "end": "18:00"
+              }
+            ],
+            "wednesday": [
+              {
+                "start": "14:00",
+                "end": "18:00"
+              }
+            ],
+            "friday": [
+              {
+                "start": "14:00",
+                "end": "18:00"
+              }
+            ]
+          },
+          "notes": "Coordinar con anticipación. Producto fresco de la finca."
+        }
+      ]
     },
     {
       "id": "jose-555",
@@ -457,7 +664,9 @@
       "name": "José Vargas",
       "joined": "2024-01-20T00:00:00.000Z",
       "verified": false,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": true,
+      "pickupLocations": []
     },
     {
       "id": "sofia-666",
@@ -465,7 +674,9 @@
       "name": "Sofía Arias",
       "joined": "2024-02-10T00:00:00.000Z",
       "verified": false,
-      "favorites": []
+      "favorites": [],
+      "acceptsDelivery": true,
+      "pickupLocations": []
     },
     {
       "id": "user-1770159021630",
@@ -473,7 +684,19 @@
       "password": "password",
       "name": "Realcodi",
       "joined": "2026-02-03T22:50:21.630Z",
-      "verified": false
+      "verified": false,
+      "acceptsDelivery": true,
+      "pickupLocations": []
+    },
+    {
+      "id": "user-1770230960352",
+      "email": "sssaammyyy@icloud.com",
+      "password": "S4m.tontito",
+      "name": "Sam",
+      "joined": "2026-02-04T18:49:20.352Z",
+      "verified": false,
+      "acceptsDelivery": true,
+      "pickupLocations": []
     }
   ],
   "messages": [
@@ -524,6 +747,43 @@
       "text": "Sorry, I meant are the tires* blown up",
       "createdAt": "2026-02-04T18:46:22.696Z",
       "read": false
+    },
+    {
+      "id": 1770231153238,
+      "listingId": 1770231107281,
+      "buyerId": "user-1770159021630",
+      "buyerName": "Realcodi",
+      "sellerId": "user-1770230960352",
+      "sellerName": "Sam",
+      "senderId": "user-1770159021630",
+      "text": "Do you still have this?",
+      "createdAt": "2026-02-04T18:52:33.238Z",
+      "read": false
+    },
+    {
+      "id": 1770231176270,
+      "listingId": 1770231107281,
+      "buyerId": "user-1770230960352",
+      "buyerName": "Sam",
+      "sellerId": "user-1770230960352",
+      "sellerName": "Sam",
+      "senderId": "user-1770230960352",
+      "text": "Yes",
+      "createdAt": "2026-02-04T18:52:56.270Z",
+      "read": false
+    },
+    {
+      "id": 1770231461520,
+      "listingId": 1770231316968,
+      "buyerId": "user-1770230960352",
+      "buyerName": "Sam",
+      "sellerId": "user-1770159021630",
+      "sellerName": "Realcodi",
+      "senderId": "user-1770230960352",
+      "text": "I'd like to buy this",
+      "createdAt": "2026-02-04T18:57:41.520Z",
+      "read": false
     }
-  ]
+  ],
+  "orders": []
 }

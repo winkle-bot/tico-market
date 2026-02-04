@@ -24,7 +24,11 @@ const INITIAL_FORM_STATE: NewListingForm = {
   title: '',
   price: '',
   category: 'Electronics',
+  description: '',
   image: null,
+  pickupOnly: false,
+  deliveryAvailable: true,
+  pickupLocationIds: [],
 };
 
 export function SellModal({
