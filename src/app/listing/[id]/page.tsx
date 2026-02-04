@@ -10,11 +10,10 @@ import ChatModal from '@/components/ChatModal';
 import { ListingDetailSkeleton } from '@/components/Skeletons';
 
 export default function ListingDetails({ params }: { params: Promise<{ id: string }> }) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, isFavorite, toggleFavorite: contextToggleFavorite } = useAuth();
   const [id, setId] = useState<string | null>(null);
   const [listing, setListing] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -45,41 +44,17 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
     fetchListing();
   }, [id]);
 
-  // Check if listing is in user's favorites
-  useEffect(() => {
-    if (user && listing && listing.id) {
-      fetch(`/api/users/${user.id}`)
-        .then(res => res.json())
-        .then(userData => {
-          if (userData.favorites && userData.favorites.includes(listing.id)) {
-            setIsLiked(true);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [user, listing]);
+  // Derive isLiked from context (no extra fetch needed!)
+  const isLiked = listing?.id ? isFavorite(listing.id) : false;
 
-  const toggleFavorite = async () => {
+  const handleToggleFavorite = async () => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    const newLiked = !isLiked;
-    setIsLiked(newLiked);
-
-    try {
-      await fetch(`/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'toggleFavorite',
-          listingId: listing.id
-        })
-      });
-    } catch (err) {
-      // Revert on error
-      setIsLiked(!newLiked);
+    if (listing?.id) {
+      await contextToggleFavorite(listing.id);
     }
   };
 
@@ -108,8 +83,9 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
               <Share2 className="w-5 h-5" />
             </button>
             <button 
-              onClick={toggleFavorite}
+              onClick={handleToggleFavorite}
               className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${isLiked ? 'text-red-500' : 'text-gray-600'}`}
+              aria-label={isLiked ? 'Remove from favorites' : 'Add to favorites'}
             >
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
             </button>

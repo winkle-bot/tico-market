@@ -9,7 +9,7 @@ import { categoryEmojis } from '@/lib/data';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading, toggleFavorite, refreshUser } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'messages'>('listings');
   const [myListings, setMyListings] = useState<any[]>([]);
@@ -20,12 +20,15 @@ export default function AccountPage() {
   const [editForm, setEditForm] = useState({ title: '', price: '', description: '' });
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/');
       return;
     }
     loadData();
-  }, [user]);
+  }, [user, authLoading]);
 
   const loadData = async () => {
     if (!user) return;
@@ -123,23 +126,21 @@ export default function AccountPage() {
   const removeFavorite = async (listingId: number) => {
     if (!user) return;
     
-    try {
-      const res = await fetch(`/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'removeFavorite',
-          listingId
-        })
-      });
-      
-      if (res.ok) {
-        setFavorites(prev => prev.filter(l => l.id !== listingId));
-      }
-    } catch (err) {
-      console.error('Error removing favorite:', err);
+    // Use the context's toggleFavorite for consistency
+    const success = await toggleFavorite(listingId);
+    if (success) {
+      setFavorites(prev => prev.filter(l => l.id !== listingId));
     }
   };
+
+  // Show loading while auth is hydrating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse text-gray-400 font-medium">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;

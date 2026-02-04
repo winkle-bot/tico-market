@@ -22,9 +22,10 @@ export interface User {
   name: string;
   joined: string;
   verified: boolean;
-  favorites?: string[];
+  favorites: number[];
   bio?: string;
   location?: string;
+  rating?: number;
 }
 
 export interface Message {

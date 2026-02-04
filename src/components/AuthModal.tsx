@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_ROUTES, MODAL_BACKDROP_VARIANTS } from '@/config/constants';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, type AuthUser } from '@/context/AuthContext';
 import type { AuthFormState } from '@/types';
 
 interface AuthModalProps {
@@ -23,19 +24,45 @@ export function AuthModal({
   onFormChange,
 }: AuthModalProps) {
   const { login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAuth = async () => {
-    const res = await fetch(API_ROUTES.AUTH, {
-      method: 'POST',
-      body: JSON.stringify({ ...formState, action: mode }),
-    });
-    if (res.ok) {
-      const userData = await res.json();
-      login(userData);
-      onClose();
-    } else {
-      const err = await res.json();
-      alert(err.error);
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(API_ROUTES.AUTH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formState, action: mode }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Normalize the user data with defaults
+        const userData: AuthUser = {
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          joined: data.joined,
+          verified: data.verified ?? false,
+          favorites: data.favorites || [],
+          bio: data.bio,
+          location: data.location,
+        };
+        login(userData);
+        onClose();
+        // Reset form
+        onFormChange({ email: '', password: '', name: '' });
+      } else {
+        setError(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,11 +114,17 @@ export function AuthModal({
                   onFormChange({ ...formState, password: e.target.value })
                 }
               />
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium">
+                  {error}
+                </div>
+              )}
               <button
                 onClick={handleAuth}
-                className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-xl shadow-blue-200"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-xl shadow-blue-200 transition-colors"
               >
-                {mode === 'login' ? 'Login' : 'Sign Up'}
+                {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Login' : 'Sign Up'}
               </button>
               <p className="text-center text-sm font-bold text-gray-400">
                 {mode === 'login'
