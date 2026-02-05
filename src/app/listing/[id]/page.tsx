@@ -310,6 +310,49 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
                 </p>
               </div>
 
+              {/* Availability & Logistics */}
+              {(listing.pickupConfig?.leadTime || (listing.pickupConfig?.marketEvents && listing.pickupConfig.marketEvents.length > 0)) && (
+                <div className="mb-8 p-6 bg-orange-50 rounded-3xl border border-orange-100">
+                  <h2 className="text-xs font-black text-orange-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Truck className="w-4 h-4" /> Availability & Pickup
+                  </h2>
+                  
+                  {listing.pickupConfig.leadTime && (
+                    <div className="mb-4">
+                      <span className="text-[10px] font-black text-orange-400 uppercase block mb-1">Lead Time</span>
+                      <p className="font-bold text-gray-900 text-lg">{listing.pickupConfig.leadTime}</p>
+                    </div>
+                  )}
+
+                  {listing.pickupConfig.marketEvents && listing.pickupConfig.marketEvents.length > 0 && (
+                    <div>
+                      <span className="text-[10px] font-black text-orange-400 uppercase block mb-2">Available at Markets</span>
+                      <div className="space-y-2">
+                        {listing.pickupConfig.marketEvents.map((event: any) => (
+                          <div key={event.id} className="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex justify-between items-center group hover:border-orange-300 transition-colors">
+                              <div>
+                                <div className="font-black text-sm text-gray-900">{event.name}</div>
+                                <div className="text-xs font-bold text-gray-500 mt-1">{event.date} • {event.timeWindow}</div>
+                              </div>
+                              {event.wazeLink && (
+                                <a 
+                                  href={event.wazeLink} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
+                                  title="Open in Waze"
+                                >
+                                  <MapPin className="w-5 h-5" />
+                                </a>
+                              )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Action Bar (Desktop) */}
               <div className="mt-auto hidden lg:flex gap-4">
                 {isOwnListing ? (

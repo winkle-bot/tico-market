@@ -19,6 +19,8 @@ interface ChatModalProps {
     name: string;
   } | null;
   onAuthRequired: () => void;
+  chatWithName?: string; // Override for "Chat with X" when opening from messages
+  chatWithId?: string; // Specific user ID to chat with (essential for sellers)
 }
 
 interface Message {
@@ -28,7 +30,7 @@ interface Message {
   createdAt: string;
 }
 
-export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired }: ChatModalProps) {
+export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired, chatWithName, chatWithId }: ChatModalProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,8 +44,22 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   useEffect(() => {
     if (isOpen && currentUser) {
       loadMessages();
+      
+      // Use SSE for real-time updates instead of polling
+      const eventSource = new EventSource(`/api/events?userId=${currentUser.id}`);
+      
+      eventSource.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'update') {
+          loadMessages();
+        }
+      };
+
+      return () => {
+        eventSource.close();
+      };
     }
-  }, [isOpen, currentUser]);
+  }, [isOpen, currentUser, listing.id, chatWithId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -52,19 +68,56 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   const loadMessages = async () => {
     if (!currentUser) return;
     
-    setIsLoading(true);
+    // Only show loading on initial fetch if we have no messages
+    if (messages.length === 0) setIsLoading(true);
+    
     try {
       const res = await fetch(`/api/messages?userId=${currentUser.id}`);
       const conversations = await res.json();
       
       // Find conversation for this listing
-      const conv = conversations.find((c: any) => 
-        c.listingId === listing.id && 
-        (c.otherPartyId === listing.sellerId || currentUser.id === listing.sellerId)
-      );
+      // If chatWithId is provided, look for that specific conversation
+      // Otherwise, default to finding the conversation where the other party is the seller
+      const conv = conversations.find((c: any) => {
+        if (c.listingId !== listing.id) return false;
+
+        if (chatWithId) {
+          return c.otherPartyId === chatWithId;
+        }
+
+        // Default behavior (Buyer clicking "Chat" on listing)
+        // We want the conversation with the seller
+        return c.otherPartyId === listing.sellerId;
+      });
       
       if (conv) {
-        setMessages(conv.messages);
+        // Only update if we have new messages or count changed
+        // Simple length check for now, could be more robust
+        setMessages(prev => {
+          if (prev.length !== conv.messages.length) return conv.messages;
+          // Check last message ID
+          if (prev.length > 0 && conv.messages.length > 0 && prev[prev.length - 1].id !== conv.messages[conv.messages.length - 1].id) {
+            return conv.messages;
+          }
+          return prev;
+        });
+
+        // Check for unread messages and mark them as read
+        const hasUnread = conv.messages.some((m: any) => !m.read && m.senderId !== currentUser.id);
+        if (hasUnread) {
+           const targetId = chatWithId || (currentUser.id === listing.sellerId ? null : listing.sellerId);
+           if (targetId) {
+             fetch('/api/messages', {
+               method: 'PATCH',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                 userId: currentUser.id,
+                 listingId: listing.id,
+                 otherPartyId: targetId
+               })
+             }).catch(console.error);
+           }
+        }
       }
     } catch (err) {
       console.error('Error loading messages:', err);
@@ -76,7 +129,31 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUser || isSending) return;
 
-    const isBuyer = currentUser.id !== listing.sellerId;
+    // Determine roles
+    // If I am the seller, the "buyer" is the person I'm chatting with (chatWithId)
+    // If I am the buyer, I am the buyer.
+    
+    let buyerId, buyerName, sellerId, sellerName;
+
+    if (currentUser.id === listing.sellerId) {
+      // I am the seller
+      sellerId = currentUser.id;
+      sellerName = currentUser.name;
+      
+      // I must know who the buyer is to reply!
+      if (!chatWithId) {
+        console.error("Cannot reply without a buyer ID (chatWithId)");
+        return;
+      }
+      buyerId = chatWithId;
+      buyerName = chatWithName || 'Buyer'; // Fallback
+    } else {
+      // I am the buyer
+      buyerId = currentUser.id;
+      buyerName = currentUser.name;
+      sellerId = listing.sellerId;
+      sellerName = listing.owner;
+    }
     
     setIsSending(true);
     try {
@@ -85,10 +162,10 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId: listing.id,
-          buyerId: isBuyer ? currentUser.id : listing.sellerId,
-          buyerName: isBuyer ? currentUser.name : listing.owner,
-          sellerId: listing.sellerId,
-          sellerName: listing.owner,
+          buyerId,
+          buyerName,
+          sellerId,
+          sellerName,
           senderId: currentUser.id,
           text: newMessage.trim()
         })
@@ -98,6 +175,8 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         const msg = await res.json();
         setMessages(prev => [...prev, msg]);
         setNewMessage('');
+        // Refresh immediately
+        loadMessages();
       }
     } catch (err) {
       console.error('Error sending message:', err);
@@ -142,7 +221,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-gray-900 truncate">{listing.title}</h3>
-              <p className="text-sm text-gray-500">Chat with {listing.owner}</p>
+              <p className="text-sm text-gray-500">Chat with {chatWithName || listing.owner}</p>
             </div>
             <button
               onClick={onClose}

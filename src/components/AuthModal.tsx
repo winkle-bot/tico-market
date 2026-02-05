@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_ROUTES, MODAL_BACKDROP_VARIANTS } from '@/config/constants';
-import { useAuth, type AuthUser } from '@/context/AuthContext';
-import type { AuthFormState } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import type { AuthFormState, User } from '@/types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,9 +26,22 @@ export function AuthModal({
   const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleAuth = async () => {
     setError(null);
+    // Basic validation
+    const newErrors: { [key: string]: string } = {};
+    if (!formState.email.includes('@')) newErrors['email'] = 'Invalid email';
+    if (formState.password.length < 6) newErrors['password'] = 'Password too short (min 6 chars)';
+    if (mode === 'signup' && !formState.name.trim()) newErrors['name'] = 'Name required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
+      return;
+    }
+    
+    setFieldErrors({});
     setIsSubmitting(true);
 
     try {
@@ -42,7 +55,7 @@ export function AuthModal({
 
       if (res.ok) {
         // Normalize the user data with defaults
-        const userData: AuthUser = {
+        const userData: User = {
           id: data.id,
           email: data.email,
           name: data.name,
@@ -51,6 +64,7 @@ export function AuthModal({
           favorites: data.favorites || [],
           bio: data.bio,
           location: data.location,
+          pickupLocations: data.pickupLocations,
         };
         login(userData);
         onClose();
@@ -59,7 +73,7 @@ export function AuthModal({
       } else {
         setError(data.error || 'Authentication failed');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -85,35 +99,55 @@ export function AuthModal({
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
             <div className="space-y-4">
-              {mode === 'signup' && (
+                <div key="name-field">
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
+                      fieldErrors.name ? 'border-red-500' : 'border-gray-100'
+                    } focus:border-blue-500 focus:outline-none font-bold`}
+                    value={formState.name}
+                    onChange={(e) =>
+                      onFormChange({ ...formState, name: e.target.value })
+                    }
+                  />
+                  {fieldErrors.name && (
+                    <p className="text-red-500 text-xs font-bold mt-1 px-2">{fieldErrors.name}</p>
+                  )}
+                </div>
+              )}
+              <div>
                 <input
-                  type="text"
-                  placeholder="Full Name"
-                  className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold"
-                  value={formState.name}
+                  type="email"
+                  placeholder="Email Address"
+                  className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
+                    fieldErrors.email ? 'border-red-500' : 'border-gray-100'
+                  } focus:border-blue-500 focus:outline-none font-bold`}
+                  value={formState.email}
                   onChange={(e) =>
-                    onFormChange({ ...formState, name: e.target.value })
+                    onFormChange({ ...formState, email: e.target.value })
                   }
                 />
-              )}
-              <input
-                type="email"
-                placeholder="Email Address"
-                className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold"
-                value={formState.email}
-                onChange={(e) =>
-                  onFormChange({ ...formState, email: e.target.value })
-                }
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold"
-                value={formState.password}
-                onChange={(e) =>
-                  onFormChange({ ...formState, password: e.target.value })
-                }
-              />
+                {fieldErrors.email && (
+                  <p className="text-red-500 text-xs font-bold mt-1 px-2">{fieldErrors.email}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
+                    fieldErrors.password ? 'border-red-500' : 'border-gray-100'
+                  } focus:border-blue-500 focus:outline-none font-bold`}
+                  value={formState.password}
+                  onChange={(e) =>
+                    onFormChange({ ...formState, password: e.target.value })
+                  }
+                />
+                {fieldErrors.password && (
+                  <p className="text-red-500 text-xs font-bold mt-1 px-2">{fieldErrors.password}</p>
+                )}
+              </div>
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium">
                   {error}

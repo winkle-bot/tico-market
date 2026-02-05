@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db-provider';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -8,7 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const user = db.users.find((u: any) => u.id === id);
     
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return ApiResponse.notFound("User not found");
     }
     
     // Safety for the front-end expectations
@@ -18,13 +19,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       joined: user.joined ? new Date(user.joined).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "Recently",
       location: user.location || "Costa Rica",
       bio: user.bio || "No bio yet.",
-      reviews: user.reviews || [],
       favorites: user.favorites || []
     };
     
-    return NextResponse.json(profile);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(profile);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
 
@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const userIndex = db.users.findIndex((u: any) => u.id === id);
     
     if (userIndex === -1) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return ApiResponse.notFound("User not found");
     }
     
     const user = db.users[userIndex];
@@ -67,8 +67,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     db.users[userIndex] = user;
     await writeDB(db);
     
-    return NextResponse.json(user);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(user);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
+

@@ -7,18 +7,22 @@ import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useListings } from '@/context/ListingsContext';
 import ChatModal from '@/components/ChatModal';
 
 export default function SellerProfile({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
+  const { listings, isLoading: isListingsLoading } = useListings();
   const [id, setId] = useState<string | null>(null);
   const [seller, setSeller] = useState<any>(null);
-  const [sellerListings, setSellerListings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showListingPicker, setShowListingPicker] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Derived state from context
+  const sellerListings = listings.filter((l) => l.sellerId === id);
 
   useEffect(() => {
     params.then(p => setId(p.id));
@@ -37,10 +41,6 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
         }
         const userData = await userRes.json();
         setSeller(userData);
-
-        const listingsRes = await fetch('/api/listings');
-        const listingsData = await listingsRes.json();
-        setSellerListings(listingsData.filter((l: any) => l.sellerId === id));
       } catch (err) {
         setSeller('not_found');
       } finally {

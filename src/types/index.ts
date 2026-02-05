@@ -19,11 +19,22 @@ export interface WeeklySchedule {
 
 // ============ PICKUP ============
 
+export interface MarketEvent {
+  id: string;
+  name: string; // "Feria del Agricultor Escazú"
+  date: string; // ISO date or "Every Saturday"
+  timeWindow: string; // "07:00 - 13:00"
+  locationName: string;
+  wazeLink?: string;
+  coords?: [number, number];
+}
+
 export interface PickupLocation {
   id: string;
   name: string;           // "My Shop", "Escazú Office"
   address: string;        // Full address
   coords: [number, number]; // [lat, lng]
+  wazeLink?: string;      // Deep link to Waze
   schedule: WeeklySchedule;
   notes?: string;         // "Ring bell at gate", "Closed holidays"
 }
@@ -33,8 +44,11 @@ export interface PickupLocation {
 export interface ListingPickupConfig {
   availableLocationIds?: string[]; // Subset of seller's locations (empty = all)
   deliveryAvailable?: boolean;     // Override seller default
+  pickupAvailable?: boolean;       // Can this item be picked up?
   pickupOnly?: boolean;            // Large items - no delivery option
   specialInstructions?: string;
+  leadTime?: string;             // "2 days", "Available Wednesdays"
+  marketEvents?: MarketEvent[];  // Specific events this item is available at
 }
 
 export interface Listing {
@@ -128,9 +142,19 @@ export interface Message {
   id: number;
   listingId: number;
   senderId: string;
-  receiverId: string;
   text: string;
-  timestamp: number;
+  createdAt: string;
+  read: boolean;
+  
+  // Context fields stored with message
+  buyerId: string;
+  buyerName: string;
+  sellerId: string;
+  sellerName: string;
+  
+  // Legacy
+  receiverId?: string;
+  timestamp?: number;
 }
 
 export interface Conversation {
@@ -141,6 +165,16 @@ export interface Conversation {
   lastMessage: string;
   lastTimestamp: number;
   unread?: boolean;
+}
+
+export interface GroupedConversation {
+  listingId: number;
+  listingTitle: string;
+  listingImage?: string;
+  otherPartyId: string;
+  otherPartyName: string;
+  lastMessageAt: string;
+  messages: Message[];
 }
 
 // ============ FORM STATES ============
@@ -158,9 +192,11 @@ export interface NewListingForm {
   description: string;
   image: File | null;
   // Pickup config
-  pickupOnly: boolean;
+  pickupAvailable: boolean;
   deliveryAvailable: boolean;
   pickupLocationIds: string[];
+  leadTime: string;
+  marketEvents: MarketEvent[];
 }
 
 export type BookingStep = 1 | 2;

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, PlusCircle, User, LogOut, Menu } from 'lucide-react';
+import { Search, PlusCircle, User, LogOut, Menu, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface NavbarProps {
@@ -19,7 +19,7 @@ export function Navbar({
   onOpenAuthModal,
   onOpenMobileMenu,
 }: NavbarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, unreadCount } = useAuth();
 
   return (
     <nav className="bg-white border-b sticky top-0 z-50">
@@ -53,6 +53,17 @@ export function Navbar({
               <span className="hidden sm:inline">Sell Something</span>
               <span className="sm:hidden">Sell</span>
             </button>
+
+            {user && (
+              <Link href="/account" className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                <Bell className="w-6 h-6" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             <div className="relative group">
               <button

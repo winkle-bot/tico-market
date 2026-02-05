@@ -94,10 +94,17 @@ export function CheckoutModal({
   if (!listing || !seller) return null;
 
   const pickupLocations = seller.pickupLocations || [];
-  const deliveryAvailable = seller.acceptsDelivery !== false && !listing.pickupConfig?.pickupOnly;
-  const pickupAvailable = pickupLocations.length > 0;
+  const marketEvents = listing.pickupConfig?.marketEvents || [];
+  const deliveryAvailable = seller.acceptsDelivery !== false && 
+    (listing.pickupConfig?.deliveryAvailable !== false) && // check override
+    !listing.pickupConfig?.pickupOnly;
+    
+  const pickupAvailable = (listing.pickupConfig?.pickupAvailable !== false) && // check explicit flag
+    (pickupLocations.length > 0 || marketEvents.length > 0);
 
   const selectedLocation = pickupLocations.find(l => l.id === selectedLocationId);
+  const selectedEvent = marketEvents.find(e => e.id === selectedLocationId); // Reuse ID for events
+  
   const selectedDriver = drivers.find(d => d.id === Number(selectedDriverId));
 
   const handleMethodSelect = (m: OrderType) => {
@@ -152,7 +159,19 @@ export function CheckoutModal({
 
       if (method === 'pickup') {
         orderData.pickupLocationId = selectedLocationId;
-        orderData.pickupLocation = selectedLocation;
+        if (selectedLocation) {
+             orderData.pickupLocation = selectedLocation;
+        } else if (selectedEvent) {
+             // Adapt event to pickup location shape for storage consistency
+             orderData.pickupLocation = {
+                 id: selectedEvent.id,
+                 name: selectedEvent.name,
+                 address: selectedEvent.locationName, // Or "Event Location"
+                 coords: selectedEvent.coords || [0,0],
+                 schedule: {}, // Empty schedule for one-off events
+                 notes: `Event Date: ${selectedEvent.date} ${selectedEvent.timeWindow}`
+             };
+        }
         orderData.scheduledWindow = scheduledWindow || undefined;
       } else {
         orderData.deliveryAddress = deliveryAddress;
@@ -293,6 +312,7 @@ export function CheckoutModal({
                           <span className="text-green-600 font-black">FREE</span>
                         </div>
                         <p className="text-sm text-gray-500">
+                          {marketEvents.length > 0 ? `${marketEvents.length} event(s), ` : ''}
                           {pickupLocations.length} location{pickupLocations.length !== 1 ? 's' : ''} available
                         </p>
                       </div>
@@ -320,37 +340,75 @@ export function CheckoutModal({
               {step === 'pickup-details' && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-500 font-medium">
-                    Select a pickup location:
+                    Select where you'll pick it up:
                   </p>
 
-                  {pickupLocations.map((location) => (
-                    <button
-                      key={location.id}
-                      onClick={() => setSelectedLocationId(location.id)}
-                      className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
-                        selectedLocationId === location.id
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-100 hover:border-green-300'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-bold text-gray-900">{location.name}</h3>
-                        {selectedLocationId === location.id && (
-                          <Check className="w-5 h-5 text-green-600" />
-                        )}
+                  {/* Market Events Section */}
+                  {marketEvents.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Special Events / Markets</h4>
+                      <div className="space-y-2">
+                        {marketEvents.map((event) => (
+                          <button
+                            key={event.id}
+                            onClick={() => setSelectedLocationId(event.id)}
+                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
+                              selectedLocationId === event.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-100 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-1">
+                              <h3 className="font-bold text-gray-900">{event.name}</h3>
+                              {selectedLocationId === event.id && (
+                                <Check className="w-5 h-5 text-blue-600" />
+                              )}
+                            </div>
+                            <p className="text-sm text-blue-600 font-bold mb-1">{event.date}</p>
+                            <p className="text-xs text-gray-500">{event.timeWindow}</p>
+                          </button>
+                        ))}
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{location.address}</p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatSchedule(location.schedule)}</span>
-                      </div>
-                      {location.notes && (
-                        <p className="text-xs text-amber-600 mt-2">📝 {location.notes}</p>
-                      )}
-                    </button>
-                  ))}
+                    </div>
+                  )}
 
-                  {/* Preferred time */}
+                  {/* Standard Locations Section */}
+                  {pickupLocations.length > 0 && (
+                    <div>
+                      {marketEvents.length > 0 && <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1 mt-4">Regular Locations</h4>}
+                      <div className="space-y-2">
+                        {pickupLocations.map((location) => (
+                          <button
+                            key={location.id}
+                            onClick={() => setSelectedLocationId(location.id)}
+                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
+                              selectedLocationId === location.id
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-100 hover:border-green-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-bold text-gray-900">{location.name}</h3>
+                              {selectedLocationId === location.id && (
+                                <Check className="w-5 h-5 text-green-600" />
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{location.address}</p>
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              <span>{formatSchedule(location.schedule)}</span>
+                            </div>
+                            {location.notes && (
+                              <p className="text-xs text-amber-600 mt-2">📝 {location.notes}</p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Preferred time (Only show if not an event, or maybe allow it for events too as a "I'll be there at X" confirmation?) */}
+                  {/* Let's keep it general for now. */}
                   <div className="pt-4">
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                       Preferred pickup time (optional)
@@ -472,13 +530,23 @@ export function CheckoutModal({
 
                   {/* Location/Address details */}
                   <div className="bg-gray-50 rounded-2xl p-4">
-                    {method === 'pickup' && selectedLocation && (
+                    {method === 'pickup' && (
                       <>
-                        <h4 className="font-bold text-gray-900 mb-1">{selectedLocation.name}</h4>
-                        <p className="text-sm text-gray-600">{selectedLocation.address}</p>
-                        {scheduledWindow && (
-                          <p className="text-sm text-blue-600 mt-2">Preferred: {scheduledWindow}</p>
-                        )}
+                        {selectedEvent ? (
+                          <>
+                            <h4 className="font-bold text-gray-900 mb-1">{selectedEvent.name}</h4>
+                            <p className="text-sm text-blue-600 font-bold">{selectedEvent.date}</p>
+                            <p className="text-sm text-gray-500">{selectedEvent.timeWindow}</p>
+                          </>
+                        ) : selectedLocation ? (
+                          <>
+                            <h4 className="font-bold text-gray-900 mb-1">{selectedLocation.name}</h4>
+                            <p className="text-sm text-gray-600">{selectedLocation.address}</p>
+                            {scheduledWindow && (
+                              <p className="text-sm text-blue-600 mt-2">Preferred: {scheduledWindow}</p>
+                            )}
+                          </>
+                        ) : null}
                       </>
                     )}
                     {method === 'delivery' && (

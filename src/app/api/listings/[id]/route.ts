@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db-provider';
+import { ApiResponse } from '@/lib/api-response';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,12 +12,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const listing = db.listings.find((l: any) => l.id.toString() === id);
     
     if (!listing) {
-      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+      return ApiResponse.notFound("Listing not found");
     }
     
-    return NextResponse.json(listing);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(listing);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
 
@@ -30,14 +31,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const listingIndex = db.listings.findIndex((l: any) => l.id.toString() === id);
     
     if (listingIndex === -1) {
-      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+      return ApiResponse.notFound("Listing not found");
     }
     
     const listing = db.listings[listingIndex];
     
     // Verify ownership (either by sellerId or privateKey for anonymous listings)
     if (listing.sellerId !== sellerId && listing.privateKey !== privateKey) {
-      return NextResponse.json({ error: "Not authorized to edit this listing" }, { status: 403 });
+      return ApiResponse.forbidden("Not authorized to edit this listing");
     }
     
     // Update fields
@@ -45,9 +46,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     db.listings[listingIndex] = listing;
     await writeDB(db);
     
-    return NextResponse.json(listing);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(listing);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
 
@@ -61,14 +62,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const listingIndex = db.listings.findIndex((l: any) => l.id.toString() === id);
     
     if (listingIndex === -1) {
-      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+      return ApiResponse.notFound("Listing not found");
     }
     
     const listing = db.listings[listingIndex];
     
     // Verify ownership
     if (listing.sellerId !== sellerId && listing.privateKey !== privateKey) {
-      return NextResponse.json({ error: "Not authorized to delete this listing" }, { status: 403 });
+      return ApiResponse.forbidden("Not authorized to delete this listing");
     }
     
     // Delete the image file if exists
@@ -85,8 +86,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     db.listings.splice(listingIndex, 1);
     await writeDB(db);
     
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success({ success: true });
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
+

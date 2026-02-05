@@ -15,7 +15,7 @@ import {
   MobileMenu,
   ListingGridSkeleton,
 } from '@/components';
-import { API_ROUTES } from '@/config/constants';
+import { useListings } from '@/context/ListingsContext';
 import type { Listing, Category, AuthFormState } from '@/types';
 
 export default function Home() {
@@ -24,12 +24,11 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
 
-  // Data state
-  const [localListings, setLocalListings] = useState<Listing[]>([]);
-  const [isListingsLoading, setIsListingsLoading] = useState(true);
+  const { listings: localListings, isLoading: isListingsLoading, addListing } = useListings();
 
   // Modal state
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -41,15 +40,6 @@ export default function Home() {
     password: '',
     name: '',
   });
-
-  // Fetch listings on mount
-  useEffect(() => {
-    setIsListingsLoading(true);
-    fetch(API_ROUTES.LISTINGS)
-      .then((res) => res.json())
-      .then((data) => setLocalListings(data))
-      .finally(() => setIsListingsLoading(false));
-  }, []);
 
   // Filter listings by search query and selected categories
   const filteredListings = localListings.filter((item) => {
@@ -80,7 +70,7 @@ export default function Home() {
 
   // Handle new listing created
   const handleListingCreated = (listing: Listing) => {
-    setLocalListings([listing, ...localListings]);
+    addListing(listing);
   };
 
   // Clear filters

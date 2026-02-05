@@ -1,40 +1,47 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db-provider';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: Request) {
   try {
     const { action, email, password, name } = await request.json();
     const db = await readDB();
 
+    if (!email || !password) {
+      return ApiResponse.badRequest('Email and password are required');
+    }
+
     if (action === 'signup') {
       if (db.users.find((u: any) => u.email === email)) {
-        return NextResponse.json({ error: "User already exists" }, { status: 400 });
+        return ApiResponse.error("User already exists", 409, "USER_EXISTS");
       }
       const newUser = {
         id: `user-${Date.now()}`,
         email,
         password, // In a real app, hash this!
-        name,
+        name: name || email.split('@')[0],
         joined: new Date().toISOString(),
         verified: false,
+        favorites: [],
       };
       db.users.push(newUser);
       await writeDB(db);
       const { password: _, ...userWithoutPassword } = newUser;
-      return NextResponse.json(userWithoutPassword);
+      return ApiResponse.success(userWithoutPassword, 201);
     }
 
     if (action === 'login') {
       const user = db.users.find((u: any) => u.email === email && u.password === password);
       if (!user) {
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        return ApiResponse.unauthorized("Invalid credentials");
       }
-      const { password: _, ...userWithoutPassword } = user;
-      return NextResponse.json(userWithoutPassword);
+      const { password: _, ...userWithoutPassword } = user as any;
+      return ApiResponse.success(userWithoutPassword);
     }
 
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.badRequest("Invalid action");
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
+

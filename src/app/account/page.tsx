@@ -1,58 +1,70 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { User, Package, Heart, MessageCircle, Settings, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useListings } from '@/context/ListingsContext';
 import { categoryEmojis } from '@/lib/data';
 import { motion, AnimatePresence } from 'framer-motion';
+import ChatModal from '@/components/ChatModal';
+import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation } from '@/types';
+
+interface EditFormState {
+  title: string;
+  price: string;
+  description: string;
+  leadTime: string;
+  deliveryAvailable: boolean;
+  marketEvents: MarketEvent[];
+}
 
 export default function AccountPage() {
-  const { user, logout, isLoading: authLoading, toggleFavorite, refreshUser } = useAuth();
+  const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
+  const { listings, isLoading: isListingsLoading, updateListing, deleteListing } = useListings();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages'>('listings');
-  const [myListings, setMyListings] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
+  
+  // Derived state from context
+  const myListings = listings.filter((l) => l.sellerId === user?.id);
+  const favorites = listings.filter((l) => user?.favorites?.includes(l.id));
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [conversations, setConversations] = useState<GroupedConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingListing, setEditingListing] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ title: '', price: '', description: '' });
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
+  const [activeChat, setActiveChat] = useState<{
+    listing: { id: number; title: string; sellerId: string; owner: string; imageUrl?: string };
+    chatWithName: string;
+    chatWithId: string;
+  } | null>(null);
+  
+  // Edit Form State
+  const [editForm, setEditForm] = useState<EditFormState>({ 
+    title: '', 
+    price: '', 
+    description: '',
+    leadTime: '',
+    deliveryAvailable: true,
+    marketEvents: []
+  });
+  
+  // New Event Form State (inside Edit Modal)
+  const [newEvent, setNewEvent] = useState<Partial<MarketEvent>>({
+    name: '',
+    date: '',
+    timeWindow: '',
+    wazeLink: ''
+  });
+  const [showEventForm, setShowEventForm] = useState(false);
 
-  useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
-    
-    if (!user) {
-      router.push('/');
-      return;
-    }
-    loadData();
-  }, [user, authLoading]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
     
     try {
-      // Load listings
-      const listingsRes = await fetch('/api/listings');
-      const allListings = await listingsRes.json();
-      
-      // Filter my listings
-      const mine = allListings.filter((l: any) => l.sellerId === user.id);
-      setMyListings(mine);
-      
-      // Load user data for favorites
-      const userRes = await fetch(`/api/users/${user.id}`);
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        const favoriteIds = userData.favorites || [];
-        const favListings = allListings.filter((l: any) => favoriteIds.includes(l.id));
-        setFavorites(favListings);
-      }
-      
       // Load conversations
       const messagesRes = await fetch(`/api/messages?userId=${user.id}`);
       if (messagesRes.ok) {
@@ -71,7 +83,18 @@ export default function AccountPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    loadData();
+  }, [user, authLoading, router, loadData]);
 
   const handleDelete = async (listingId: number) => {
     if (!confirm('Are you sure you want to delete this listing?')) return;
@@ -84,28 +107,69 @@ export default function AccountPage() {
       });
       
       if (res.ok) {
-        setMyListings(prev => prev.filter(l => l.id !== listingId));
+        deleteListing(listingId);
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to delete listing');
       }
-    } catch (err) {
+    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
       alert('Error deleting listing');
     }
   };
 
-  const handleEdit = (listing: any) => {
+  const handleEdit = (listing: Listing) => {
     setEditingListing(listing);
+    const config = listing.pickupConfig || {};
     setEditForm({
       title: listing.title,
       price: listing.price.replace('₡', ''),
-      description: listing.description || ''
+      description: listing.description || '',
+      leadTime: config.leadTime || '',
+      deliveryAvailable: config.deliveryAvailable !== false, // default true
+      marketEvents: config.marketEvents || []
+    });
+  };
+
+  const handleAddEvent = () => {
+    if (newEvent.name && newEvent.date) {
+      setEditForm({
+        ...editForm,
+        marketEvents: [
+          ...editForm.marketEvents,
+          {
+            id: Date.now().toString(),
+            name: newEvent.name!,
+            date: newEvent.date!,
+            timeWindow: newEvent.timeWindow || '',
+            locationName: newEvent.name!,
+            wazeLink: newEvent.wazeLink
+          } as MarketEvent
+        ]
+      });
+      setNewEvent({ name: '', date: '', timeWindow: '', wazeLink: '' });
+      setShowEventForm(false);
+    }
+  };
+
+  const removeEvent = (id: string) => {
+    setEditForm({
+      ...editForm,
+      marketEvents: editForm.marketEvents.filter(e => e.id !== id)
     });
   };
 
   const saveEdit = async () => {
     if (!editingListing) return;
     
+    // Construct pickup config
+    const pickupConfig: ListingPickupConfig = {
+        deliveryAvailable: editForm.deliveryAvailable,
+        pickupOnly: !editForm.deliveryAvailable, // simplified logic
+        leadTime: editForm.leadTime,
+        marketEvents: editForm.marketEvents,
+        // preserve existing if needed, but for now overwrite
+    };
+
     try {
       const res = await fetch(`/api/listings/${editingListing.id}`, {
         method: 'PATCH',
@@ -114,32 +178,29 @@ export default function AccountPage() {
           sellerId: user?.id,
           title: editForm.title,
           price: `₡${editForm.price}`,
-          description: editForm.description
+          description: editForm.description,
+          pickupConfig
         })
       });
       
       if (res.ok) {
         const updated = await res.json();
-        setMyListings(prev => prev.map(l => l.id === updated.id ? updated : l));
+        updateListing(updated);
         setEditingListing(null);
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to update listing');
       }
-    } catch (err) {
+    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
       alert('Error updating listing');
     }
   };
 
   const removeFavorite = async (listingId: number) => {
     if (!user) return;
-    
-    // Use the context's toggleFavorite for consistency
-    const success = await toggleFavorite(listingId);
-    if (success) {
-      setFavorites(prev => prev.filter(l => l.id !== listingId));
-    }
+    toggleFavorite(listingId);
   };
+
 
   // Show loading while auth is hydrating
   if (authLoading) {
@@ -156,6 +217,17 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={!!activeChat}
+        onClose={() => setActiveChat(null)}
+        listing={activeChat?.listing || { id: 0, title: '', sellerId: '', owner: '' }}
+        currentUser={user}
+        onAuthRequired={() => {}}
+        chatWithName={activeChat?.chatWithName}
+        chatWithId={activeChat?.chatWithId}
+      />
+
       {/* Edit Modal */}
       <AnimatePresence>
         {editingListing && (
@@ -174,7 +246,7 @@ export default function AccountPage() {
               className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8"
             >
               <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">Edit Listing</h2>
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Title</label>
                   <input
@@ -202,7 +274,99 @@ export default function AccountPage() {
                     className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold resize-none"
                   />
                 </div>
-                <div className="flex gap-3 pt-4">
+
+                {/* Logistics Section */}
+                <div className="pt-4 border-t border-gray-100 space-y-4">
+                    <h3 className="text-sm font-black text-gray-900 uppercase">Availability & Logistics</h3>
+                    
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                      <input 
+                        type="checkbox"
+                        className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={editForm.deliveryAvailable}
+                        onChange={(e) => setEditForm({...editForm, deliveryAvailable: e.target.checked})}
+                      />
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-900 flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-gray-500" />
+                          Express Delivery Available
+                        </div>
+                      </div>
+                    </label>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                          Lead Time
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Ready in 2 days"
+                          className="w-full p-3 bg-gray-50 rounded-xl border-2 border-gray-100 focus:border-blue-500 text-sm font-bold"
+                          value={editForm.leadTime}
+                          onChange={(e) => setEditForm({...editForm, leadTime: e.target.value})}
+                        />
+                    </div>
+
+                    {/* Market Events */}
+                    <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                          Market Days / Events
+                        </label>
+                        
+                        <div className="space-y-2 mb-3">
+                          {editForm.marketEvents.map(event => (
+                            <div key={event.id} className="bg-blue-50 p-3 rounded-xl flex justify-between items-center group">
+                              <div>
+                                <div className="font-bold text-sm text-blue-900">{event.name}</div>
+                                <div className="text-xs text-blue-600">{event.date} • {event.timeWindow}</div>
+                              </div>
+                              <button onClick={() => removeEvent(event.id)} className="p-1 hover:bg-blue-100 rounded-lg text-blue-400 hover:text-red-500">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {showEventForm ? (
+                          <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
+                            <input 
+                              placeholder="Event Name"
+                              className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                              value={newEvent.name}
+                              onChange={e => setNewEvent({...newEvent, name: e.target.value})}
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                               <input 
+                                placeholder="When? (e.g. Sat 7-12)"
+                                className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                                value={newEvent.date}
+                                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+                              />
+                               <input 
+                                placeholder="Waze Link (Optional)"
+                                className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                                value={newEvent.wazeLink}
+                                onChange={e => setNewEvent({...newEvent, wazeLink: e.target.value})}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={handleAddEvent} className="flex-1 bg-black text-white text-xs font-bold py-2 rounded-lg">Add Event</button>
+                              <button onClick={() => setShowEventForm(false)} className="px-3 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setShowEventForm(true)}
+                            className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"
+                          >
+                            <PlusCircle className="w-3 h-3" /> Add Market/Event
+                          </button>
+                        )}
+                      </div>
+                </div>
+
+              </div>
+              <div className="flex gap-3 pt-4 border-t mt-4">
                   <button
                     onClick={() => setEditingListing(null)}
                     className="flex-1 bg-gray-100 text-gray-700 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-colors"
@@ -216,7 +380,6 @@ export default function AccountPage() {
                     Save Changes
                   </button>
                 </div>
-              </div>
             </motion.div>
           </div>
         )}
@@ -252,27 +415,27 @@ export default function AccountPage() {
 
       {/* Tabs */}
       <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex gap-2">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex overflow-x-auto no-scrollbar">
             {[
-              { id: 'listings', label: 'My Listings', icon: Package, count: myListings.length },
+              { id: 'listings', label: 'Listings', icon: Package, count: myListings.length },
               { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length },
-              { id: 'favorites', label: 'Favorites', icon: Heart, count: favorites.length },
-              { id: 'messages', label: 'Messages', icon: MessageCircle, count: conversations.length }
+              { id: 'favorites', label: 'Saved', icon: Heart, count: favorites.length },
+              { id: 'messages', label: 'Chats', icon: MessageCircle, count: conversations.length }
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-4 font-bold text-sm border-b-2 transition-colors ${
+                onClick={() => setActiveTab(tab.id as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
+                className={`flex items-center justify-center gap-1.5 min-w-0 flex-1 px-2 sm:px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <tab.icon className="w-4 h-4 flex-shrink-0" />
+                <span>{tab.label}</span>
                 {tab.count > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                     activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {tab.count}
@@ -312,9 +475,9 @@ export default function AccountPage() {
                 ) : (
                   myListings.map(listing => (
                     <div key={listing.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex gap-4">
-                      <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                      <div className="relative w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                         {listing.imageUrl ? (
-                          <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
+                          <Image src={listing.imageUrl} alt={listing.title} fill className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-4xl">
                             {categoryEmojis[listing.category] || '✨'}
@@ -367,9 +530,9 @@ export default function AccountPage() {
                 ) : (
                   favorites.map(listing => (
                     <div key={listing.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex gap-4">
-                      <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                      <div className="relative w-24 h-24 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                         {listing.imageUrl ? (
-                          <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
+                          <Image src={listing.imageUrl} alt={listing.title} fill className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-4xl">
                             {categoryEmojis[listing.category] || '✨'}
@@ -407,35 +570,47 @@ export default function AccountPage() {
                     <p className="text-gray-500">Start a conversation by messaging a seller</p>
                   </div>
                 ) : (
-                  conversations.map((conv, idx) => (
-                    <Link
-                      key={idx}
-                      href={`/listing/${conv.listingId}`}
-                      className="bg-white rounded-2xl p-4 border border-gray-100 flex gap-4 hover:border-blue-200 transition-colors block"
-                    >
-                      <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                        {conv.listingImage ? (
-                          <img src={conv.listingImage} alt={conv.listingTitle} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-blue-100">
-                            <MessageCircle className="w-6 h-6 text-blue-600" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-gray-900 truncate">{conv.listingTitle}</h3>
-                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                            {new Date(conv.lastMessageAt).toLocaleDateString('es-CR')}
-                          </span>
+                  conversations.map((conv, idx) => {
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveChat({
+                          listing: {
+                            id: conv.listingId,
+                            title: conv.listingTitle,
+                            sellerId: conv.messages[0]?.sellerId || '',
+                            owner: conv.messages[0]?.sellerName || '',
+                            imageUrl: conv.listingImage
+                          },
+                          chatWithName: conv.otherPartyName,
+                          chatWithId: conv.otherPartyId
+                        })}
+                        className="w-full bg-white rounded-2xl p-4 border border-gray-100 flex gap-4 hover:border-blue-200 transition-colors text-left"
+                      >
+                        <div className="relative w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                          {conv.listingImage ? (
+                            <Image src={conv.listingImage} alt={conv.listingTitle} fill className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-blue-100">
+                              <MessageCircle className="w-6 h-6 text-blue-600" />
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-500 mb-1">with {conv.otherPartyName}</p>
-                        <p className="text-sm text-gray-600 truncate">
-                          {conv.messages[conv.messages.length - 1]?.text}
-                        </p>
-                      </div>
-                    </Link>
-                  ))
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-1">
+                            <h3 className="font-bold text-gray-900 truncate">{conv.listingTitle}</h3>
+                            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                              {new Date(conv.lastMessageAt).toLocaleDateString('es-CR')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 mb-1">with {conv.otherPartyName}</p>
+                          <p className="text-sm text-gray-600 truncate">
+                            {conv.messages[conv.messages.length - 1]?.text}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -452,7 +627,7 @@ function OrdersTab({
   userId, 
   onStatusChange 
 }: { 
-  orders: any[]; 
+  orders: Order[]; 
   userId: string;
   onStatusChange: () => void;
 }) {
@@ -470,7 +645,7 @@ function OrdersTab({
         const err = await res.json();
         alert(err.error || 'Failed to update order');
       }
-    } catch (err) {
+    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
       alert('Error updating order');
     }
   };
@@ -554,9 +729,9 @@ function OrdersTab({
 
             {/* Order content */}
             <div className="flex gap-4 mb-4">
-              <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+              <div className="relative w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                 {order.listingSnapshot?.imageUrl ? (
-                  <img src={order.listingSnapshot.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <Image src={order.listingSnapshot.imageUrl} alt="" fill className="object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
                 )}

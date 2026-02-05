@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB } from '@/lib/db-provider';
-import type { Order, OrderStatus } from '@/types';
+import { ApiResponse } from '@/lib/api-response';
+import type { Order } from '@/types';
 
 // GET /api/orders - Get orders for a user (as buyer or seller)
 export async function GET(request: Request) {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+      return ApiResponse.badRequest('userId is required');
     }
 
     const db = await readDB();
@@ -35,9 +36,9 @@ export async function GET(request: Request) {
     // Sort by newest first
     orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json(orders);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(orders);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
 
@@ -63,10 +64,7 @@ export async function POST(request: Request) {
     } = body;
 
     if (!listingId || !buyerId || !buyerName || !type) {
-      return NextResponse.json(
-        { error: 'Missing required fields: listingId, buyerId, buyerName, type' },
-        { status: 400 }
-      );
+      return ApiResponse.badRequest('Missing required fields: listingId, buyerId, buyerName, type');
     }
 
     const db = await readDB();
@@ -74,7 +72,7 @@ export async function POST(request: Request) {
     // Get the listing
     const listing = db.listings.find((l: any) => l.id === listingId);
     if (!listing) {
-      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+      return ApiResponse.notFound('Listing not found');
     }
 
     // Get seller info
@@ -102,10 +100,7 @@ export async function POST(request: Request) {
     // Add type-specific fields
     if (type === 'delivery') {
       if (!deliveryAddress) {
-        return NextResponse.json(
-          { error: 'Delivery address is required for delivery orders' },
-          { status: 400 }
-        );
+        return ApiResponse.badRequest('Delivery address is required for delivery orders');
       }
       order.deliveryAddress = deliveryAddress;
       order.deliveryFee = 2500; // Fixed fee for now
@@ -115,10 +110,7 @@ export async function POST(request: Request) {
       }
     } else if (type === 'pickup') {
       if (!pickupLocationId || !pickupLocation) {
-        return NextResponse.json(
-          { error: 'Pickup location is required for pickup orders' },
-          { status: 400 }
-        );
+        return ApiResponse.badRequest('Pickup location is required for pickup orders');
       }
       order.pickupLocationId = pickupLocationId;
       order.pickupLocation = pickupLocation;
@@ -137,8 +129,9 @@ export async function POST(request: Request) {
     db.orders.push(order);
     await writeDB(db);
 
-    return NextResponse.json(order, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponse.success(order, 201);
+  } catch (error) {
+    return ApiResponse.serverError(error);
   }
 }
+

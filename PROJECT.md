@@ -231,41 +231,48 @@ Created `src/config/constants.ts`:
 - `API_ROUTES`
 - Framer Motion animation variants
 
+**4. ✅ Auth state synchronization**
+- `AuthContext` now hydrates from `localStorage` AND fetches fresh data
+- Favorites, verification status, and profile updates sync correctly
+- `toggleFavorite` persists to backend and updates local state
+
+**5. ✅ Form validation**
+- `SellModal`: Title, Price (numeric), Description, Fulfillment options
+- `AuthModal`: Email format, Password length (min 6), Name required (signup)
+- Inline error messages for better UX
+
+### Completed (2026-02-05)
+
+**6. ✅ API error handling standardized**
+- Created `lib/api-response.ts` helper
+- Standardized error format: `{ error: string, code?: string }`
+- Updated all core endpoints (auth, listings, users, orders) to use it
+
+**7. ✅ Duplicate fetch logic removed**
+- Implemented `ListingsContext` with `ListingsProvider`
+- Moved listing data fetching to context (global state)
+- Updated `page.tsx`, `account/page.tsx`, and `seller/[id]/page.tsx` to use `useListings`
+- Removed ad-hoc `fetch('/api/listings')` calls from components
+
 ---
 
 ## Remaining Refactoring
 
-### 🔴 High Priority
-
-**1. Auth state incomplete**
-- `AuthContext` doesn't include `favorites` or `verified`
-- User updates (favorites, profile edits) don't update context
-- Session can get stale if db.json changes
-
 ### 🟡 Medium Priority
 
-**2. API error handling inconsistent**
-- Some routes return `{ error: string }`, others throw
-- No standardized error response format
-- No loading/error states in some components
-
-**3. Duplicate fetch logic**
+**1. CSS organization**
+- Most styles inline via Tailwind (fine, but verbose)
 - Multiple components fetch `/api/listings` independently
 - Consider React Query, SWR, or a simple data fetching hook
 
-**4. Form validation missing**
-- No validation on listing creation (empty title, bad price format)
-- No email format validation on signup
-- No password strength requirements
-
-### 🟢 Low Priority (Nice to Have)
-
-**8. CSS organization**
+**3. CSS organization**
 - Most styles inline via Tailwind (fine, but verbose)
 - Some repeated patterns could be `@apply` utilities
 - Consider component-level CSS modules for complex components
 
-**9. Image handling brittle**
+### 🟢 Low Priority (Nice to Have)
+
+**4. Image handling brittle**
 - Uploads go to `/public/uploads` (not recommended in production)
 - No file type validation beyond `accept="image/*"`
 - No max file size enforcement
@@ -297,7 +304,7 @@ Things that would take <30 min each:
 - [x] Extract `ListingCard` component ✅
 - [x] Create `types/index.ts` and fix `any` types ✅
 - [x] Add config file for constants (coordinates, categories) ✅
-- [ ] Add basic form validation to listing creation
+- [x] Add basic form validation to listing creation ✅
 - [x] Add `aria-label` to all icon buttons ✅
 - [ ] Add proper `<title>` tags to listing/seller pages
 

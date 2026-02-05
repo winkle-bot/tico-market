@@ -100,3 +100,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// PATCH /api/messages - Mark messages as read
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { userId, listingId, otherPartyId } = body;
+    
+    if (!userId || !listingId || !otherPartyId) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+    
+    const db = await readDB();
+    if (!db.messages) return NextResponse.json({ success: true });
+    
+    let updated = false;
+    db.messages.forEach((msg: any) => {
+      // Check if message belongs to this conversation
+      const isConversation = msg.listingId === listingId && 
+        ((msg.buyerId === otherPartyId && msg.sellerId === userId) || 
+         (msg.sellerId === otherPartyId && msg.buyerId === userId));
+         
+      if (isConversation && msg.senderId !== userId && !msg.read) {
+        msg.read = true;
+        updated = true;
+      }
+    });
+    
+    if (updated) {
+      await writeDB(db);
+    }
+    
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

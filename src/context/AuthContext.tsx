@@ -8,29 +8,18 @@ import React, {
   useCallback,
 } from 'react';
 import { API_ROUTES } from '@/config/constants';
-
-// Complete user type matching what the API returns
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  joined: string;
-  verified: boolean;
-  favorites: number[];
-  bio?: string;
-  location?: string;
-  rating?: number;
-}
+import type { GroupedConversation, User } from '@/types';
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
   isLoading: boolean;
-  login: (userData: AuthUser) => void;
+  login: (userData: User) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  updateUser: (updates: Partial<AuthUser>) => void;
+  updateUser: (updates: Partial<User>) => void;
   toggleFavorite: (listingId: number) => Promise<boolean>;
   isFavorite: (listingId: number) => boolean;
+  unreadCount: number;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,8 +27,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = 'tico-user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll for unread messages using SSE
+  useEffect(() => {
+    if (!user) return;
+
+    const checkUnread = async () => {
+      try {
+        const res = await fetch(`/api/messages?userId=${user.id}`);
+        if (res.ok) {
+          const convs: GroupedConversation[] = await res.json();
+          let count = 0;
+          convs.forEach((conv) => {
+            conv.messages.forEach((msg) => {
+              if (!msg.read && msg.senderId !== user.id) {
+                count++;
+              }
+            });
+          });
+          setUnreadCount(count);
+        }
+      } catch (err) {
+        console.error('Error checking unread messages:', err);
+      }
+    };
+
+    checkUnread();
+
+    const eventSource = new EventSource(`/api/events?userId=${user.id}`);
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'update') {
+        checkUnread();
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user]);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -47,18 +76,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedUser = localStorage.getItem(STORAGE_KEY);
         if (savedUser) {
-          const parsed = JSON.parse(savedUser) as AuthUser;
+          const parsed = JSON.parse(savedUser) as User;
           // Validate user still exists by fetching fresh data
           const res = await fetch(`${API_ROUTES.USERS}/${parsed.id}`);
           if (res.ok) {
             const freshUser = await res.json();
             // Merge fresh data (especially favorites) with stored data
-            const mergedUser: AuthUser = {
+            const mergedUser: User = {
               ...parsed,
               favorites: freshUser.favorites || [],
               verified: freshUser.verified ?? parsed.verified,
               bio: freshUser.bio || parsed.bio,
               location: freshUser.location || parsed.location,
+              pickupLocations: freshUser.pickupLocations || parsed.pickupLocations, // Preserve or update pickupLocations
             };
             setUser(mergedUser);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
@@ -82,9 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hydrate();
   }, []);
 
-  const login = useCallback((userData: AuthUser) => {
+  const login = useCallback((userData: User) => {
     // Ensure defaults for optional fields
-    const normalizedUser: AuthUser = {
+    const normalizedUser: User = {
       ...userData,
       favorites: userData.favorites || [],
       verified: userData.verified ?? false,
@@ -105,12 +135,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`${API_ROUTES.USERS}/${user.id}`);
       if (res.ok) {
         const freshUser = await res.json();
-        const mergedUser: AuthUser = {
+        const mergedUser: User = {
           ...user,
           favorites: freshUser.favorites || [],
           verified: freshUser.verified ?? user.verified,
           bio: freshUser.bio,
           location: freshUser.location,
+          pickupLocations: freshUser.pickupLocations || user.pickupLocations,
         };
         setUser(mergedUser);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
@@ -120,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const updateUser = useCallback((updates: Partial<AuthUser>) => {
+  const updateUser = useCallback((updates: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...updates };
@@ -187,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         toggleFavorite,
         isFavorite,
+        unreadCount,
       }}
     >
       {children}
