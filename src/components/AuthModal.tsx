@@ -99,6 +99,7 @@ export function AuthModal({
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
             <div className="space-y-4">
+              {mode === 'signup' && (
                 <div key="name-field">
                   <input
                     type="text"

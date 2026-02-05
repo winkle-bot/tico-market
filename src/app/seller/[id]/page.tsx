@@ -67,11 +67,11 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 sticky top-8">
               <div className="p-8 flex flex-col items-center text-center">
                 <div className="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-5xl mb-6 border-8 border-white shadow-lg">
-                  {seller.name[0]}
+                  {seller.name && seller.name.length > 0 ? seller.name[0].toUpperCase() : 'S'}
                 </div>
                 
                 <h1 className="text-3xl font-black text-gray-900 mb-1 flex items-center gap-2">
-                  {seller.name}
+                  {seller.name || 'Seller'}
                   {seller.verified && <CheckCircle className="w-6 h-6 text-blue-500 fill-current" />}
                 </h1>
                 

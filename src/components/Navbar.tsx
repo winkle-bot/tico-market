@@ -73,14 +73,16 @@ export function Navbar({
               >
                 <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
                   {user ? (
-                    <span className="font-bold text-blue-600">{user.name[0]}</span>
+                    <span className="font-bold text-blue-600">
+                      {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : 'U'}
+                    </span>
                   ) : (
                     <User className="w-5 h-5" />
                   )}
                 </div>
                 {user && (
                   <span className="hidden sm:inline font-bold text-sm text-gray-700">
-                    {user.name.split(' ')[0]}
+                    {user.name ? user.name.split(' ')[0] : 'User'}
                   </span>
                 )}
               </button>

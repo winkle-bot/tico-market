@@ -397,10 +397,10 @@ export default function AccountPage() {
           
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-2xl">
-              {user.name[0]}
+              {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : 'U'}
             </div>
             <div>
-              <h2 className="font-bold text-xl text-gray-900">{user.name}</h2>
+              <h2 className="font-bold text-xl text-gray-900">{user.name || 'User'}</h2>
               <p className="text-gray-500 text-sm">{user.email}</p>
             </div>
             <button

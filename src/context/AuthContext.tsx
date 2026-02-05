@@ -24,8 +24,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'tico-user';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,40 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  // Hydrate from localStorage on mount
+  // Hydrate from session cookie on mount
   useEffect(() => {
     const hydrate = async () => {
       try {
-        const savedUser = localStorage.getItem(STORAGE_KEY);
-        if (savedUser) {
-          const parsed = JSON.parse(savedUser) as User;
-          // Validate user still exists by fetching fresh data
-          const res = await fetch(`${API_ROUTES.USERS}/${parsed.id}`);
-          if (res.ok) {
-            const freshUser = await res.json();
-            // Merge fresh data (especially favorites) with stored data
-            const mergedUser: User = {
-              ...parsed,
-              favorites: freshUser.favorites || [],
-              verified: freshUser.verified ?? parsed.verified,
-              bio: freshUser.bio || parsed.bio,
-              location: freshUser.location || parsed.location,
-              pickupLocations: freshUser.pickupLocations || parsed.pickupLocations, // Preserve or update pickupLocations
-            };
-            setUser(mergedUser);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
-          } else {
-            // User no longer exists in DB, clear local storage
-            localStorage.removeItem(STORAGE_KEY);
-          }
-        }
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const { data: userData } = await res.json();
+          setUser(userData);
+        } // If not OK, user is not logged in, which is fine.
       } catch (error) {
         console.error('Auth hydration error:', error);
-        // On error, still try to use cached data
-        const savedUser = localStorage.getItem(STORAGE_KEY);
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
       } finally {
         setIsLoading(false);
       }
@@ -120,42 +95,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       verified: userData.verified ?? false,
     };
     setUser(normalizedUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedUser));
+    // Cookie is set by the API route, no localStorage needed
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth', { method: 'DELETE' });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (!user) return;
-
+    // Re-fetch user data using the session cookie
     try {
-      const res = await fetch(`${API_ROUTES.USERS}/${user.id}`);
+      const res = await fetch('/api/auth/me');
       if (res.ok) {
-        const freshUser = await res.json();
-        const mergedUser: User = {
-          ...user,
-          favorites: freshUser.favorites || [],
-          verified: freshUser.verified ?? user.verified,
-          bio: freshUser.bio,
-          location: freshUser.location,
-          pickupLocations: freshUser.pickupLocations || user.pickupLocations,
-        };
-        setUser(mergedUser);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
+        const { data: userData } = await res.json();
+        setUser(userData);
+      } else {
+        setUser(null); // Session expired or invalid
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);
+      setUser(null);
     }
-  }, [user]);
+  }, []);
 
   const updateUser = useCallback((updates: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...updates };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
   }, []);

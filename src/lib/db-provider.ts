@@ -5,11 +5,18 @@ import type { Listing, User, Message, Order } from '@/types';
 
 const DB_PATH = path.join(process.cwd(), 'src/lib/db.json');
 
+export interface Session {
+  id: string;
+  userId: string;
+  expiresAt: number; // Unix timestamp
+}
+
 export interface DBData {
   listings: Listing[];
   users: User[];
   messages: Message[];
   orders: Order[];
+  sessions: Session[];
 }
 
 export async function readDB(): Promise<DBData> {
@@ -22,11 +29,12 @@ export async function readDB(): Promise<DBData> {
       listings: parsed.listings || [],
       users: parsed.users || [],
       messages: parsed.messages || [],
-      orders: parsed.orders || []
+      orders: parsed.orders || [],
+      sessions: parsed.sessions || [],
     };
   } catch {
     // Return empty DB on error
-    return { listings: [], users: [], messages: [], orders: [] };
+    return { listings: [], users: [], messages: [], orders: [], sessions: [] };
   }
 }
 

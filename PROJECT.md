@@ -2,8 +2,8 @@
 
 A Costa Rican marketplace web application for buying and selling goods locally, with integrated express delivery services.
 
-**Status:** MVP Complete ✅ | Refactored ✅  
-**Last Updated:** 2026-02-04
+**Status:** MVP Complete ✅ | Refactored ✅ | Roadmap Locked ✅  
+**Last Updated:** 2026-02-05
 
 ---
 
@@ -191,16 +191,6 @@ The database includes 25+ realistic listings across all categories:
 
 ---
 
-## Known Limitations
-
-1. **No real authentication** — passwords stored in plain text in JSON
-2. **No real-time updates** — messages require refresh to see new ones
-3. **No image optimization** — raw uploads, no resizing
-4. **Single-server DB** — JSON file won't scale
-5. **No payment integration** — booking is mock-only
-
----
-
 ## Refactoring Done ✅
 
 ### Completed (2026-02-04)
@@ -256,71 +246,102 @@ Created `src/config/constants.ts`:
 
 ---
 
-## Remaining Refactoring
+## Improvement Roadmap
 
-### 🟡 Medium Priority
+### Phase 1: Immediate Enhancements (Priority)
 
-**1. CSS organization**
-- Most styles inline via Tailwind (fine, but verbose)
-- Multiple components fetch `/api/listings` independently
-- Consider React Query, SWR, or a simple data fetching hook
+**P1.1 — Persist sessions properly** ⬜
+- Current: Auth stores in `localStorage` but gets wiped on refresh.  
+- Goal: Use `httpOnly` cookies for sessions and add a `GET /api/auth/me` endpoint.  
+- Impact: Stops annoying re-logins and makes auth actually secure.
 
-**3. CSS organization**
-- Most styles inline via Tailwind (fine, but verbose)
-- Some repeated patterns could be `@apply` utilities
-- Consider component-level CSS modules for complex components
+**P1.2 — Add file upload validation** ⬜
+- Current: No size/type checks + uploads to `/public/uploads`.  
+- Goal: Add max file size (1MB) and MIME validation (`image/jpeg`, `image/png`).  
+- Impact: Prevents server crashes from giant files and blocks malicious uploads. (Browser-side downsizer is a nice-to-have for later).
 
-### 🟢 Low Priority (Nice to Have)
+**P1.3 — Add SEO basics** ⬜
+- Current: No `<title>` tags, no OpenGraph.  
+- Goal: Add dynamic `<title>{listing.title} - TicoMarket</title>` and OG meta to listing/seller pages.  
+- Impact: Better sharing on WhatsApp/Facebook, better search ranking.
 
-**4. Image handling brittle**
-- Uploads go to `/public/uploads` (not recommended in production)
-- No file type validation beyond `accept="image/*"`
-- No max file size enforcement
-- Should use a proper file storage (S3, Cloudinary, Uploadthing)
+**P1.4 — Add loading states to buttons** ⬜
+- Current: Buttons stay clickable during async ops.  
+- Goal: Add `isLoading` state to all form submit buttons.  
+- Impact: Prevents double-clicks and shows feedback.
 
-**10. Accessibility gaps**
-- Missing `aria-label` on icon-only buttons
-- No keyboard navigation for modals
-- Focus trap not implemented on modals
-- No skip-to-content link
+**P1.5 — Replace JSON "database" with Supabase** ⬜
+- Current: `db.json` is a race condition waiting to happen.  
+- Goal: Migrate to **Supabase** (free tier, 500MB).  
+- Impact: Real transactions, concurrent safety, scales to real users.
 
-**11. SEO incomplete**
-- Dynamic pages lack proper `<title>` and `<meta>` tags
-- No OpenGraph tags for social sharing
-- No sitemap or robots.txt
+**P1.6 — Add request authentication to API routes** ⬜
+- Current: Anyone can hit `/api/listings` and modify data.  
+- Goal: Add middleware to verify session cookie on all `/api/*` routes.  
+- Impact: Closes the biggest security hole.
 
-**12. Testing absent**
-- No unit tests
-- No integration tests
-- No E2E tests
-- Add at minimum: API route tests, critical flow E2E
+**P1.7 — Add client-side input sanitization** ⬜
+- Current: No XSS protection.  
+- Goal: Sanitize message/listing inputs with `DOMPurify` and strip HTML on server.  
+- Impact: Stops script injection attacks.
+
+### Phase 2: Feature Development & Polish
+
+**P2.1 — Real-time messaging with Supabase Realtime** ⬜
+- Current: Messages require manual refresh.  
+- Goal: Implement real-time chat using **Supabase Realtime** (WebSockets).  
+- Impact: Actual real-time chat, way better UX.
+
+**P2.2 — Reviews & driver ratings** ⬜
+- Current: No way to vet sellers/drivers.  
+- Goal: Add a simple 5-star + comment system tied to completed deliveries.  
+- Impact: Builds trust, keeps quality high.
+
+**P2.3 — Location-based sorting ("near me")** ⬜
+- Current: No "near me" filtering.  
+- Goal: Filter listings by distance from user's location (browser geolocation).  
+- Impact: Makes the map actually useful for buyers.
+
+**P2.4 — Add image optimization (Cloudflare Images)** ⬜
+- Current: Raw image uploads slow down the app.  
+- Goal: Use **Cloudflare Images** (free tier) for auto-resize, WebP conversion, faster loads.  
+- Impact: Faster loading times, better user experience.
+
+**P2.5 — Add a "Mark as Sold" button** ⬜
+- Current: No way to delist sold items.  
+- Goal: Add toggle listing status (active/sold) from the account page.  
+- Impact: Keeps feed clean, reduces frustration.
+
+**P2.6 — Add typing indicators in chat** ⬜
+- Current: Silent waiting during message send.  
+- Goal: Add "Typing..." indicator when the other party is composing.  
+- Impact: Chat feels more alive and responsive.
+
+**P2.7 — Better mobile nav** ⬜
+- Current: Slide-out menu works but could be smoother.  
+- Goal: Use a proper drawer library (e.g., **Vaul**) for swipe-to-close gestures.  
+- Impact: More native app feel.
+
+### Phase 3: Hardening & Scalability
+
+**P3.1 — Add rate limiting** ⬜
+- Current: No protection against brute force or spam.  
+- Goal: Use **Upstash Ratelimit** (free) on `/api/auth` and `/api/messages`.  
+- Impact: Prevents credential stuffing and spam floods.
+
+**P3.2 — Move uploaded images to Cloudflare R2** ⬜
+- Current: `/public/uploads` gets wiped on redeploy.  
+- Goal: Upload to **Cloudflare R2** (free tier).  
+- Impact: Survives deployments, proper CDN delivery.
 
 ---
 
-## Quick Wins
+## Current Limitations
 
-Things that would take <30 min each:
-
-- [x] Extract `ListingCard` component ✅
-- [x] Create `types/index.ts` and fix `any` types ✅
-- [x] Add config file for constants (coordinates, categories) ✅
-- [x] Add basic form validation to listing creation ✅
-- [x] Add `aria-label` to all icon buttons ✅
-- [ ] Add proper `<title>` tags to listing/seller pages
-
----
-
-## Future Improvements
-
-- [ ] Real database (PostgreSQL/Supabase or Firebase)
-- [ ] Proper auth (NextAuth.js or Clerk)
-- [ ] Real-time messaging (WebSockets or Supabase Realtime)
-- [ ] Image optimization and CDN
-- [ ] Push notifications
-- [ ] Payment integration (SINPE Móvil, cards)
-- [ ] Admin dashboard
-- [ ] Reviews and ratings system
-- [ ] Location-based sorting ("near me")
+- **Accessibility gaps:** Missing `aria-label` on icon-only buttons, no keyboard navigation for modals, focus trap not implemented on modals, no skip-to-content link.
+- **Testing absent:** No unit tests, no integration tests, no E2E tests. Add at minimum: API route tests, critical flow E2E.
+- **CSS organization:** Most styles inline via Tailwind (fine, but verbose). Some repeated patterns could be `@apply` utilities. Consider component-level CSS modules for complex components.
+- **Payment integration:** Booking is mock-only.
 
 ---
 

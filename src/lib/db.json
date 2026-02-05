@@ -1188,5 +1188,22 @@
       "driverId": "3",
       "driverName": "Luis Mora"
     }
+  ],
+  "sessions": [
+    {
+      "id": "f17ff08d-fdcc-43a3-9cf2-7095c035e4a7",
+      "userId": "user-1770159021630",
+      "expiresAt": 1770926284256
+    },
+    {
+      "id": "a2b4b1ae-8ea4-4be6-95e3-7a82184c90e7",
+      "userId": "user-1770159021630",
+      "expiresAt": 1770926407440
+    },
+    {
+      "id": "a3b61270-154a-4efd-873f-5ea68dd46dc1",
+      "userId": "user-1770159021630",
+      "expiresAt": 1770926491054
+    }
   ]
 }

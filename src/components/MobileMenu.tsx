@@ -99,10 +99,10 @@ export function MobileMenu({
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl mb-4">
                     <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                      {user.name[0]}
+                      {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : 'U'}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{user.name}</p>
+                      <p className="font-bold text-gray-900">{user.name || 'User'}</p>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </div>
                   </div>
