@@ -544,13 +544,20 @@ export function SellModal({
                       type="file"
                       accept="image/*"
                       className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 focus:border-blue-500 focus:outline-none font-bold text-gray-400 transition-all cursor-pointer"
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && file.size > 2 * 1024 * 1024) {
+                          alert('Image must be smaller than 2MB');
+                          e.target.value = '';
+                          return;
+                        }
                         setNewItem({
                           ...newItem,
-                          image: e.target.files?.[0] || null,
-                        })
-                      }
+                          image: file || null,
+                        });
+                      }}
                     />
+                    <p className="text-[10px] text-gray-400 mt-1">Max file size: 2MB</p>
                   </div>
 
                   <button

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { eventBus } from '@/lib/events';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,34 +8,86 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
+  if (!userId) {
+    return new Response('userId is required', { status: 400 });
+  }
+
+  const supabase = await createSupabaseServerClient();
+
   // Create a TransformStream for the SSE
   const customReadable = new ReadableStream({
     start(controller) {
       // Send initial connection message
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected' })}
+\n`));
 
-      const onUpdate = (data: any) => {
-        // In a real app, we'd filter here based on userId to only send relevant updates
-        // For now, we broadcast to everyone connected that the DB updated
-        const message = `data: ${JSON.stringify({ type: 'update', timestamp: Date.now() })}\n\n`;
+      // Subscribe to relevant changes using Supabase Realtime
+      const subscription = supabase
+        .channel(`user-events-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `buyer_id=eq.${userId} OR seller_id=eq.${userId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'messages',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch (e) {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `buyer_id=eq.${userId} OR seller_id=eq.${userId} OR driver_id=eq.${userId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'orders',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch (e) {
+              // Controller might be closed
+            }
+          }
+        )
+        .subscribe();
+
+      // Send periodic heartbeat
+      const heartbeatInterval = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(message));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`));
         } catch (e) {
-          // Controller might be closed
-          eventBus.off('db_update', onUpdate);
+          clearInterval(heartbeatInterval);
         }
-      };
-
-      eventBus.on('db_update', onUpdate);
+      }, 30000);
 
       // Clean up when the client disconnects
       request.signal.addEventListener('abort', () => {
-        eventBus.off('db_update', onUpdate);
+        subscription.unsubscribe();
+        clearInterval(heartbeatInterval);
         try {
           controller.close();
-        } catch(e) {}
+        } catch (e) {}
       });
-    }
+    },
   });
 
   return new Response(customReadable, {

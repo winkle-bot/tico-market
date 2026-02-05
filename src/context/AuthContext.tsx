@@ -7,16 +7,19 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { API_ROUTES } from '@/config/constants';
+import { supabase } from '@/lib/supabase';
 import type { GroupedConversation, User } from '@/types';
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
+  supabaseUser: SupabaseUser | null;
   isLoading: boolean;
-  login: (userData: User) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  signup: (email: string, password: string, name: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
   toggleFavorite: (listingId: number) => Promise<boolean>;
   isFavorite: (listingId: number) => boolean;
   unreadCount: number;
@@ -26,28 +29,106 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Poll for unread messages using SSE
+  // Fetch profile data from Supabase
+  const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          favorites:favorites(listing_id)
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      // Transform favorites from array of objects to array of numbers
+      const favorites = profile.favorites?.map((f: { listing_id: number }) => f.listing_id) || [];
+
+      return {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        joined: profile.joined,
+        verified: profile.verified,
+        favorites,
+        bio: profile.bio,
+        location: profile.location,
+        rating: profile.rating,
+        pickupLocations: profile.pickup_locations,
+        acceptsDelivery: profile.accepts_delivery,
+      };
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      return null;
+    }
+  }, []);
+
+  // Listen for auth state changes
   useEffect(() => {
-    if (!user) return;
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id).then(profile => {
+          setUser(profile);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSupabaseUser(session?.user ?? null);
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          setUser(profile);
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  // Poll for unread messages
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
 
     const checkUnread = async () => {
       try {
-        const res = await fetch(`/api/messages?userId=${user.id}`);
-        if (res.ok) {
-          const convs: GroupedConversation[] = await res.json();
-          let count = 0;
-          convs.forEach((conv) => {
-            conv.messages.forEach((msg) => {
-              if (!msg.read && msg.senderId !== user.id) {
-                count++;
-              }
-            });
-          });
-          setUnreadCount(count);
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+          .eq('read', false);
+
+        if (error) {
+          console.error('Error checking unread messages:', error);
+          return;
         }
+
+        // Count messages not sent by current user
+        const count = messages?.filter((msg) => msg.sender_id !== user.id).length || 0;
+        setUnreadCount(count);
       } catch (err) {
         console.error('Error checking unread messages:', err);
       }
@@ -55,121 +136,165 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkUnread();
 
-    const eventSource = new EventSource(`/api/events?userId=${user.id}`);
-    eventSource.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.type === 'update') {
-        checkUnread();
-      }
-    };
+    // Set up real-time subscription for messages
+    const subscription = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `buyer_id=eq.${user.id} OR seller_id=eq.${user.id}`,
+        },
+        () => {
+          checkUnread();
+        }
+      )
+      .subscribe();
 
     return () => {
-      eventSource.close();
+      subscription.unsubscribe();
     };
   }, [user]);
 
-  // Hydrate from session cookie on mount
-  useEffect(() => {
-    const hydrate = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const { data: userData } = await res.json();
-          setUser(userData);
-        } // If not OK, user is not logged in, which is fine.
-      } catch (error) {
-        console.error('Auth hydration error:', error);
-      } finally {
-        setIsLoading(false);
+  const login = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error: error.message };
       }
-    };
 
-    hydrate();
-  }, []);
+      if (data.user) {
+        const profile = await fetchProfile(data.user.id);
+        setUser(profile);
+        setSupabaseUser(data.user);
+      }
 
-  const login = useCallback((userData: User) => {
-    // Ensure defaults for optional fields
-    const normalizedUser: User = {
-      ...userData,
-      favorites: userData.favorites || [],
-      verified: userData.verified ?? false,
-    };
-    setUser(normalizedUser);
-    // Cookie is set by the API route, no localStorage needed
+      return {};
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  }, [fetchProfile]);
+
+  const signup = useCallback(async (email: string, password: string, name: string): Promise<{ error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error: any) {
+      return { error: error.message };
+    }
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await fetch('/api/auth', { method: 'DELETE' });
-    } catch (error) {
-      console.error('Logout API error:', error);
-    } finally {
-      setUser(null);
-    }
+    await supabase.auth.signOut();
+    setUser(null);
+    setSupabaseUser(null);
   }, []);
 
   const refreshUser = useCallback(async () => {
-    // Re-fetch user data using the session cookie
-    try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const { data: userData } = await res.json();
-        setUser(userData);
-      } else {
-        setUser(null); // Session expired or invalid
-      }
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
+    if (!supabaseUser?.id) {
       setUser(null);
+      return;
     }
-  }, []);
 
-  const updateUser = useCallback((updates: Partial<User>) => {
+    const profile = await fetchProfile(supabaseUser.id);
+    setUser(profile);
+  }, [supabaseUser, fetchProfile]);
+
+  const updateUser = useCallback(async (updates: Partial<User>) => {
+    if (!user?.id) return;
+
+    // Transform User type to database format
+    const dbUpdates: Record<string, any> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.rating !== undefined) dbUpdates.rating = updates.rating;
+    if (updates.verified !== undefined) dbUpdates.verified = updates.verified;
+    if (updates.pickupLocations !== undefined) dbUpdates.pickup_locations = updates.pickupLocations;
+    if (updates.acceptsDelivery !== undefined) dbUpdates.accepts_delivery = updates.acceptsDelivery;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(dbUpdates)
+      .eq('id', user.id);
+
+    if (error) {
+      console.error('Error updating user:', error);
+      return;
+    }
+
     setUser((prev) => {
       if (!prev) return null;
-      const updated = { ...prev, ...updates };
-      return updated;
+      return { ...prev, ...updates };
     });
-  }, []);
+  }, [user]);
 
   const toggleFavorite = useCallback(
     async (listingId: number): Promise<boolean> => {
       if (!user) return false;
 
       const isFav = user.favorites.includes(listingId);
-      
+
       // Optimistic update
       const newFavorites = isFav
         ? user.favorites.filter((id) => id !== listingId)
         : [...user.favorites, listingId];
-      
-      updateUser({ favorites: newFavorites });
+
+      setUser((prev) => {
+        if (!prev) return null;
+        return { ...prev, favorites: newFavorites };
+      });
 
       try {
-        const res = await fetch(`${API_ROUTES.USERS}/${user.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'toggleFavorite',
-            listingId,
-          }),
-        });
+        if (isFav) {
+          // Remove favorite
+          const { error } = await supabase
+            .from('favorites')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('listing_id', listingId);
 
-        if (!res.ok) {
-          // Rollback on failure
-          updateUser({ favorites: user.favorites });
-          return false;
+          if (error) throw error;
+        } else {
+          // Add favorite
+          const { error } = await supabase
+            .from('favorites')
+            .insert({ user_id: user.id, listing_id: listingId });
+
+          if (error) throw error;
         }
 
         return true;
       } catch (error) {
         // Rollback on error
-        updateUser({ favorites: user.favorites });
+        setUser((prev) => {
+          if (!prev) return null;
+          return { ...prev, favorites: user.favorites };
+        });
         console.error('Failed to toggle favorite:', error);
         return false;
       }
     },
-    [user, updateUser]
+    [user]
   );
 
   const isFavorite = useCallback(
@@ -183,8 +308,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        supabaseUser,
         isLoading,
         login,
+        signup,
         logout,
         refreshUser,
         updateUser,

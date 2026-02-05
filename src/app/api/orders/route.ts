@@ -1,137 +1,141 @@
 import { NextResponse } from 'next/server';
-import { readDB, writeDB } from '@/lib/db-provider';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import type { Order } from '@/types';
 
-// GET /api/orders - Get orders for a user (as buyer or seller)
+// GET orders for a user
 export async function GET(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const role = searchParams.get('role'); // 'buyer' | 'seller' | 'all'
-    const status = searchParams.get('status');
-
+    
     if (!userId) {
       return ApiResponse.badRequest('userId is required');
     }
 
-    const db = await readDB();
-    let orders: Order[] = db.orders || [];
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId},driver_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
 
-    // Filter by user role
-    if (role === 'buyer') {
-      orders = orders.filter((o: Order) => o.buyerId === userId);
-    } else if (role === 'seller') {
-      orders = orders.filter((o: Order) => o.sellerId === userId);
-    } else {
-      // All orders involving this user
-      orders = orders.filter((o: Order) => o.buyerId === userId || o.sellerId === userId);
+    if (error) {
+      return ApiResponse.error(error.message, 500);
     }
 
-    // Filter by status if provided
-    if (status) {
-      orders = orders.filter((o: Order) => o.status === status);
-    }
+    // Transform to match frontend format
+    const transformed = (orders || []).map(o => ({
+      id: o.id,
+      listingId: o.listing_id,
+      listingSnapshot: o.listing_snapshot,
+      buyerId: o.buyer_id,
+      buyerName: o.buyer_name,
+      sellerId: o.seller_id,
+      sellerName: o.seller_name,
+      type: o.type,
+      status: o.status,
+      driverId: o.driver_id,
+      driverName: o.driver_name,
+      deliveryAddress: o.delivery_address,
+      deliveryFee: o.delivery_fee,
+      pickupLocationId: o.pickup_location_id,
+      pickupLocation: o.pickup_location,
+      scheduledWindow: o.scheduled_window,
+      notes: o.notes,
+      createdAt: o.created_at,
+      updatedAt: o.updated_at,
+    }));
 
-    // Sort by newest first
-    orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    return ApiResponse.success(orders);
+    return ApiResponse.success(transformed);
   } catch (error) {
     return ApiResponse.serverError(error);
   }
 }
 
-// POST /api/orders - Create a new order
+// POST new order
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+
     const body = await request.json();
-    const {
-      listingId,
-      buyerId,
-      buyerName,
-      type, // 'delivery' | 'pickup'
-      // Delivery fields
-      deliveryAddress,
+    const { 
+      listingId, 
+      listingSnapshot,
+      buyerId, 
+      buyerName, 
+      sellerId, 
+      sellerName, 
+      type,
       driverId,
       driverName,
-      // Pickup fields
+      deliveryAddress,
+      deliveryFee,
       pickupLocationId,
       pickupLocation,
       scheduledWindow,
-      // Optional
-      notes,
+      notes
     } = body;
 
-    if (!listingId || !buyerId || !buyerName || !type) {
-      return ApiResponse.badRequest('Missing required fields: listingId, buyerId, buyerName, type');
+    if (!listingId || !buyerId || !sellerId || !type) {
+      return ApiResponse.badRequest('Missing required fields');
     }
 
-    const db = await readDB();
-    
-    // Get the listing
-    const listing = db.listings.find((l: any) => l.id === listingId);
-    if (!listing) {
-      return ApiResponse.notFound('Listing not found');
+    const { data: order, error } = await supabase
+      .from('orders')
+      .insert({
+        listing_id: listingId,
+        listing_snapshot: listingSnapshot,
+        buyer_id: buyerId,
+        buyer_name: buyerName,
+        seller_id: sellerId,
+        seller_name: sellerName,
+        type,
+        driver_id: driverId,
+        driver_name: driverName,
+        delivery_address: deliveryAddress,
+        delivery_fee: deliveryFee,
+        pickup_location_id: pickupLocationId,
+        pickup_location: pickupLocation,
+        scheduled_window: scheduledWindow,
+        notes,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return ApiResponse.error(error.message, 500);
     }
 
-    // Get seller info
-    const seller = db.users.find((u: any) => u.id === listing.sellerId);
-
-    // Create the order
-    const order: Order = {
-      id: `order-${Date.now()}`,
-      listingId,
-      listingSnapshot: {
-        title: listing.title,
-        price: listing.price,
-        imageUrl: listing.imageUrl,
-      },
-      buyerId,
-      buyerName,
-      sellerId: listing.sellerId,
-      sellerName: listing.owner || seller?.name || 'Unknown Seller',
-      type,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Add type-specific fields
-    if (type === 'delivery') {
-      if (!deliveryAddress) {
-        return ApiResponse.badRequest('Delivery address is required for delivery orders');
-      }
-      order.deliveryAddress = deliveryAddress;
-      order.deliveryFee = 2500; // Fixed fee for now
-      if (driverId) {
-        order.driverId = driverId;
-        order.driverName = driverName;
-      }
-    } else if (type === 'pickup') {
-      if (!pickupLocationId || !pickupLocation) {
-        return ApiResponse.badRequest('Pickup location is required for pickup orders');
-      }
-      order.pickupLocationId = pickupLocationId;
-      order.pickupLocation = pickupLocation;
-      order.scheduledWindow = scheduledWindow;
-    }
-
-    if (notes) {
-      order.notes = notes;
-    }
-
-    // Initialize orders array if needed
-    if (!db.orders) {
-      db.orders = [];
-    }
-
-    db.orders.push(order);
-    await writeDB(db);
-
-    return ApiResponse.success(order, 201);
+    return ApiResponse.success({
+      id: order.id,
+      listingId: order.listing_id,
+      listingSnapshot: order.listing_snapshot,
+      buyerId: order.buyer_id,
+      buyerName: order.buyer_name,
+      sellerId: order.seller_id,
+      sellerName: order.seller_name,
+      type: order.type,
+      status: order.status,
+      driverId: order.driver_id,
+      driverName: order.driver_name,
+      deliveryAddress: order.delivery_address,
+      deliveryFee: order.delivery_fee,
+      pickupLocationId: order.pickup_location_id,
+      pickupLocation: order.pickup_location,
+      scheduledWindow: order.scheduled_window,
+      notes: order.notes,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+    }, 201);
   } catch (error) {
+    console.error('Orders POST error:', error);
     return ApiResponse.serverError(error);
   }
 }
-

@@ -1,99 +1,117 @@
 import { NextResponse } from 'next/server';
-import { readDB, writeDB } from '@/lib/db-provider';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import type { Order, OrderStatus } from '@/types';
 
-// GET /api/orders/[id] - Get a single order
+// GET single order
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const db = await readDB();
+    const supabase = await createSupabaseServerClient();
     
-    const order = (db.orders || []).find((o: Order) => o.id === id);
-    if (!order) {
-      return ApiResponse.notFound('Order not found');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
     }
 
-    return ApiResponse.success(order);
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return ApiResponse.error('Order not found', 404);
+      }
+      return ApiResponse.error(error.message, 500);
+    }
+
+    // Check if user is part of this order
+    if (order.buyer_id !== session.user.id && 
+        order.seller_id !== session.user.id && 
+        order.driver_id !== session.user.id) {
+      return ApiResponse.unauthorized('Not authorized to view this order');
+    }
+
+    return ApiResponse.success({
+      id: order.id,
+      listingId: order.listing_id,
+      listingSnapshot: order.listing_snapshot,
+      buyerId: order.buyer_id,
+      buyerName: order.buyer_name,
+      sellerId: order.seller_id,
+      sellerName: order.seller_name,
+      type: order.type,
+      status: order.status,
+      driverId: order.driver_id,
+      driverName: order.driver_name,
+      deliveryAddress: order.delivery_address,
+      deliveryFee: order.delivery_fee,
+      pickupLocationId: order.pickup_location_id,
+      pickupLocation: order.pickup_location,
+      scheduledWindow: order.scheduled_window,
+      notes: order.notes,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+    });
   } catch (error) {
     return ApiResponse.serverError(error);
   }
 }
 
-// PATCH /api/orders/[id] - Update order status
+// PATCH update order status
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const body = await request.json();
-    const { status, userId } = body;
-
-    if (!status || !userId) {
-      return ApiResponse.badRequest('status and userId are required');
-    }
-
-    const validStatuses: OrderStatus[] = ['pending', 'confirmed', 'in_transit', 'completed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return ApiResponse.badRequest(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
-    }
-
-    const db = await readDB();
-    const orderIndex = (db.orders || []).findIndex((o: Order) => o.id === id);
+    const supabase = await createSupabaseServerClient();
     
-    if (orderIndex === -1) {
-      return ApiResponse.notFound('Order not found');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const order = db.orders[orderIndex];
-
-    // Permission check: only buyer or seller can update
-    if (order.buyerId !== userId && order.sellerId !== userId) {
-      return ApiResponse.forbidden('Not authorized to update this order');
+    const { status } = await request.json();
+    
+    if (!status) {
+      return ApiResponse.badRequest('Status is required');
     }
 
-    // Status transition rules
-    const currentStatus = order.status as OrderStatus;
-    // const allowedTransitions: Record<OrderStatus, OrderStatus[]> = { ... }; // Use existing logic but clean up if needed
+    // Verify user is buyer or seller
+    const { data: existing } = await supabase
+      .from('orders')
+      .select('buyer_id, seller_id')
+      .eq('id', params.id)
+      .single();
 
-    // Re-implementing logic with ApiResponse
-    const allowedTransitions: Record<string, string[]> = {
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['in_transit', 'completed', 'cancelled'],
-      in_transit: ['completed', 'cancelled'],
-      completed: [], // Final state
-      cancelled: [], // Final state
-    };
-
-    if (!allowedTransitions[currentStatus]?.includes(status)) {
-      return ApiResponse.badRequest(`Cannot transition from ${currentStatus} to ${status}`);
+    if (!existing) {
+      return ApiResponse.error('Order not found', 404);
     }
 
-    // Additional rules
-    // Only seller can confirm
-    if (status === 'confirmed' && order.sellerId !== userId) {
-      return ApiResponse.forbidden('Only the seller can confirm an order');
+    if (existing.buyer_id !== session.user.id && existing.seller_id !== session.user.id) {
+      return ApiResponse.unauthorized('Not authorized to update this order');
     }
 
-    // Only seller can mark in_transit (for delivery)
-    if (status === 'in_transit' && order.sellerId !== userId) {
-      return ApiResponse.forbidden('Only the seller can mark order as in transit');
+    const { data: order, error } = await supabase
+      .from('orders')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      return ApiResponse.error(error.message, 500);
     }
 
-    // Update the order
-    order.status = status;
-    order.updatedAt = new Date().toISOString();
-
-    db.orders[orderIndex] = order;
-    await writeDB(db);
-
-    return ApiResponse.success(order);
+    return ApiResponse.success({
+      id: order.id,
+      status: order.status,
+      updatedAt: order.updated_at,
+    });
   } catch (error) {
     return ApiResponse.serverError(error);
   }
 }
-

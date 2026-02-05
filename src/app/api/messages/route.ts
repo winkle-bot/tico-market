@@ -1,138 +1,176 @@
 import { NextResponse } from 'next/server';
-import { readDB, writeDB } from '@/lib/db-provider';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { ApiResponse } from '@/lib/api-response';
 
-// GET /api/messages?userId=xxx - Get all conversations for a user
+// GET messages for a user
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
-  }
+  try {
+    const supabase = await createSupabaseServerClient();
+    
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    if (!userId) {
+      return ApiResponse.badRequest('userId is required');
+    }
 
-  const db = await readDB();
-  const messages = db.messages || [];
-  
-  // Get all messages where user is buyer or seller
-  const userMessages = messages.filter(
-    (m: any) => m.buyerId === userId || m.sellerId === userId
-  );
-  
-  // Group by conversation (listingId + other party)
-  const conversationsMap = new Map<string, any>();
-  
-  for (const msg of userMessages) {
-    const otherPartyId = msg.buyerId === userId ? msg.sellerId : msg.buyerId;
-    const key = `${msg.listingId}-${otherPartyId}`;
+    // Get all messages where user is buyer or seller
+    const { data: messages, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      return ApiResponse.error(error.message, 500);
+    }
+
+    // Group by conversation
+    const conversationsMap = new Map<string, any>();
     
-    if (!conversationsMap.has(key)) {
-      // Find the listing
-      const listing = db.listings.find((l: any) => l.id === msg.listingId);
+    for (const msg of messages || []) {
+      const otherPartyId = msg.buyer_id === userId ? msg.seller_id : msg.buyer_id;
+      const key = `${msg.listing_id}-${otherPartyId}`;
       
-      conversationsMap.set(key, {
-        listingId: msg.listingId,
-        listingTitle: listing?.title || 'Unknown Listing',
-        listingImage: listing?.imageUrl,
-        otherPartyId,
-        otherPartyName: msg.buyerId === userId ? msg.sellerName : msg.buyerName,
-        messages: [],
-        lastMessageAt: msg.createdAt
+      if (!conversationsMap.has(key)) {
+        // Get listing info
+        const { data: listing } = await supabase
+          .from('listings')
+          .select('title, image_url')
+          .eq('id', msg.listing_id)
+          .single();
+        
+        conversationsMap.set(key, {
+          listingId: msg.listing_id,
+          listingTitle: listing?.title || 'Unknown Listing',
+          listingImage: listing?.image_url,
+          otherPartyId,
+          otherPartyName: msg.buyer_id === userId ? msg.seller_name : msg.buyer_name,
+          lastMessageAt: msg.created_at,
+          messages: [],
+        });
+      }
+      
+      const conv = conversationsMap.get(key);
+      conv.messages.push({
+        id: msg.id,
+        listingId: msg.listing_id,
+        senderId: msg.sender_id,
+        text: msg.text,
+        createdAt: msg.created_at,
+        read: msg.read,
+        buyerId: msg.buyer_id,
+        buyerName: msg.buyer_name,
+        sellerId: msg.seller_id,
+        sellerName: msg.seller_name,
       });
+      
+      if (msg.created_at > conv.lastMessageAt) {
+        conv.lastMessageAt = msg.created_at;
+      }
     }
     
-    const conv = conversationsMap.get(key);
-    conv.messages.push(msg);
-    if (msg.createdAt > conv.lastMessageAt) {
-      conv.lastMessageAt = msg.createdAt;
-    }
+    // Sort conversations by last message
+    const conversations = Array.from(conversationsMap.values()).sort(
+      (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+    );
+
+    return ApiResponse.success(conversations);
+  } catch (error) {
+    console.error('Messages GET error:', error);
+    return ApiResponse.serverError(error);
   }
-  
-  // Sort messages within each conversation
-  const conversations = Array.from(conversationsMap.values()).map(conv => ({
-    ...conv,
-    messages: conv.messages.sort((a: any, b: any) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    )
-  }));
-  
-  // Sort conversations by last message
-  conversations.sort((a, b) => 
-    new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-  );
-  
-  return NextResponse.json(conversations);
 }
 
-// POST /api/messages - Send a new message
+// POST new message
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+
     const body = await request.json();
-    const { listingId, buyerId, buyerName, sellerId, sellerName, senderId, text } = body;
+    const { listingId, buyerId, buyerName, sellerId, sellerName, text } = body;
     
-    if (!listingId || !buyerId || !sellerId || !senderId || !text) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!listingId || !buyerId || !sellerId || !text) {
+      return ApiResponse.badRequest('Missing required fields');
     }
-    
-    const db = await readDB();
-    
-    if (!db.messages) {
-      db.messages = [];
+
+    const { data: message, error } = await supabase
+      .from('messages')
+      .insert({
+        listing_id: listingId,
+        sender_id: session.user.id,
+        text,
+        buyer_id: buyerId,
+        buyer_name: buyerName,
+        seller_id: sellerId,
+        seller_name: sellerName,
+        read: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return ApiResponse.error(error.message, 500);
     }
-    
-    const message = {
-      id: Date.now(),
-      listingId,
-      buyerId,
-      buyerName,
-      sellerId,
-      sellerName,
-      senderId,
-      text,
-      createdAt: new Date().toISOString(),
-      read: false
-    };
-    
-    db.messages.push(message);
-    await writeDB(db);
-    
-    return NextResponse.json(message);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return ApiResponse.success({
+      id: message.id,
+      listingId: message.listing_id,
+      senderId: message.sender_id,
+      text: message.text,
+      createdAt: message.created_at,
+      read: message.read,
+      buyerId: message.buyer_id,
+      buyerName: message.buyer_name,
+      sellerId: message.seller_id,
+      sellerName: message.seller_name,
+    });
+  } catch (error) {
+    console.error('Messages POST error:', error);
+    return ApiResponse.serverError(error);
   }
 }
 
-// PATCH /api/messages - Mark messages as read
+// PATCH mark messages as read
 export async function PATCH(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+
     const body = await request.json();
     const { userId, listingId, otherPartyId } = body;
-    
-    if (!userId || !listingId || !otherPartyId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+
+    if (!listingId || !otherPartyId) {
+      return ApiResponse.badRequest('Missing required fields');
     }
-    
-    const db = await readDB();
-    if (!db.messages) return NextResponse.json({ success: true });
-    
-    let updated = false;
-    db.messages.forEach((msg: any) => {
-      // Check if message belongs to this conversation
-      const isConversation = msg.listingId === listingId && 
-        ((msg.buyerId === otherPartyId && msg.sellerId === userId) || 
-         (msg.sellerId === otherPartyId && msg.buyerId === userId));
-         
-      if (isConversation && msg.senderId !== userId && !msg.read) {
-        msg.read = true;
-        updated = true;
-      }
-    });
-    
-    if (updated) {
-      await writeDB(db);
+
+    // Update messages as read
+    const { error } = await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('listing_id', listingId)
+      .or(`and(buyer_id.eq.${otherPartyId},seller_id.eq.${userId}),and(buyer_id.eq.${userId},seller_id.eq.${otherPartyId})`)
+      .neq('sender_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      console.error('Mark read error:', error);
     }
-    
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return ApiResponse.success({ success: true });
+  } catch (error) {
+    console.error('Messages PATCH error:', error);
+    return ApiResponse.serverError(error);
   }
 }

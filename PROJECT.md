@@ -2,7 +2,7 @@
 
 A Costa Rican marketplace web application for buying and selling goods locally, with integrated express delivery services.
 
-**Status:** MVP Complete ✅ | Refactored ✅ | Roadmap Locked ✅  
+**Status:** MVP Complete ✅ | Refactored ✅ | Supabase Migration Complete ✅  
 **Last Updated:** 2026-02-05
 
 ---
@@ -23,8 +23,9 @@ TicoMarket connects buyers and sellers across the Greater Metropolitan Area (GAM
 | Animations | Framer Motion |
 | Maps | Leaflet + React-Leaflet |
 | Icons | Lucide React |
-| Database | JSON file (`src/lib/db.json`) |
-| Auth | Custom session-based (via React Context) |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth (email/password) |
+| Realtime | Supabase Realtime (messages) |
 
 ---
 
@@ -52,9 +53,12 @@ tico-market/
 │   ├── context/
 │   │   └── AuthContext.tsx # Authentication state
 │   └── lib/
-│       ├── data.ts        # Static data (category emojis, etc.)
-│       ├── db.json        # JSON database
-│       └── db-provider.ts # Read/write helpers for db.json
+│       ├── data.ts              # Static data (category emojis, etc.)
+│       ├── supabase.ts          # Supabase client (browser)
+│       ├── supabase-server.ts   # Supabase client (server)
+│       └── database.types.ts    # TypeScript types for DB
+├── supabase/
+│   └── schema.sql         # Database schema (run in Supabase)
 ├── package.json
 └── PROJECT.md             # This file
 ```
@@ -244,16 +248,37 @@ Created `src/config/constants.ts`:
 - Updated `page.tsx`, `account/page.tsx`, and `seller/[id]/page.tsx` to use `useListings`
 - Removed ad-hoc `fetch('/api/listings')` calls from components
 
+### Completed (2026-02-05) — Supabase Migration
+
+**8. ✅ Migrated to Supabase**
+- Installed `@supabase/supabase-js` and `@supabase/auth-helpers-nextjs`
+- Created `src/lib/supabase.ts` — browser client
+- Created `src/lib/supabase-server.ts` — server-side client
+- Created `src/lib/database.types.ts` — TypeScript types
+- Created `supabase/schema.sql` — full database schema with RLS policies
+- Created `src/middleware.ts` — auth session handling
+- Updated `AuthContext` to use Supabase Auth
+- Migrated all API routes to use Supabase:
+  - `/api/auth` — Supabase signup/login/logout
+  - `/api/auth/me` — Get current user profile
+  - `/api/listings` — CRUD with Supabase
+  - `/api/listings/[id]` — Single listing operations
+  - `/api/messages` — Messaging with Supabase
+  - `/api/orders` — Orders with Supabase
+  - `/api/orders/[id]` — Single order operations
+  - `/api/users/[id]` — User profiles & favorites
+- Migrated all data: 28 users, 32 listings, 24 messages, 6 orders
+
 ---
 
 ## Improvement Roadmap
 
 ### Phase 1: Immediate Enhancements (Priority)
 
-**P1.1 — Persist sessions properly** ⬜
-- Current: Auth stores in `localStorage` but gets wiped on refresh.  
-- Goal: Use `httpOnly` cookies for sessions and add a `GET /api/auth/me` endpoint.  
-- Impact: Stops annoying re-logins and makes auth actually secure.
+**P1.1 — Persist sessions properly** ✅
+- ~~Current: Auth stores in `localStorage` but gets wiped on refresh.~~  
+- ~~Goal: Use `httpOnly` cookies for sessions and add a `GET /api/auth/me` endpoint.~~  
+- Done: Supabase Auth with secure cookies. Sessions persist across refreshes.
 
 **P1.2 — Add file upload validation** ⬜
 - Current: No size/type checks + uploads to `/public/uploads`.  
@@ -270,15 +295,15 @@ Created `src/config/constants.ts`:
 - Goal: Add `isLoading` state to all form submit buttons.  
 - Impact: Prevents double-clicks and shows feedback.
 
-**P1.5 — Replace JSON "database" with Supabase** ⬜
-- Current: `db.json` is a race condition waiting to happen.  
-- Goal: Migrate to **Supabase** (free tier, 500MB).  
-- Impact: Real transactions, concurrent safety, scales to real users.
+**P1.5 — Replace JSON "database" with Supabase** ✅
+- ~~Current: `db.json` is a race condition waiting to happen.~~  
+- ~~Goal: Migrate to **Supabase** (free tier, 500MB).~~  
+- Done: All data migrated to Supabase PostgreSQL. 28 users, 32 listings, 24 messages, 6 orders.
 
-**P1.6 — Add request authentication to API routes** ⬜
-- Current: Anyone can hit `/api/listings` and modify data.  
-- Goal: Add middleware to verify session cookie on all `/api/*` routes.  
-- Impact: Closes the biggest security hole.
+**P1.6 — Add request authentication to API routes** ✅
+- ~~Current: Anyone can hit `/api/listings` and modify data.~~  
+- ~~Goal: Add middleware to verify session cookie on all `/api/*` routes.~~  
+- Done: All write operations require authentication via Supabase session.
 
 **P1.7 — Add client-side input sanitization** ⬜
 - Current: No XSS protection.  

@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.95.1",
     "@types/leaflet": "^1.9.21",
     "convex": "^1.31.7",
     "cookie": "^1.1.1",

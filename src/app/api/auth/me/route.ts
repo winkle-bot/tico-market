@@ -1,38 +1,41 @@
 import { NextResponse } from 'next/server';
-import { readDB } from '@/lib/db-provider';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import { parse } from 'cookie';
 
-const SESSION_COOKIE_NAME = 'tid';
-const SESSION_EXPIRY_SECONDS = 60 * 60 * 24 * 7; // 1 week
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const cookies = parse(request.headers.get('cookie') || '');
-    const sessionId = cookies[SESSION_COOKIE_NAME];
-
-    if (!sessionId) {
-      return ApiResponse.unauthorized('No session provided');
+    const supabase = await createSupabaseServerClient();
+    
+    // Get current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      return ApiResponse.unauthorized('Not authenticated');
     }
 
-    const db = await readDB();
-    const session = db.sessions.find(s => s.id === sessionId);
+    // Get user profile with favorites
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select(`
+        *,
+        favorites:favorites(listing_id)
+      `)
+      .eq('id', session.user.id)
+      .single();
 
-    if (!session || session.expiresAt < Date.now()) {
-      // Optionally clean up expired session here
-      return ApiResponse.unauthorized('Invalid or expired session');
+    if (profileError) {
+      return ApiResponse.error(profileError.message, 500);
     }
 
-    const user = db.users.find(u => u.id === session.userId);
+    // Format favorites as array of IDs
+    const favorites = profile.favorites?.map((f: any) => f.listing_id) || [];
 
-    if (!user) {
-      return ApiResponse.unauthorized('User not found');
-    }
-
-    const { password: _, ...userWithoutPassword } = user;
-    return ApiResponse.success(userWithoutPassword);
+    return ApiResponse.success({
+      ...profile,
+      favorites
+    });
   } catch (error) {
-    console.error("Auth ME API Error:", error);
+    console.error('Auth me error:', error);
     return ApiResponse.serverError(error);
   }
 }
