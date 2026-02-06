@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, PlusCircle, Key, ShieldCheck, Truck, MapPin, Trash2, Check } from 'lucide-react';
 import { categoryEmojis, categories } from '@/lib/data';
@@ -171,6 +171,7 @@ export function SellModal({
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    const formData = new FormData();
     formData.append('title', newItem.title);
     formData.append('price', `₡${newItem.price}`);
     formData.append('category', newItem.category);

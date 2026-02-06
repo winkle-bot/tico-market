@@ -5,16 +5,17 @@ import { ApiResponse } from '@/lib/api-response';
 // GET single listing
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const id = parseInt(params.id);
+    const listingId = parseInt(id);
 
     const { data: listing, error } = await supabase
       .from('listings')
       .select('*')
-      .eq('id', id)
+      .eq('id', listingId)
       .single();
 
     if (error) {
@@ -52,9 +53,10 @@ export async function GET(
 // PUT update listing
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
@@ -63,7 +65,7 @@ export async function PUT(
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const id = parseInt(params.id);
+    const listingId = parseInt(id);
     
     // Check if multipart form data or JSON
     const contentType = request.headers.get('content-type') || '';
@@ -76,6 +78,11 @@ export async function PUT(
       
       // Handle image upload
       if (image && image.size > 0) {
+        // Check file size (2MB limit)
+        if (image.size > 2 * 1024 * 1024) {
+          return ApiResponse.error('Image must be smaller than 2MB', 400);
+        }
+        
         const fileExt = image.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
         
@@ -110,7 +117,7 @@ export async function PUT(
     const { data: existing } = await supabase
       .from('listings')
       .select('seller_id')
-      .eq('id', id)
+      .eq('id', listingId)
       .single();
 
     if (!existing) {
@@ -137,7 +144,7 @@ export async function PUT(
     const { data: listing, error } = await supabase
       .from('listings')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', listingId)
       .select()
       .single();
 
@@ -169,9 +176,10 @@ export async function PUT(
 // DELETE listing
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
@@ -180,14 +188,13 @@ export async function DELETE(
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const id = parseInt(params.id);
-    const { sellerId } = await request.json().catch(() => ({}));
+    const listingId = parseInt(id);
 
     // Verify ownership (check either from body or from DB)
     const { data: existing } = await supabase
       .from('listings')
       .select('seller_id')
-      .eq('id', id)
+      .eq('id', listingId)
       .single();
 
     if (!existing) {
@@ -201,7 +208,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('listings')
       .delete()
-      .eq('id', id);
+      .eq('id', listingId);
 
     if (error) {
       return ApiResponse.error(error.message, 500);

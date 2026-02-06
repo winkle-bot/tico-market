@@ -5,9 +5,10 @@ import { ApiResponse } from '@/lib/api-response';
 // GET single order
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     const { data: { session } } = await supabase.auth.getSession();
@@ -18,7 +19,7 @@ export async function GET(
     const { data: order, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -64,9 +65,10 @@ export async function GET(
 // PATCH update order status
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     const { data: { session } } = await supabase.auth.getSession();
@@ -84,7 +86,7 @@ export async function PATCH(
     const { data: existing } = await supabase
       .from('orders')
       .select('buyer_id, seller_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!existing) {
@@ -98,7 +100,7 @@ export async function PATCH(
     const { data: order, error } = await supabase
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 

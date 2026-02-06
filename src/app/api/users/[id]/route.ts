@@ -5,9 +5,10 @@ import { ApiResponse } from '@/lib/api-response';
 // GET user profile
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     const { data: profile, error } = await supabase
@@ -16,7 +17,7 @@ export async function GET(
         *,
         favorites:favorites(listing_id)
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error) {
@@ -50,9 +51,10 @@ export async function GET(
 // PATCH update user
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
@@ -62,7 +64,7 @@ export async function PATCH(
     }
 
     // Users can only update their own profile
-    if (session.user.id !== params.id) {
+    if (session.user.id !== id) {
       return ApiResponse.unauthorized('Not authorized to update this profile');
     }
 
@@ -76,7 +78,7 @@ export async function PATCH(
       const { data: existing } = await supabase
         .from('favorites')
         .select('id')
-        .eq('user_id', params.id)
+        .eq('user_id', id)
         .eq('listing_id', listingId)
         .single();
 
@@ -90,14 +92,14 @@ export async function PATCH(
         // Add favorite
         await supabase
           .from('favorites')
-          .insert({ user_id: params.id, listing_id: listingId });
+          .insert({ user_id: id, listing_id: listingId });
       }
 
       // Return updated favorites
       const { data: favorites } = await supabase
         .from('favorites')
         .select('listing_id')
-        .eq('user_id', params.id);
+        .eq('user_id', id);
 
       return ApiResponse.success({
         favorites: favorites?.map((f: any) => f.listing_id) || []
@@ -115,7 +117,7 @@ export async function PATCH(
     const { data: profile, error } = await supabase
       .from('profiles')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
