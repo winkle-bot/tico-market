@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlusCircle, Key, ShieldCheck, Truck, MapPin, Trash2, Check } from 'lucide-react';
+import { X, PlusCircle, Truck, MapPin, Trash2, Check } from 'lucide-react';
 import { categoryEmojis, categories } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -18,6 +18,11 @@ interface SellModalProps {
   onClose: () => void;
   onListingCreated: (listing: Listing) => void;
   onOpenAuth: () => void;
+}
+
+interface SubmitError {
+  message: string;
+  details?: string;
 }
 
 const INITIAL_FORM_STATE: NewListingForm = {
@@ -49,10 +54,10 @@ export function SellModal({
   const [newItem, setNewItem] = useState<NewListingForm>(INITIAL_FORM_STATE);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [locationName, setLocationName] = useState<string>(''); // Display name for location
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [submitError, setSubmitError] = useState<SubmitError | null>(null);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -89,10 +94,11 @@ export function SellModal({
 
   const handleClose = () => {
     onClose();
-    setGeneratedKey(null);
     setNewItem(INITIAL_FORM_STATE);
     setCoords(null);
     setLocationName('');
+    setSubmitError(null);
+    setErrors({});
   };
 
   const handleGetLocation = () => {
@@ -169,8 +175,17 @@ export function SellModal({
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
+    
+    // Require login to post
+    if (!user) {
+      handleClose();
+      onOpenAuth();
+      return;
+    }
 
     setIsSubmitting(true);
+    setSubmitError(null);
+    
     const formData = new FormData();
     formData.append('title', newItem.title);
     formData.append('price', `₡${newItem.price}`);
@@ -187,8 +202,8 @@ export function SellModal({
     };
     formData.append('pickupConfig', JSON.stringify(pickupConfig));
 
-    formData.append('sellerId', user?.id || '');
-    formData.append('owner', user?.name || 'Guest');
+    formData.append('sellerId', user.id);
+    formData.append('owner', user.name || 'User');
     formData.append('rating', '5.0');
     formData.append('type', 'seller');
     
@@ -208,17 +223,23 @@ export function SellModal({
         body: formData,
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        const created = await res.json();
-        onListingCreated(created);
-        if (!user) {
-          setGeneratedKey(created.privateKey);
-        } else {
-          alert(`Listing created: ${newItem.title}!`);
-          handleClose();
-        }
-        setNewItem(INITIAL_FORM_STATE);
+        onListingCreated(data);
+        alert(`Listing created: ${newItem.title}!`);
+        handleClose();
+      } else {
+        setSubmitError({
+          message: data.error || 'Failed to create listing',
+          details: data.details,
+        });
       }
+    } catch (err) {
+      setSubmitError({
+        message: 'Network error',
+        details: 'Could not connect to server. Please try again.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -251,54 +272,17 @@ export function SellModal({
             </div>
 
             <div className="p-6 space-y-6">
-              {generatedKey ? (
-                <div className="text-center py-8 space-y-6">
-                  <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ShieldCheck className="w-10 h-10" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-gray-900 uppercase mb-2">
-                      Item Posted!
-                    </h3>
-                    <p className="text-gray-500 font-medium">
-                      Since you&apos;re not logged in, save this private key to edit
-                      or delete your post later:
-                    </p>
-                  </div>
-                  <div className="bg-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-300">
-                    <span className="text-3xl font-black text-blue-600 tracking-widest select-all">
-                      {generatedKey}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleClose}
-                    className="w-full bg-black text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm"
-                  >
-                    Got it, close
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {!user && (
-                    <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex gap-3 items-center mb-2">
-                      <Key className="w-5 h-5 text-orange-600" />
-                      <p className="text-xs font-bold text-orange-800">
-                        You are posting as a{' '}
-                        <span
-                          className="underline cursor-pointer"
-                          onClick={() => {
-                            handleClose();
-                            onOpenAuth();
-                          }}
-                        >
-                          Guest
-                        </span>
-                        . You&apos;ll get a private key to manage this post.
-                      </p>
-                    </div>
+              {/* Error display */}
+              {submitError && (
+                <div className="bg-red-50 p-4 rounded-2xl border border-red-200">
+                  <p className="text-sm font-bold text-red-800">{submitError.message}</p>
+                  {submitError.details && (
+                    <p className="text-xs text-red-600 mt-1">{submitError.details}</p>
                   )}
-                  
-                  {/* Basic Info */}
+                </div>
+              )}
+              
+              {/* Basic Info */}
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                       Item Title
@@ -569,8 +553,6 @@ export function SellModal({
                     <PlusCircle className="w-5 h-5" />{' '}
                     {isSubmitting ? 'Posting...' : 'Post Listing'}
                   </button>
-                </>
-              )}
             </div>
           </motion.div>
         </div>

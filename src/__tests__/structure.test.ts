@@ -15,7 +15,7 @@ describe('Tico Market Structure Tests', () => {
   test('has Next.js configuration', () => {
     expect(fs.existsSync('next.config.ts')).toBe(true);
     expect(fs.existsSync('tsconfig.json')).toBe(true);
-    expect(fs.existsSync('tailwind.config.ts')).toBe(true);
+    expect(fs.existsSync('postcss.config.mjs')).toBe(true);
   });
 
   test('has source directory structure', () => {
