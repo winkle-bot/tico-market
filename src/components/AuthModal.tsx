@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_ROUTES, MODAL_BACKDROP_VARIANTS } from '@/config/constants';
 import type { AuthFormState } from '@/types';
@@ -25,6 +25,16 @@ export function AuthModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
+  const [emailSent, setEmailSent] = useState(false);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setEmailSent(false);
+      setError(null);
+      setFieldErrors({});
+    }
+  }, [isOpen]);
 
   const handleAuth = async () => {
     setError(null);
@@ -52,9 +62,12 @@ export function AuthModal({
       const data = await res.json();
 
       if (res.ok) {
-        onClose();
-        // Reset form
-        onFormChange({ email: '', password: '', name: '' });
+        if (mode === 'signup') {
+          setEmailSent(true);
+        } else {
+          onClose();
+          onFormChange({ email: '', password: '', name: '' });
+        }
       } else {
         setError(data.error || 'Authentication failed');
       }
@@ -81,8 +94,31 @@ export function AuthModal({
             className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8"
           >
             <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">
-              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              {emailSent ? 'Check Your Email' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
+            {emailSent ? (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-gray-600">
+                  We sent a confirmation link to <span className="font-bold text-gray-900">{formState.email}</span>
+                </p>
+                <p className="text-sm text-gray-400">Click the link in the email to verify your account and log in.</p>
+                <button
+                  onClick={() => {
+                    setEmailSent(false);
+                    onFormChange({ email: '', password: '', name: '' });
+                    onClose();
+                  }}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-black py-4 rounded-2xl uppercase tracking-widest text-sm transition-colors mt-4"
+                >
+                  Got it
+                </button>
+              </div>
+            ) : (
             <div className="space-y-4">
               {mode === 'signup' && (
                 <div key="name-field">
@@ -160,6 +196,7 @@ export function AuthModal({
                 </button>
               </p>
             </div>
+            )}
           </motion.div>
         </div>
       )}
