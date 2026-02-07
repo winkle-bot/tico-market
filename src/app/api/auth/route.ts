@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
     const { action, email, password, name } = await request.json();
 
     if (!email || !password) {
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   try {
+    const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.signOut();
     
     if (error) {

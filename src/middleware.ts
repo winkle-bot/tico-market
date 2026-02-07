@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -29,6 +29,19 @@ export async function proxy(request: NextRequest) {
       },
     }
   );
+
+  // Handle auth callback with code exchange
+  const code = request.nextUrl.searchParams.get('code');
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // Redirect to clean URL without the code param
+      const cleanUrl = request.nextUrl.clone();
+      cleanUrl.searchParams.delete('code');
+      cleanUrl.searchParams.delete('next');
+      return NextResponse.redirect(cleanUrl);
+    }
+  }
   
   // Refresh session if expired
   await supabase.auth.getSession();

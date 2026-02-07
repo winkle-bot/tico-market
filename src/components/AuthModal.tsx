@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { API_ROUTES, MODAL_BACKDROP_VARIANTS } from '@/config/constants';
+import { MODAL_BACKDROP_VARIANTS } from '@/config/constants';
+import { useAuth } from '@/context/AuthContext';
 import type { AuthFormState } from '@/types';
 
 interface AuthModalProps {
@@ -22,6 +23,7 @@ export function AuthModal({
   formState,
   onFormChange,
 }: AuthModalProps) {
+  const { login, signup } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -53,23 +55,21 @@ export function AuthModal({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(API_ROUTES.AUTH, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formState, action: mode }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        if (mode === 'signup') {
+      if (mode === 'signup') {
+        const result = await signup(formState.email, formState.password, formState.name);
+        if (result.error) {
+          setError(result.error);
+        } else {
           setEmailSent(true);
+        }
+      } else {
+        const result = await login(formState.email, formState.password);
+        if (result.error) {
+          setError(result.error);
         } else {
           onClose();
           onFormChange({ email: '', password: '', name: '' });
         }
-      } else {
-        setError(data.error || 'Authentication failed');
       }
     } catch {
       setError('Network error. Please try again.');
