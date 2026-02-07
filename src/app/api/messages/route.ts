@@ -28,7 +28,20 @@ export async function GET(request: Request) {
     // Group by conversation
     const conversationsMap = new Map<string, any>();
     
-    for (const msg of messages || []) {
+    const typedMessages = messages as unknown as Array<{ 
+      buyer_id: string; 
+      seller_id: string; 
+      listing_id: string;
+      created_at: string;
+      buyer_name?: string;
+      seller_name?: string;
+      id: string;
+      sender_id: string;
+      text: string;
+      read: boolean;
+    }>;
+    
+    for (const msg of typedMessages || []) {
       const otherPartyId = msg.buyer_id === userId ? msg.seller_id : msg.buyer_id;
       const key = `${msg.listing_id}-${otherPartyId}`;
       
@@ -38,7 +51,7 @@ export async function GET(request: Request) {
           .from('listings')
           .select('title, image_url')
           .eq('id', msg.listing_id)
-          .single();
+          .single() as { data: { title: string; image_url: string } | null };
         
         conversationsMap.set(key, {
           listingId: msg.listing_id,
@@ -100,8 +113,8 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Missing required fields');
     }
 
-    const { data: message, error } = await supabase
-      .from('messages')
+    const { data: message, error } = await (supabase
+      .from('messages') as any)
       .insert({
         listing_id: listingId,
         sender_id: session.user.id,
@@ -156,8 +169,8 @@ export async function PATCH(request: Request) {
     }
 
     // Update messages as read
-    const { error } = await supabase
-      .from('messages')
+    const { error } = await (supabase
+      .from('messages') as any)
       .update({ read: true })
       .eq('listing_id', listingId)
       .or(`and(buyer_id.eq.${otherPartyId},seller_id.eq.${userId}),and(buyer_id.eq.${userId},seller_id.eq.${otherPartyId})`)

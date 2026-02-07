@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_ROUTES, MODAL_BACKDROP_VARIANTS } from '@/config/constants';
-import { useAuth } from '@/context/AuthContext';
-import type { AuthFormState, User } from '@/types';
+import type { AuthFormState } from '@/types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export function AuthModal({
   formState,
   onFormChange,
 }: AuthModalProps) {
-  const { login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -54,19 +52,6 @@ export function AuthModal({
       const data = await res.json();
 
       if (res.ok) {
-        // Normalize the user data with defaults
-        const userData: User = {
-          id: data.id,
-          email: data.email,
-          name: data.name,
-          joined: data.joined,
-          verified: data.verified ?? false,
-          favorites: data.favorites || [],
-          bio: data.bio,
-          location: data.location,
-          pickupLocations: data.pickupLocations,
-        };
-        login(userData);
         onClose();
         // Reset form
         onFormChange({ email: '', password: '', name: '' });

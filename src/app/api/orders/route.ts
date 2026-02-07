@@ -14,8 +14,8 @@ export async function GET(request: Request) {
       return ApiResponse.badRequest('userId is required');
     }
 
-    const { data: orders, error } = await supabase
-      .from('orders')
+    const { data: orders, error } = await (supabase
+      .from('orders') as any)
       .select('*')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId},driver_id.eq.${userId}`)
       .order('created_at', { ascending: false });
@@ -25,7 +25,29 @@ export async function GET(request: Request) {
     }
 
     // Transform to match frontend format
-    const transformed = (orders || []).map(o => ({
+    const typedOrders = orders as unknown as Array<{
+      id: string;
+      listing_id: number;
+      listing_snapshot: any;
+      buyer_id: string;
+      buyer_name: string;
+      seller_id: string;
+      seller_name: string;
+      type: 'delivery' | 'pickup';
+      status: 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
+      driver_id: string | null;
+      driver_name: string | null;
+      delivery_address: string | null;
+      delivery_fee: number | null;
+      pickup_location_id: string | null;
+      pickup_location: any | null;
+      scheduled_window: string | null;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }>;
+    
+    const transformed = (typedOrders || []).map(o => ({
       id: o.id,
       listingId: o.listing_id,
       listingSnapshot: o.listing_snapshot,
@@ -87,8 +109,8 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Missing required fields');
     }
 
-    const { data: order, error } = await supabase
-      .from('orders')
+    const { data: order, error } = await (supabase
+      .from('orders') as any)
       .insert({
         listing_id: listingId,
         listing_snapshot: listingSnapshot,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import type { Listing, FrontendListing } from '@/lib/supabase-types';
 
 // GET all listings
 export async function GET() {
@@ -17,7 +18,8 @@ export async function GET() {
     }
 
     // Transform to match frontend format
-    const transformed = listings.map(l => ({
+    const typedListings = listings as unknown as Listing[];
+    const transformed: FrontendListing[] = typedListings.map(l => ({
       id: l.id,
       sellerId: l.seller_id,
       title: l.title,
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
       .from('profiles')
       .select('name, verified')
       .eq('id', session.user.id)
-      .single();
+      .single() as { data: { name: string; verified: boolean } | null };
 
     const title = formData.get('title') as string;
     const price = formData.get('price') as string;
@@ -108,8 +110,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: listing, error } = await supabase
-      .from('listings')
+    const { data: listing, error } = await (supabase
+      .from('listings') as any)
       .insert({
         seller_id: session.user.id,
         title,

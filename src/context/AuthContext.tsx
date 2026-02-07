@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch profile data from Supabase
   const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      const { data: profile, error } = await (supabase
+        .from('profiles') as any)
         .select(`
           *,
           favorites:favorites(listing_id)
@@ -115,8 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkUnread = async () => {
       try {
-        const { data: messages, error } = await supabase
-          .from('messages')
+        const { data: messages, error } = await (supabase
+          .from('messages') as any)
           .select('*')
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .eq('read', false);
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Count messages not sent by current user
-        const count = messages?.filter((msg) => msg.sender_id !== user.id).length || 0;
+        const count = messages?.filter((msg: { sender_id: string }) => msg.sender_id !== user.id).length || 0;
         setUnreadCount(count);
       } catch (err) {
         console.error('Error checking unread messages:', err);
@@ -232,8 +232,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (updates.pickupLocations !== undefined) dbUpdates.pickup_locations = updates.pickupLocations;
     if (updates.acceptsDelivery !== undefined) dbUpdates.accepts_delivery = updates.acceptsDelivery;
 
-    const { error } = await supabase
-      .from('profiles')
+    const { error } = await (supabase
+      .from('profiles') as any)
       .update(dbUpdates)
       .eq('id', user.id);
 
@@ -276,8 +276,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (error) throw error;
         } else {
           // Add favorite
-          const { error } = await supabase
-            .from('favorites')
+          const { error } = await (supabase
+            .from('favorites') as any)
             .insert({ user_id: user.id, listing_id: listingId });
 
           if (error) throw error;

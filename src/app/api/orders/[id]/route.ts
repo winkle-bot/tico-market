@@ -16,8 +16,8 @@ export async function GET(
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const { data: order, error } = await supabase
-      .from('orders')
+    const { data: order, error } = await (supabase
+      .from('orders') as any)
       .select('*')
       .eq('id', id)
       .single();
@@ -83,8 +83,8 @@ export async function PATCH(
     }
 
     // Verify user is buyer or seller
-    const { data: existing } = await supabase
-      .from('orders')
+    const { data: existing } = await (supabase
+      .from('orders') as any)
       .select('buyer_id, seller_id')
       .eq('id', id)
       .single();
@@ -97,8 +97,8 @@ export async function PATCH(
       return ApiResponse.unauthorized('Not authorized to update this order');
     }
 
-    const { data: order, error } = await supabase
-      .from('orders')
+    const { data: order, error } = await (supabase
+      .from('orders') as any)
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()

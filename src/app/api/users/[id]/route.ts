@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import type { ProfileWithFavorites, FrontendProfile } from '@/lib/supabase-types';
 
 // GET user profile
 export async function GET(
@@ -28,21 +29,26 @@ export async function GET(
     }
 
     // Format favorites as array of IDs
-    const favorites = profile.favorites?.map((f: any) => f.listing_id) || [];
+    const typedProfile = profile as unknown as ProfileWithFavorites;
+    const favorites = typedProfile.favorites?.map((f: { listing_id: number }) => f.listing_id) || [];
 
-    return ApiResponse.success({
-      id: profile.id,
-      email: profile.email,
-      name: profile.name,
-      bio: profile.bio,
-      location: profile.location,
-      rating: profile.rating,
-      verified: profile.verified,
-      joined: profile.joined,
-      pickupLocations: profile.pickup_locations,
-      acceptsDelivery: profile.accepts_delivery,
+    const transformed: FrontendProfile = {
+      id: typedProfile.id,
+      email: typedProfile.email,
+      name: typedProfile.name,
+      bio: typedProfile.bio,
+      location: typedProfile.location,
+      rating: typedProfile.rating,
+      verified: typedProfile.verified,
+      joined: typedProfile.joined,
+      pickupLocations: typedProfile.pickup_locations,
+      acceptsDelivery: typedProfile.accepts_delivery,
+      createdAt: typedProfile.created_at,
+      updatedAt: typedProfile.updated_at,
       favorites,
-    });
+    };
+
+    return ApiResponse.success(transformed);
   } catch (error) {
     return ApiResponse.serverError(error);
   }
@@ -75,8 +81,8 @@ export async function PATCH(
       const { listingId } = body;
       
       // Check if favorite exists
-      const { data: existing } = await supabase
-        .from('favorites')
+      const { data: existing } = await (supabase
+        .from('favorites') as any)
         .select('id')
         .eq('user_id', id)
         .eq('listing_id', listingId)
@@ -90,8 +96,8 @@ export async function PATCH(
           .eq('id', existing.id);
       } else {
         // Add favorite
-        await supabase
-          .from('favorites')
+        await (supabase
+          .from('favorites') as any)
           .insert({ user_id: id, listing_id: listingId });
       }
 
@@ -114,8 +120,8 @@ export async function PATCH(
     if (body.pickupLocations !== undefined) updateData.pickup_locations = body.pickupLocations;
     if (body.acceptsDelivery !== undefined) updateData.accepts_delivery = body.acceptsDelivery;
 
-    const { data: profile, error } = await supabase
-      .from('profiles')
+    const { data: profile, error } = await (supabase
+      .from('profiles') as any)
       .update(updateData)
       .eq('id', id)
       .select()
@@ -125,13 +131,14 @@ export async function PATCH(
       return ApiResponse.error(error.message, 500);
     }
 
+    const typedProfile = profile as unknown as ProfileWithFavorites;
     return ApiResponse.success({
-      id: profile.id,
-      name: profile.name,
-      bio: profile.bio,
-      location: profile.location,
-      pickupLocations: profile.pickup_locations,
-      acceptsDelivery: profile.accepts_delivery,
+      id: typedProfile.id,
+      name: typedProfile.name,
+      bio: typedProfile.bio,
+      location: typedProfile.location,
+      pickupLocations: typedProfile.pickup_locations,
+      acceptsDelivery: typedProfile.accepts_delivery,
     });
   } catch (error) {
     console.error('User PATCH error:', error);

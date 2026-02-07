@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import type { Listing, FrontendListing } from '@/lib/supabase-types';
 
 // GET single listing
 export async function GET(
@@ -26,22 +27,23 @@ export async function GET(
     }
 
     // Transform to match frontend format
-    const transformed = {
-      id: listing.id,
-      sellerId: listing.seller_id,
-      title: listing.title,
-      description: listing.description,
-      price: listing.price,
-      category: listing.category,
-      location: [listing.location_lat, listing.location_lng],
-      rating: listing.rating,
-      type: listing.type,
-      owner: listing.owner,
-      imageUrl: listing.image_url,
-      verified: listing.verified,
-      privateKey: listing.private_key,
-      pickupConfig: listing.pickup_config,
-      createdAt: listing.created_at,
+    const typedListing = listing as unknown as Listing;
+    const transformed: FrontendListing = {
+      id: typedListing.id,
+      sellerId: typedListing.seller_id,
+      title: typedListing.title,
+      description: typedListing.description,
+      price: typedListing.price,
+      category: typedListing.category,
+      location: [typedListing.location_lat, typedListing.location_lng],
+      rating: typedListing.rating,
+      type: typedListing.type,
+      owner: typedListing.owner,
+      imageUrl: typedListing.image_url,
+      verified: typedListing.verified,
+      privateKey: typedListing.private_key,
+      pickupConfig: typedListing.pickup_config,
+      createdAt: typedListing.created_at,
     };
 
     return ApiResponse.success(transformed);
@@ -124,7 +126,8 @@ export async function PUT(
       return ApiResponse.error('Listing not found', 404);
     }
 
-    if (existing.seller_id !== session.user.id) {
+    const typedExisting = existing as { seller_id: string };
+    if (typedExisting.seller_id !== session.user.id) {
       return ApiResponse.unauthorized('Not authorized to update this listing');
     }
 
@@ -141,8 +144,8 @@ export async function PUT(
       updateData.location_lng = updates.location[1];
     }
 
-    const { data: listing, error } = await supabase
-      .from('listings')
+    const { data: listing, error } = await (supabase
+      .from('listings') as any)
       .update(updateData)
       .eq('id', listingId)
       .select()
@@ -152,22 +155,26 @@ export async function PUT(
       return ApiResponse.error(error.message, 500);
     }
 
-    return ApiResponse.success({
-      id: listing.id,
-      sellerId: listing.seller_id,
-      title: listing.title,
-      description: listing.description,
-      price: listing.price,
-      category: listing.category,
-      location: [listing.location_lat, listing.location_lng],
-      rating: listing.rating,
-      type: listing.type,
-      owner: listing.owner,
-      imageUrl: listing.image_url,
-      verified: listing.verified,
-      privateKey: listing.private_key,
-      pickupConfig: listing.pickup_config,
-    });
+    const typedListing = listing as unknown as Listing;
+    const transformed: FrontendListing = {
+      id: typedListing.id,
+      sellerId: typedListing.seller_id,
+      title: typedListing.title,
+      description: typedListing.description,
+      price: typedListing.price,
+      category: typedListing.category,
+      location: [typedListing.location_lat, typedListing.location_lng],
+      rating: typedListing.rating,
+      type: typedListing.type,
+      owner: typedListing.owner,
+      imageUrl: typedListing.image_url,
+      verified: typedListing.verified,
+      privateKey: typedListing.private_key,
+      pickupConfig: typedListing.pickup_config,
+      createdAt: typedListing.created_at,
+    };
+
+    return ApiResponse.success(transformed);
   } catch (error) {
     return ApiResponse.serverError(error);
   }
@@ -201,7 +208,8 @@ export async function DELETE(
       return ApiResponse.error('Listing not found', 404);
     }
 
-    if (existing.seller_id !== session.user.id) {
+    const typedExisting = existing as { seller_id: string };
+    if (typedExisting.seller_id !== session.user.id) {
       return ApiResponse.unauthorized('Not authorized to delete this listing');
     }
 

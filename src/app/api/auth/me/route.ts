@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import type { ProfileWithFavorites, FrontendProfile } from '@/lib/supabase-types';
 
 export async function GET() {
   try {
@@ -28,12 +29,27 @@ export async function GET() {
     }
 
     // Format favorites as array of IDs
-    const favorites = profile.favorites?.map((f: any) => f.listing_id) || [];
+    const typedProfile = profile as unknown as ProfileWithFavorites;
+    const favorites = typedProfile.favorites?.map((f: { listing_id: number }) => f.listing_id) || [];
 
-    return ApiResponse.success({
-      ...profile,
+    // Transform to frontend format
+    const transformed: FrontendProfile = {
+      id: typedProfile.id,
+      email: typedProfile.email,
+      name: typedProfile.name,
+      bio: typedProfile.bio,
+      location: typedProfile.location,
+      rating: typedProfile.rating,
+      verified: typedProfile.verified,
+      joined: typedProfile.joined,
+      pickupLocations: typedProfile.pickup_locations,
+      acceptsDelivery: typedProfile.accepts_delivery,
+      createdAt: typedProfile.created_at,
+      updatedAt: typedProfile.updated_at,
       favorites
-    });
+    };
+
+    return ApiResponse.success(transformed);
   } catch (error) {
     console.error('Auth me error:', error);
     return ApiResponse.serverError(error);
