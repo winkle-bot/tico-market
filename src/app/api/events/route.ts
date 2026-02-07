@@ -13,6 +13,13 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createSupabaseServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return new Response('Must be logged in', { status: 401 });
+  }
+  if (userId !== session.user.id) {
+    return new Response('Not authorized to subscribe to these events', { status: 403 });
+  }
 
   // Create a TransformStream for the SSE
   const customReadable = new ReadableStream({

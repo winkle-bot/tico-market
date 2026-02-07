@@ -172,7 +172,7 @@ export default function AccountPage() {
 
     try {
       const res = await fetch(`/api/listings/${editingListing.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sellerId: user?.id,

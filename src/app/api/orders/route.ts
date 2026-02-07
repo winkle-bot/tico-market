@@ -6,6 +6,11 @@ import { ApiResponse } from '@/lib/api-response';
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
     
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -13,11 +18,14 @@ export async function GET(request: Request) {
     if (!userId) {
       return ApiResponse.badRequest('userId is required');
     }
+    if (userId !== session.user.id) {
+      return ApiResponse.forbidden('Not authorized to view these orders');
+    }
 
     const { data: orders, error } = await (supabase
       .from('orders') as any)
       .select('*')
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId},driver_id.eq.${userId}`)
+      .or(`buyer_id.eq.${session.user.id},seller_id.eq.${session.user.id},driver_id.eq.${session.user.id}`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -107,6 +115,9 @@ export async function POST(request: Request) {
 
     if (!listingId || !buyerId || !sellerId || !type) {
       return ApiResponse.badRequest('Missing required fields');
+    }
+    if (buyerId !== session.user.id) {
+      return ApiResponse.forbidden('Not authorized to create this order');
     }
 
     const { data: order, error } = await (supabase

@@ -151,6 +151,8 @@ export function CheckoutModal({
     try {
       const orderData: any = {
         listingId: listing.id,
+        sellerId: listing.sellerId,
+        sellerName: listing.owner,
         buyerId: currentUser.id,
         buyerName: currentUser.name,
         type: method,

@@ -6,6 +6,11 @@ import { ApiResponse } from '@/lib/api-response';
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
     
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -13,12 +18,16 @@ export async function GET(request: Request) {
     if (!userId) {
       return ApiResponse.badRequest('userId is required');
     }
+    if (userId !== session.user.id) {
+      return ApiResponse.forbidden('Not authorized to view these messages');
+    }
+    const effectiveUserId = session.user.id;
 
     // Get all messages where user is buyer or seller
     const { data: messages, error } = await supabase
       .from('messages')
       .select('*')
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .or(`buyer_id.eq.${effectiveUserId},seller_id.eq.${effectiveUserId}`)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -42,7 +51,7 @@ export async function GET(request: Request) {
     }>;
     
     for (const msg of typedMessages || []) {
-      const otherPartyId = msg.buyer_id === userId ? msg.seller_id : msg.buyer_id;
+      const otherPartyId = msg.buyer_id === effectiveUserId ? msg.seller_id : msg.buyer_id;
       const key = `${msg.listing_id}-${otherPartyId}`;
       
       if (!conversationsMap.has(key)) {
@@ -58,7 +67,7 @@ export async function GET(request: Request) {
           listingTitle: listing?.title || 'Unknown Listing',
           listingImage: listing?.image_url,
           otherPartyId,
-          otherPartyName: msg.buyer_id === userId ? msg.seller_name : msg.buyer_name,
+          otherPartyName: msg.buyer_id === effectiveUserId ? msg.seller_name : msg.buyer_name,
           lastMessageAt: msg.created_at,
           messages: [],
         });
@@ -111,6 +120,9 @@ export async function POST(request: Request) {
     
     if (!listingId || !buyerId || !sellerId || !text) {
       return ApiResponse.badRequest('Missing required fields');
+    }
+    if (session.user.id !== buyerId && session.user.id !== sellerId) {
+      return ApiResponse.forbidden('Not authorized to send messages for this listing');
     }
 
     const { data: message, error } = await (supabase
@@ -167,14 +179,18 @@ export async function PATCH(request: Request) {
     if (!listingId || !otherPartyId) {
       return ApiResponse.badRequest('Missing required fields');
     }
+    if (userId && userId !== session.user.id) {
+      return ApiResponse.forbidden('Not authorized to update these messages');
+    }
+    const effectiveUserId = session.user.id;
 
     // Update messages as read
     const { error } = await (supabase
       .from('messages') as any)
       .update({ read: true })
       .eq('listing_id', listingId)
-      .or(`and(buyer_id.eq.${otherPartyId},seller_id.eq.${userId}),and(buyer_id.eq.${userId},seller_id.eq.${otherPartyId})`)
-      .neq('sender_id', userId)
+      .or(`and(buyer_id.eq.${otherPartyId},seller_id.eq.${effectiveUserId}),and(buyer_id.eq.${effectiveUserId},seller_id.eq.${otherPartyId})`)
+      .neq('sender_id', effectiveUserId)
       .eq('read', false);
 
     if (error) {
