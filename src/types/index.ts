@@ -102,6 +102,7 @@ export interface User {
 
 export type OrderType = 'delivery' | 'pickup';
 export type OrderStatus = 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
+export type PaymentStatus = 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
 
 export interface Order {
   id: string;
@@ -118,6 +119,7 @@ export interface Order {
   sellerName: string;
   type: OrderType;
   status: OrderStatus;
+  paymentStatus?: PaymentStatus;
   
   // Delivery specific
   driverId?: string;
@@ -132,6 +134,8 @@ export interface Order {
   
   // Meta
   notes?: string; // Buyer's note to seller
+  paymentAmount?: number;
+  paymentCurrency?: string;
   createdAt: string;
   updatedAt: string;
 }

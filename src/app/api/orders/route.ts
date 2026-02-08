@@ -73,6 +73,9 @@ export async function GET(request: Request) {
       pickup_location: any | null;
       scheduled_window: string | null;
       notes: string | null;
+      payment_status: 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
+      payment_amount: number | null;
+      payment_currency: string | null;
       created_at: string;
       updated_at: string;
     }>;
@@ -95,6 +98,9 @@ export async function GET(request: Request) {
       pickupLocation: o.pickup_location,
       scheduledWindow: o.scheduled_window,
       notes: o.notes,
+      paymentStatus: o.payment_status,
+      paymentAmount: o.payment_amount,
+      paymentCurrency: o.payment_currency,
       createdAt: o.created_at,
       updatedAt: o.updated_at,
     }));
@@ -187,6 +193,9 @@ export async function POST(request: Request) {
       pickupLocation: order.pickup_location,
       scheduledWindow: order.scheduled_window,
       notes: order.notes,
+      paymentStatus: order.payment_status,
+      paymentAmount: order.payment_amount,
+      paymentCurrency: order.payment_currency,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     }, 201);

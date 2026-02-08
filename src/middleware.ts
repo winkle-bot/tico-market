@@ -83,6 +83,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isMutationMethod(request.method) && !hasValidCsrfToken(request)) {
+    if (request.nextUrl.pathname === '/api/stripe/webhook') {
+      return response;
+    }
     return NextResponse.json(
       { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
       { status: 403 }

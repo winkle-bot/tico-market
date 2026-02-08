@@ -64,6 +64,9 @@ export async function GET(
       pickupLocation: order.pickup_location,
       scheduledWindow: order.scheduled_window,
       notes: order.notes,
+      paymentStatus: order.payment_status,
+      paymentAmount: order.payment_amount,
+      paymentCurrency: order.payment_currency,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
     });
@@ -126,6 +129,7 @@ export async function PATCH(
     return ApiResponse.success({
       id: order.id,
       status: order.status,
+      paymentStatus: order.payment_status,
       updatedAt: order.updated_at,
     });
   } catch (error) {

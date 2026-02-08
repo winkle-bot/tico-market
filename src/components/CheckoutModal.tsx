@@ -211,6 +211,24 @@ export function CheckoutModal({
       }
 
       const order = await res.json();
+
+      const checkoutRes = await fetch(API_ROUTES.CHECKOUT, {
+        method: 'POST',
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      if (!checkoutRes.ok) {
+        const checkoutErr = await checkoutRes.json();
+        throw new Error(checkoutErr.error || 'Failed to initialize payment');
+      }
+
+      const checkout = await checkoutRes.json();
+      if (checkout.url) {
+        window.location.href = checkout.url;
+        return;
+      }
+
       onSuccess(order.id);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');

@@ -115,17 +115,44 @@ create table if not exists public.orders (
   pickup_location jsonb,
   scheduled_window text,
   notes text,
+  payment_status text not null default 'pending' check (payment_status in ('pending', 'requires_payment', 'paid', 'failed', 'refunded')),
+  stripe_checkout_session_id text,
+  stripe_payment_intent_id text,
+  payment_amount integer,
+  payment_currency text default 'crc',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Safe upgrades for existing databases
+alter table public.orders add column if not exists payment_status text not null default 'pending';
+alter table public.orders add column if not exists stripe_checkout_session_id text;
+alter table public.orders add column if not exists stripe_payment_intent_id text;
+alter table public.orders add column if not exists payment_amount integer;
+alter table public.orders add column if not exists payment_currency text default 'crc';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'orders_payment_status_check'
+  ) then
+    alter table public.orders
+      add constraint orders_payment_status_check
+      check (payment_status in ('pending', 'requires_payment', 'paid', 'failed', 'refunded'));
+  end if;
+end $$;
 
 -- Indexes for orders
 create index if not exists idx_orders_buyer_id on public.orders(buyer_id);
 create index if not exists idx_orders_seller_id on public.orders(seller_id);
 create index if not exists idx_orders_driver_id on public.orders(driver_id);
 create index if not exists idx_orders_status on public.orders(status);
+create index if not exists idx_orders_payment_status on public.orders(payment_status);
 create index if not exists idx_orders_listing_id on public.orders(listing_id);
 create index if not exists idx_orders_created_at on public.orders(created_at);
+create index if not exists idx_orders_stripe_session on public.orders(stripe_checkout_session_id);
 
 -- ==================== FAVORITES TABLE (Junction) ====================
 

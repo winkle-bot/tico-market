@@ -172,6 +172,11 @@ export interface Database {
           pickup_location: Json | null;
           scheduled_window: string | null;
           notes: string | null;
+          payment_status: 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
+          stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
+          payment_amount: number | null;
+          payment_currency: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -193,6 +198,11 @@ export interface Database {
           pickup_location?: Json | null;
           scheduled_window?: string | null;
           notes?: string | null;
+          payment_status?: 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
+          stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          payment_amount?: number | null;
+          payment_currency?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -214,6 +224,11 @@ export interface Database {
           pickup_location?: Json | null;
           scheduled_window?: string | null;
           notes?: string | null;
+          payment_status?: 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
+          stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
+          payment_amount?: number | null;
+          payment_currency?: string | null;
           created_at?: string;
           updated_at?: string;
         };
