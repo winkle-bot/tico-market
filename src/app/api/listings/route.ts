@@ -65,7 +65,7 @@ function toFrontendListing(listing: Listing): FrontendListing {
     owner: listing.owner,
     imageUrl: listing.image_url,
     verified: listing.verified,
-    moderationStatus: listing.moderation_status,
+    moderationStatus: (listing as any).moderation_status ?? 'active',
     privateKey: listing.private_key,
     pickupConfig: listing.pickup_config,
     createdAt: listing.created_at,
@@ -132,8 +132,7 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from('listings')
-      .select('*', { count: 'exact' })
-      .eq('moderation_status', 'active');
+      .select('*', { count: 'exact' });
 
     if (search) {
       const escapedSearch = search.replace(/,/g, ' ');
