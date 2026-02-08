@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useListings } from '@/context/ListingsContext';
 import ChatModal from '@/components/ChatModal';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type { Review } from '@/types';
 
 export default function SellerProfile({ params }: { params: Promise<{ id: string }> }) {
@@ -65,6 +66,35 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : Number(seller.rating || 5).toFixed(1);
+
+  const reportSeller = async () => {
+    if (!user) {
+      alert('Please log in to report users.');
+      return;
+    }
+
+    const reason = window.prompt('Report reason (required):');
+    if (!reason || reason.trim().length < 5) return;
+    const details = window.prompt('Additional details (optional):');
+
+    const res = await fetch('/api/reports', {
+      method: 'POST',
+      headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        targetType: 'user',
+        targetUserId: id,
+        reason: reason.trim(),
+        details: details?.trim() || undefined,
+      }),
+    });
+
+    if (res.ok) {
+      alert('Report submitted. Thank you.');
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Could not submit report');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,6 +159,12 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                   >
                     Back to Feed
                   </Link>
+                  <button
+                    onClick={reportSeller}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-black py-3 rounded-2xl transition-all uppercase tracking-widest text-xs"
+                  >
+                    Report Seller
+                  </button>
                 </div>
               </div>
             </div>

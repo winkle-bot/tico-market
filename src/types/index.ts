@@ -64,6 +64,7 @@ export interface Listing {
   owner: string;
   imageUrl?: string;
   verified?: boolean;
+  moderationStatus?: 'active' | 'hidden';
   privateKey?: string;
   // Pickup configuration
   pickupConfig?: ListingPickupConfig;
@@ -89,6 +90,7 @@ export interface User {
   name: string;
   joined: string;
   verified: boolean;
+  role?: 'user' | 'admin' | 'moderator';
   favorites: number[];
   bio?: string;
   location?: string;
@@ -191,6 +193,20 @@ export interface Review {
   buyerName: string;
   rating: number;
   comment?: string;
+  createdAt: string;
+}
+
+export interface Report {
+  id: number;
+  reporterId: string;
+  targetType: 'listing' | 'user';
+  targetListingId?: number;
+  targetUserId?: string;
+  reason: string;
+  details?: string;
+  status: 'open' | 'resolved' | 'dismissed';
+  reviewedBy?: string;
+  reviewedAt?: string;
   createdAt: string;
 }
 

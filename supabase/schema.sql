@@ -20,12 +20,25 @@ create table if not exists public.profiles (
   location text default 'Costa Rica',
   rating decimal(3,2) default 5.0,
   verified boolean default false,
+  role text not null default 'user' check (role in ('user', 'admin', 'moderator')),
   joined timestamptz default now(),
   pickup_locations jsonb default '[]'::jsonb,
   accepts_delivery boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table public.profiles add column if not exists role text not null default 'user';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_role_check'
+  ) then
+    alter table public.profiles
+      add constraint profiles_role_check
+      check (role in ('user', 'admin', 'moderator'));
+  end if;
+end $$;
 
 -- Trigger to automatically create profile on signup
 create or replace function public.handle_new_user()
@@ -63,16 +76,30 @@ create table if not exists public.listings (
   owner text not null,
   image_url text,
   verified boolean default false,
+  moderation_status text not null default 'active' check (moderation_status in ('active', 'hidden')),
   private_key text,
   pickup_config jsonb default '{}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
+alter table public.listings add column if not exists moderation_status text not null default 'active';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'listings_moderation_status_check'
+  ) then
+    alter table public.listings
+      add constraint listings_moderation_status_check
+      check (moderation_status in ('active', 'hidden'));
+  end if;
+end $$;
+
 -- Create index for faster queries
 create index if not exists idx_listings_seller_id on public.listings(seller_id);
 create index if not exists idx_listings_category on public.listings(category);
 create index if not exists idx_listings_type on public.listings(type);
+create index if not exists idx_listings_moderation_status on public.listings(moderation_status);
 
 -- ==================== MESSAGES TABLE ====================
 
@@ -174,6 +201,27 @@ create index if not exists idx_reviews_listing_id on public.reviews(listing_id);
 create index if not exists idx_reviews_buyer_id on public.reviews(buyer_id);
 create index if not exists idx_reviews_created_at on public.reviews(created_at);
 
+-- ==================== REPORTS TABLE ====================
+
+create table if not exists public.reports (
+  id bigserial primary key,
+  reporter_id uuid references public.profiles(id) on delete cascade not null,
+  target_type text not null check (target_type in ('listing', 'user')),
+  target_listing_id bigint references public.listings(id) on delete cascade,
+  target_user_id uuid references public.profiles(id) on delete cascade,
+  reason text not null,
+  details text,
+  status text not null default 'open' check (status in ('open', 'resolved', 'dismissed')),
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_reports_reporter_id on public.reports(reporter_id);
+create index if not exists idx_reports_status on public.reports(status);
+create index if not exists idx_reports_listing_id on public.reports(target_listing_id);
+create index if not exists idx_reports_target_user_id on public.reports(target_user_id);
+
 -- ==================== FAVORITES TABLE (Junction) ====================
 
 create table if not exists public.favorites (
@@ -267,6 +315,15 @@ create policy "Reviews are viewable by everyone"
 create policy "Authenticated users can create reviews"
   on public.reviews for insert
   with check (auth.role() = 'authenticated');
+
+-- Reports: users can create and view own reports
+create policy "Users can view own reports"
+  on public.reports for select
+  using (auth.uid() = reporter_id);
+
+create policy "Authenticated users can create reports"
+  on public.reports for insert
+  with check (auth.uid() = reporter_id);
 
 -- ==================== FUNCTIONS ====================
 

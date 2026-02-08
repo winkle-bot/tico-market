@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ChatModal, CheckoutModal, AuthModal } from '@/components';
 import { ListingDetailSkeleton } from '@/components/Skeletons';
 import { API_ROUTES } from '@/config/constants';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type { Listing, User } from '@/types';
 
 export default function ListingDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -100,6 +101,37 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
   const handleOrderSuccess = (orderId: string) => {
     setIsCheckoutOpen(false);
     setOrderSuccess(orderId);
+  };
+
+  const handleReportListing = async () => {
+    if (!listing || listing === 'not_found') return;
+
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    const reason = window.prompt('Report reason (required):');
+    if (!reason || reason.trim().length < 5) return;
+    const details = window.prompt('Additional details (optional):');
+
+    const res = await fetch('/api/reports', {
+      method: 'POST',
+      headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        targetType: 'listing',
+        targetListingId: listing.id,
+        reason: reason.trim(),
+        details: details?.trim() || undefined,
+      }),
+    });
+
+    if (res.ok) {
+      alert('Report submitted. Thank you.');
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Could not submit report');
+    }
   };
 
   if (isLoading) return <ListingDetailSkeleton />;
@@ -288,6 +320,13 @@ export default function ListingDetails({ params }: { params: Promise<{ id: strin
                     aria-label="Message seller"
                   >
                     <MessageCircle className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={handleReportListing}
+                    className="p-3 bg-white hover:bg-red-600 hover:text-white rounded-2xl border border-gray-100 shadow-sm transition-all"
+                    aria-label="Report listing"
+                  >
+                    !
                   </button>
                 </div>
                 <div className="flex gap-4">

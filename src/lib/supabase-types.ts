@@ -31,6 +31,7 @@ export interface FrontendListing {
   owner: string;
   imageUrl: string | null;
   verified: boolean;
+  moderationStatus?: 'active' | 'hidden';
   privateKey: string | null;
   pickupConfig: any;
   createdAt: string;
@@ -44,6 +45,7 @@ export interface FrontendProfile {
   location: string | null;
   rating: number;
   verified: boolean;
+  role?: 'user' | 'admin' | 'moderator';
   joined: string;
   pickupLocations: any;
   acceptsDelivery: boolean;

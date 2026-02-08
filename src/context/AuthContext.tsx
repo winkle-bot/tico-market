@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         'User',
       joined: currentUser?.joined || new Date().toISOString(),
       verified: currentUser?.verified ?? Boolean(nextUser.email_confirmed_at),
+      role: currentUser?.role || 'user',
       favorites: currentUser?.favorites || [],
       bio: currentUser?.bio,
       location: currentUser?.location,
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: profile.name,
         joined: profile.joined,
         verified: profile.verified,
+        role: profile.role as 'user' | 'admin' | 'moderator',
         favorites,
         bio: profile.bio ?? undefined,
         location: profile.location ?? undefined,
@@ -350,6 +352,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (updates.location !== undefined) dbUpdates.location = updates.location ?? null;
     if (updates.rating !== undefined) dbUpdates.rating = updates.rating;
     if (updates.verified !== undefined) dbUpdates.verified = updates.verified;
+    if (updates.role !== undefined) dbUpdates.role = updates.role;
     if (updates.pickupLocations !== undefined) {
       dbUpdates.pickup_locations = updates.pickupLocations as unknown as ProfileUpdate['pickup_locations'];
     }

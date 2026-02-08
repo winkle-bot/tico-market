@@ -24,6 +24,7 @@ export async function GET() {
     const { data: listings, error } = await supabase
       .from('listings')
       .select('*')
+      .eq('moderation_status', 'active')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -45,6 +46,7 @@ export async function GET() {
       owner: l.owner,
       imageUrl: l.image_url,
       verified: l.verified,
+      moderationStatus: l.moderation_status,
       privateKey: l.private_key,
       pickupConfig: l.pickup_config,
       createdAt: l.created_at,
@@ -183,6 +185,7 @@ export async function POST(request: Request) {
       owner: listing.owner,
       imageUrl: listing.image_url,
       verified: listing.verified,
+      moderationStatus: listing.moderation_status,
       privateKey: listing.private_key,
       pickupConfig: listing.pickup_config,
     }, 201);

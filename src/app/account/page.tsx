@@ -417,9 +417,17 @@ export default function AccountPage() {
               <h2 className="font-bold text-xl text-gray-900">{user.name || 'User'}</h2>
               <p className="text-gray-500 text-sm">{user.email}</p>
             </div>
+            {(user.role === 'admin' || user.role === 'moderator') && (
+              <Link
+                href="/admin"
+                className="ml-auto px-4 py-2 text-xs font-black uppercase tracking-widest bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                Admin
+              </Link>
+            )}
             <button
               onClick={() => { logout(); router.push('/'); }}
-              className="ml-auto p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
+              className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
             >
               <LogOut className="w-5 h-5" />
             </button>

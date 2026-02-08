@@ -21,6 +21,7 @@ export interface Database {
           location: string | null;
           rating: number;
           verified: boolean;
+          role: 'user' | 'admin' | 'moderator';
           joined: string;
           pickup_locations: Json | null;
           accepts_delivery: boolean;
@@ -35,6 +36,7 @@ export interface Database {
           location?: string | null;
           rating?: number;
           verified?: boolean;
+          role?: 'user' | 'admin' | 'moderator';
           joined?: string;
           pickup_locations?: Json | null;
           accepts_delivery?: boolean;
@@ -49,6 +51,7 @@ export interface Database {
           location?: string | null;
           rating?: number;
           verified?: boolean;
+          role?: 'user' | 'admin' | 'moderator';
           joined?: string;
           pickup_locations?: Json | null;
           accepts_delivery?: boolean;
@@ -71,6 +74,7 @@ export interface Database {
           owner: string;
           image_url: string | null;
           verified: boolean;
+          moderation_status: 'active' | 'hidden';
           private_key: string | null;
           pickup_config: Json | null;
           created_at: string;
@@ -90,6 +94,7 @@ export interface Database {
           owner: string;
           image_url?: string | null;
           verified?: boolean;
+          moderation_status?: 'active' | 'hidden';
           private_key?: string | null;
           pickup_config?: Json | null;
           created_at?: string;
@@ -109,6 +114,7 @@ export interface Database {
           owner?: string;
           image_url?: string | null;
           verified?: boolean;
+          moderation_status?: 'active' | 'hidden';
           private_key?: string | null;
           pickup_config?: Json | null;
           created_at?: string;
@@ -285,6 +291,47 @@ export interface Database {
           buyer_name?: string;
           rating?: number;
           comment?: string | null;
+          created_at?: string;
+        };
+      };
+      reports: {
+        Row: {
+          id: number;
+          reporter_id: string;
+          target_type: 'listing' | 'user';
+          target_listing_id: number | null;
+          target_user_id: string | null;
+          reason: string;
+          details: string | null;
+          status: 'open' | 'resolved' | 'dismissed';
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          reporter_id: string;
+          target_type: 'listing' | 'user';
+          target_listing_id?: number | null;
+          target_user_id?: string | null;
+          reason: string;
+          details?: string | null;
+          status?: 'open' | 'resolved' | 'dismissed';
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          reporter_id?: string;
+          target_type?: 'listing' | 'user';
+          target_listing_id?: number | null;
+          target_user_id?: string | null;
+          reason?: string;
+          details?: string | null;
+          status?: 'open' | 'resolved' | 'dismissed';
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           created_at?: string;
         };
       };

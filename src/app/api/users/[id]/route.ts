@@ -60,6 +60,7 @@ export async function GET(
       location: typedProfile.location,
       rating: typedProfile.rating,
       verified: typedProfile.verified,
+      role: typedProfile.role as 'user' | 'admin' | 'moderator',
       joined: typedProfile.joined,
       pickupLocations: typedProfile.pickup_locations,
       acceptsDelivery: typedProfile.accepts_delivery,
@@ -172,6 +173,7 @@ export async function PATCH(
       name: typedProfile.name,
       bio: typedProfile.bio,
       location: typedProfile.location,
+      role: typedProfile.role as 'user' | 'admin' | 'moderator',
       pickupLocations: typedProfile.pickup_locations,
       acceptsDelivery: typedProfile.accepts_delivery,
     });
