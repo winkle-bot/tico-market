@@ -57,7 +57,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
   }, [sellerId]);
 
   if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
-  if (seller === 'not_found') return notFound();
+  if (seller === 'not_found' || !seller) return notFound();
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)

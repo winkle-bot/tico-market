@@ -351,7 +351,7 @@ export async function POST(request: Request) {
         image_url: imageUrl,
         verified: profile?.verified || false,
         pickup_config: pickupConfig,
-      })
+      } as any)
       .select()
       .single();
 
@@ -359,22 +359,23 @@ export async function POST(request: Request) {
       return ApiResponse.error(error.message, 500);
     }
 
+    const typedListing = listing as any;
     return ApiResponse.success({
-      id: listing.id,
-      sellerId: listing.seller_id,
-      title: listing.title,
-      description: listing.description,
-      price: listing.price,
-      category: listing.category,
-      location: [listing.location_lat, listing.location_lng],
-      rating: listing.rating,
-      type: listing.type,
-      owner: listing.owner,
-      imageUrl: listing.image_url,
-      verified: listing.verified,
-      moderationStatus: listing.moderation_status,
-      privateKey: listing.private_key,
-      pickupConfig: listing.pickup_config,
+      id: typedListing.id,
+      sellerId: typedListing.seller_id,
+      title: typedListing.title,
+      description: typedListing.description,
+      price: typedListing.price,
+      category: typedListing.category,
+      location: [typedListing.location_lat, typedListing.location_lng],
+      rating: typedListing.rating,
+      type: typedListing.type,
+      owner: typedListing.owner,
+      imageUrl: typedListing.image_url,
+      verified: typedListing.verified,
+      moderationStatus: typedListing.moderation_status,
+      privateKey: typedListing.private_key,
+      pickupConfig: typedListing.pickup_config,
     }, 201);
   } catch (error) {
     console.error('Listings POST error:', error);

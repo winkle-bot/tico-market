@@ -37,14 +37,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .limit(5000),
     ]);
 
-    const listingRoutes: MetadataRoute.Sitemap = (listings || []).map((listing) => ({
+    const listingRoutes: MetadataRoute.Sitemap = (listings || []).map((listing: any) => ({
       url: `${SITE_URL}/listing/${listing.id}`,
       lastModified: listing.updated_at ? new Date(listing.updated_at) : now,
       changeFrequency: 'daily',
       priority: 0.8,
     }));
 
-    const sellerRoutes: MetadataRoute.Sitemap = (sellers || []).map((seller) => ({
+    const sellerRoutes: MetadataRoute.Sitemap = (sellers || []).map((seller: any) => ({
       url: `${SITE_URL}/seller/${seller.id}`,
       lastModified: seller.updated_at ? new Date(seller.updated_at) : now,
       changeFrequency: 'weekly',
