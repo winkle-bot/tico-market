@@ -274,6 +274,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(async (email: string, password: string, name: string): Promise<{ error?: string }> => {
     try {
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_SITE_URL || 'https://tico-market.c0di.workers.dev';
+      const redirectTo = `${baseUrl}/auth/callback`;
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -281,6 +287,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             name,
           },
+          emailRedirectTo: redirectTo,
         },
       });
 
