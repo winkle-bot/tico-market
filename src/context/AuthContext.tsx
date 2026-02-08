@@ -8,8 +8,9 @@ import React, {
   useCallback,
 } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { GroupedConversation, User } from '@/types';
-import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import type { User, PickupLocation } from '@/types';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
 
 interface AuthContextType {
   user: User | null;
@@ -32,12 +33,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+  type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+  type FavoriteRow = Database['public']['Tables']['favorites']['Row'];
+  type FavoriteInsert = Database['public']['Tables']['favorites']['Insert'];
+  type MessageRow = Database['public']['Tables']['messages']['Row'];
+
+  const mapPickupLocations = useCallback(
+    (pickupLocations: ProfileRow['pickup_locations']): PickupLocation[] | undefined => {
+      if (!Array.isArray(pickupLocations)) return undefined;
+      return pickupLocations as unknown as PickupLocation[];
+    },
+    []
+  );
+
+  const toFallbackUser = useCallback(
+    (nextUser: SupabaseUser, currentUser: User | null): User => ({
+      id: nextUser.id,
+      email: nextUser.email || currentUser?.email || '',
+      name:
+        (nextUser.user_metadata?.name as string | undefined) ||
+        currentUser?.name ||
+        nextUser.email?.split('@')[0] ||
+        'User',
+      joined: currentUser?.joined || new Date().toISOString(),
+      verified: currentUser?.verified ?? Boolean(nextUser.email_confirmed_at),
+      favorites: currentUser?.favorites || [],
+      bio: currentUser?.bio,
+      location: currentUser?.location,
+      rating: currentUser?.rating,
+      pickupLocations: currentUser?.pickupLocations,
+      acceptsDelivery: currentUser?.acceptsDelivery,
+    }),
+    []
+  );
 
   // Fetch profile data from Supabase
   const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
     try {
-      const { data: profile, error } = await (supabase
-        .from('profiles') as any)
+      const { data: profileData, error } = await supabase
+        .from('profiles')
         .select(`
           *,
           favorites:favorites(listing_id)
@@ -47,6 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        return null;
+      }
+      const profile = profileData as (ProfileRow & { favorites?: Pick<FavoriteRow, 'listing_id'>[] }) | null;
+      if (!profile) {
         return null;
       }
 
@@ -60,51 +99,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         joined: profile.joined,
         verified: profile.verified,
         favorites,
-        bio: profile.bio,
-        location: profile.location,
+        bio: profile.bio ?? undefined,
+        location: profile.location ?? undefined,
         rating: profile.rating,
-        pickupLocations: profile.pickup_locations,
+        pickupLocations: mapPickupLocations(profile.pickup_locations),
         acceptsDelivery: profile.accepts_delivery,
       };
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       return null;
     }
-  }, []);
+  }, [mapPickupLocations]);
 
   // Listen for auth state changes
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSupabaseUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).then(profile => {
-          setUser(profile);
+    let isMounted = true;
+
+    const loadInitialSession = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Error loading session:', error);
+        }
+        if (!isMounted) return;
+
+        const currentSupabaseUser = session?.user ?? null;
+        setSupabaseUser(currentSupabaseUser);
+
+        if (!currentSupabaseUser) {
+          setUser(null);
+          return;
+        }
+
+        const profile = await fetchProfile(currentSupabaseUser.id);
+        if (!isMounted) return;
+        setUser(profile ?? toFallbackUser(currentSupabaseUser, null));
+      } catch (error) {
+        console.error('Failed to initialize auth state:', error);
+        if (isMounted) {
+          setSupabaseUser(null);
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
           setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
+        }
       }
-    });
+    };
+
+    loadInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSupabaseUser(session?.user ?? null);
-        if (session?.user) {
-          const profile = await fetchProfile(session.user.id);
-          setUser(profile);
-        } else {
+      (_event, session) => {
+        const currentSupabaseUser = session?.user ?? null;
+        setSupabaseUser(currentSupabaseUser);
+
+        if (!currentSupabaseUser) {
           setUser(null);
+          setIsLoading(false);
+          return;
         }
-        setIsLoading(false);
+
+        setIsLoading(true);
+        void (async () => {
+          try {
+            const profile = await fetchProfile(currentSupabaseUser.id);
+            if (!isMounted) return;
+            setUser((prev) => profile ?? toFallbackUser(currentSupabaseUser, prev));
+          } catch (error) {
+            console.error('Failed to sync auth profile:', error);
+            if (isMounted) {
+              setUser((prev) => toFallbackUser(currentSupabaseUser, prev));
+            }
+          } finally {
+            if (isMounted) {
+              setIsLoading(false);
+            }
+          }
+        })();
       }
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, toFallbackUser]);
 
   // Poll for unread messages
   useEffect(() => {
@@ -115,9 +198,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkUnread = async () => {
       try {
-        const { data: messages, error } = await (supabase
-          .from('messages') as any)
-          .select('*')
+        const { data: messages, error } = await supabase
+          .from('messages')
+          .select('sender_id')
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .eq('read', false);
 
@@ -127,7 +210,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Count messages not sent by current user
-        const count = messages?.filter((msg: { sender_id: string }) => msg.sender_id !== user.id).length || 0;
+        const typedMessages = messages as Pick<MessageRow, 'sender_id'>[] | null;
+        const count = typedMessages?.filter((msg) => msg.sender_id !== user.id).length || 0;
         setUnreadCount(count);
       } catch (err) {
         console.error('Error checking unread messages:', err);
@@ -145,7 +229,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           event: '*',
           schema: 'public',
           table: 'messages',
-          filter: `buyer_id=eq.${user.id} OR seller_id=eq.${user.id}`,
         },
         () => {
           checkUnread();
@@ -170,20 +253,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        const profile = await fetchProfile(data.user.id);
-        setUser(profile);
         setSupabaseUser(data.user);
+        setUser((prev) => prev ?? toFallbackUser(data.user, prev));
+        void fetchProfile(data.user.id).then((profile) => {
+          if (profile) {
+            setUser(profile);
+          }
+        });
       }
 
       return {};
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      return { error: message };
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, toFallbackUser]);
 
   const signup = useCallback(async (email: string, password: string, name: string): Promise<{ error?: string }> => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -198,13 +286,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return {};
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Signup failed';
+      return { error: message };
     }
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
     setUser(null);
     setSupabaseUser(null);
   }, []);
@@ -216,25 +309,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const profile = await fetchProfile(supabaseUser.id);
-    setUser(profile);
-  }, [supabaseUser, fetchProfile]);
+    setUser((prev) => profile ?? toFallbackUser(supabaseUser, prev));
+  }, [supabaseUser, fetchProfile, toFallbackUser]);
 
   const updateUser = useCallback(async (updates: Partial<User>) => {
     if (!user?.id) return;
 
     // Transform User type to database format
-    const dbUpdates: Record<string, any> = {};
+    const dbUpdates: ProfileUpdate = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
-    if (updates.location !== undefined) dbUpdates.location = updates.location;
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio ?? null;
+    if (updates.location !== undefined) dbUpdates.location = updates.location ?? null;
     if (updates.rating !== undefined) dbUpdates.rating = updates.rating;
     if (updates.verified !== undefined) dbUpdates.verified = updates.verified;
-    if (updates.pickupLocations !== undefined) dbUpdates.pickup_locations = updates.pickupLocations;
+    if (updates.pickupLocations !== undefined) {
+      dbUpdates.pickup_locations = updates.pickupLocations as unknown as ProfileUpdate['pickup_locations'];
+    }
     if (updates.acceptsDelivery !== undefined) dbUpdates.accepts_delivery = updates.acceptsDelivery;
 
-    const { error } = await (supabase
-      .from('profiles') as any)
-      .update(dbUpdates)
+    const { error } = await supabase
+      .from('profiles')
+      .update(dbUpdates as never)
       .eq('id', user.id);
 
     if (error) {
@@ -276,9 +371,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (error) throw error;
         } else {
           // Add favorite
-          const { error } = await (supabase
-            .from('favorites') as any)
-            .insert({ user_id: user.id, listing_id: listingId });
+          const favoriteInsert: FavoriteInsert = { user_id: user.id, listing_id: listingId };
+          const { error } = await supabase
+            .from('favorites')
+            .insert(favoriteInsert as never);
 
           if (error) throw error;
         }

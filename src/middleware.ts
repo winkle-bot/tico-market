@@ -30,21 +30,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Handle auth callback with code exchange
-  const code = request.nextUrl.searchParams.get('code');
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      // Redirect to clean URL without the code param
-      const cleanUrl = request.nextUrl.clone();
-      cleanUrl.searchParams.delete('code');
-      cleanUrl.searchParams.delete('next');
-      return NextResponse.redirect(cleanUrl);
-    }
-  }
-  
-  // Refresh session if expired
-  await supabase.auth.getSession();
+  // Refresh session tokens and keep auth cookies in sync.
+  // Per Supabase SSR guidance, use getUser() (not getSession()) here.
+  await supabase.auth.getUser();
   
   return response;
 }

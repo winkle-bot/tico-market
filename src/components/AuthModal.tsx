@@ -28,6 +28,7 @@ export function AuthModal({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [emailSent, setEmailSent] = useState(false);
+  const AUTH_TIMEOUT_MS = 15000;
 
   // Reset state when modal opens
   useEffect(() => {
@@ -39,6 +40,7 @@ export function AuthModal({
   }, [isOpen]);
 
   const handleAuth = async () => {
+    if (isSubmitting) return;
     setError(null);
     // Basic validation
     const newErrors: { [key: string]: string } = {};
@@ -55,15 +57,24 @@ export function AuthModal({
     setIsSubmitting(true);
 
     try {
+      const withTimeout = async <T,>(promise: Promise<T>) => {
+        return await Promise.race<T>([
+          promise,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('Request timeout')), AUTH_TIMEOUT_MS)
+          ),
+        ]);
+      };
+
       if (mode === 'signup') {
-        const result = await signup(formState.email, formState.password, formState.name);
+        const result = await withTimeout(signup(formState.email, formState.password, formState.name));
         if (result.error) {
           setError(result.error);
         } else {
           setEmailSent(true);
         }
       } else {
-        const result = await login(formState.email, formState.password);
+        const result = await withTimeout(login(formState.email, formState.password));
         if (result.error) {
           setError(result.error);
         } else {
@@ -71,8 +82,12 @@ export function AuthModal({
           onFormChange({ email: '', password: '', name: '' });
         }
       }
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'Request timeout') {
+        setError('Login is taking too long. Please try again.');
+      } else {
+        setError('Network error. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

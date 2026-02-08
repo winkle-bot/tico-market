@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'messages',
-            filter: `buyer_id=eq.${userId} OR seller_id=eq.${userId}`,
+            filter: `buyer_id=eq.${userId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -48,7 +48,29 @@ export async function GET(request: NextRequest) {
             })}\n\n`;
             try {
               controller.enqueue(encoder.encode(message));
-            } catch (e) {
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `seller_id=eq.${userId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'messages',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
               // Controller might be closed
             }
           }
@@ -59,7 +81,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'orders',
-            filter: `buyer_id=eq.${userId} OR seller_id=eq.${userId} OR driver_id=eq.${userId}`,
+            filter: `buyer_id=eq.${userId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -70,7 +92,51 @@ export async function GET(request: NextRequest) {
             })}\n\n`;
             try {
               controller.enqueue(encoder.encode(message));
-            } catch (e) {
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `seller_id=eq.${userId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'orders',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `driver_id=eq.${userId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'orders',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
               // Controller might be closed
             }
           }
@@ -81,7 +147,7 @@ export async function GET(request: NextRequest) {
       const heartbeatInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`));
-        } catch (e) {
+        } catch {
           clearInterval(heartbeatInterval);
         }
       }, 30000);
@@ -92,7 +158,7 @@ export async function GET(request: NextRequest) {
         clearInterval(heartbeatInterval);
         try {
           controller.close();
-        } catch (e) {}
+        } catch {}
       });
     },
   });
