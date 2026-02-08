@@ -4,12 +4,23 @@ import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
 import { readJsonBody, validationError } from '@/lib/validation';
 import { z } from 'zod';
 
-const authSchema = z.object({
-  action: z.enum(['signup', 'login']),
-  email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
-  password: z.string().min(6).max(128),
-  name: z.string().max(100).optional(),
-});
+const authSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('signup'),
+    email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
+    password: z.string().min(6).max(128),
+    name: z.string().max(100).optional(),
+  }),
+  z.object({
+    action: z.literal('login'),
+    email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
+    password: z.string().min(6).max(128),
+  }),
+  z.object({
+    action: z.literal('forgotPassword'),
+    email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
+  }),
+]);
 
 export async function POST(request: Request) {
   try {
@@ -19,13 +30,25 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return validationError(parsed.error);
     }
-    const { action, email, password, name } = parsed.data;
-    const sanitizedName = sanitizeOptionalText(name, 100);
+    const { action, email } = parsed.data;
+
+    if (action === 'forgotPassword') {
+      const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || '';
+      const redirectTo = `${origin}/auth/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        return ApiResponse.error(error.message, 400, error.code);
+      }
+      return ApiResponse.success({
+        message: 'Password reset email sent',
+      });
+    }
 
     if (action === 'signup') {
+      const sanitizedName = sanitizeOptionalText(parsed.data.name, 100);
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
+        password: parsed.data.password,
         options: {
           data: { name: sanitizedName || sanitizeText(email.split('@')[0], 100) }
         }
@@ -44,7 +67,7 @@ export async function POST(request: Request) {
     if (action === 'login') {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password: parsed.data.password
       });
 
       if (error) {

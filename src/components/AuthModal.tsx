@@ -23,21 +23,32 @@ export function AuthModal({
   formState,
   onFormChange,
 }: AuthModalProps) {
-  const { login, signup } = useAuth();
+  const { login, signup, requestPasswordReset } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
   const [emailSent, setEmailSent] = useState(false);
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
   const AUTH_TIMEOUT_MS = 15000;
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setEmailSent(false);
+      setPasswordResetSent(false);
       setError(null);
       setFieldErrors({});
     }
   }, [isOpen]);
+
+  const withTimeout = async <T,>(promise: Promise<T>) => {
+    return await Promise.race<T>([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), AUTH_TIMEOUT_MS)
+      ),
+    ]);
+  };
 
   const handleAuth = async () => {
     if (isSubmitting) return;
@@ -57,15 +68,6 @@ export function AuthModal({
     setIsSubmitting(true);
 
     try {
-      const withTimeout = async <T,>(promise: Promise<T>) => {
-        return await Promise.race<T>([
-          promise,
-          new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error('Request timeout')), AUTH_TIMEOUT_MS)
-          ),
-        ]);
-      };
-
       if (mode === 'signup') {
         const result = await withTimeout(signup(formState.email, formState.password, formState.name));
         if (result.error) {
@@ -93,6 +95,36 @@ export function AuthModal({
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (isSubmitting) return;
+    setError(null);
+    setFieldErrors({});
+
+    const email = formState.email.trim();
+    if (!email || !email.includes('@')) {
+      setFieldErrors({ email: 'Enter your account email first' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await withTimeout(requestPasswordReset(email));
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setPasswordResetSent(true);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'Request timeout') {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError('Network error. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -109,9 +141,9 @@ export function AuthModal({
             className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8"
           >
             <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">
-              {emailSent ? 'Check Your Email' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              {(emailSent || passwordResetSent) ? 'Check Your Email' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            {emailSent ? (
+            {(emailSent || passwordResetSent) ? (
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                   <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,12 +151,19 @@ export function AuthModal({
                   </svg>
                 </div>
                 <p className="text-gray-600">
-                  We sent a confirmation link to <span className="font-bold text-gray-900">{formState.email}</span>
+                  {passwordResetSent
+                    ? <>We sent a password reset link to <span className="font-bold text-gray-900">{formState.email}</span></>
+                    : <>We sent a confirmation link to <span className="font-bold text-gray-900">{formState.email}</span></>}
                 </p>
-                <p className="text-sm text-gray-400">Click the link in the email to verify your account and log in.</p>
+                <p className="text-sm text-gray-400">
+                  {passwordResetSent
+                    ? 'Open the link in that email to choose a new password.'
+                    : 'Click the link in the email to verify your account and log in.'}
+                </p>
                 <button
                   onClick={() => {
                     setEmailSent(false);
+                    setPasswordResetSent(false);
                     onFormChange({ email: '', password: '', name: '' });
                     onClose();
                   }}
@@ -185,6 +224,15 @@ export function AuthModal({
                   <p className="text-red-500 text-xs font-bold mt-1 px-2">{fieldErrors.password}</p>
                 )}
               </div>
+              {mode === 'login' && (
+                <button
+                  onClick={handleForgotPassword}
+                  disabled={isSubmitting}
+                  className="text-sm text-blue-600 font-bold hover:underline disabled:text-blue-300"
+                >
+                  Forgot your password?
+                </button>
+              )}
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium">
                   {error}
