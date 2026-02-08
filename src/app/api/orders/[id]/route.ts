@@ -11,8 +11,8 @@ export async function GET(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -30,9 +30,9 @@ export async function GET(
     }
 
     // Check if user is part of this order
-    if (order.buyer_id !== session.user.id && 
-        order.seller_id !== session.user.id && 
-        order.driver_id !== session.user.id) {
+    if (order.buyer_id !== user.id && 
+        order.seller_id !== user.id && 
+        order.driver_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to view this order');
     }
 
@@ -71,8 +71,8 @@ export async function PATCH(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -93,7 +93,7 @@ export async function PATCH(
       return ApiResponse.error('Order not found', 404);
     }
 
-    if (existing.buyer_id !== session.user.id && existing.seller_id !== session.user.id) {
+    if (existing.buyer_id !== user.id && existing.seller_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to update this order');
     }
 

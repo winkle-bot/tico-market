@@ -7,10 +7,10 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     
-    // Get current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (sessionError || !session) {
+    if (userError || !user) {
       return ApiResponse.unauthorized('Not authenticated');
     }
 
@@ -21,7 +21,7 @@ export async function GET() {
         *,
         favorites:favorites(listing_id)
       `)
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (profileError) {

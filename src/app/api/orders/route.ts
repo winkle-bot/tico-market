@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
     
@@ -18,14 +18,14 @@ export async function GET(request: Request) {
     if (!userId) {
       return ApiResponse.badRequest('userId is required');
     }
-    if (userId !== session.user.id) {
+    if (userId !== user.id) {
       return ApiResponse.forbidden('Not authorized to view these orders');
     }
 
     const { data: orders, error } = await (supabase
       .from('orders') as any)
       .select('*')
-      .or(`buyer_id.eq.${session.user.id},seller_id.eq.${session.user.id},driver_id.eq.${session.user.id}`)
+      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id},driver_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -89,8 +89,8 @@ export async function POST(request: Request) {
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     if (!listingId || !buyerId || !sellerId || !type) {
       return ApiResponse.badRequest('Missing required fields');
     }
-    if (buyerId !== session.user.id) {
+    if (buyerId !== user.id) {
       return ApiResponse.forbidden('Not authorized to create this order');
     }
 

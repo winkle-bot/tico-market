@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
     
@@ -18,10 +18,10 @@ export async function GET(request: Request) {
     if (!userId) {
       return ApiResponse.badRequest('userId is required');
     }
-    if (userId !== session.user.id) {
+    if (userId !== user.id) {
       return ApiResponse.forbidden('Not authorized to view these messages');
     }
-    const effectiveUserId = session.user.id;
+    const effectiveUserId = user.id;
 
     // Get all messages where user is buyer or seller
     const { data: messages, error } = await supabase
@@ -110,8 +110,8 @@ export async function POST(request: Request) {
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     if (!listingId || !buyerId || !sellerId || !text) {
       return ApiResponse.badRequest('Missing required fields');
     }
-    if (session.user.id !== buyerId && session.user.id !== sellerId) {
+    if (user.id !== buyerId && user.id !== sellerId) {
       return ApiResponse.forbidden('Not authorized to send messages for this listing');
     }
 
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       .from('messages') as any)
       .insert({
         listing_id: listingId,
-        sender_id: session.user.id,
+        sender_id: user.id,
         text,
         buyer_id: buyerId,
         buyer_name: buyerName,
@@ -168,8 +168,8 @@ export async function PATCH(request: Request) {
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -179,10 +179,10 @@ export async function PATCH(request: Request) {
     if (!listingId || !otherPartyId) {
       return ApiResponse.badRequest('Missing required fields');
     }
-    if (userId && userId !== session.user.id) {
+    if (userId && userId !== user.id) {
       return ApiResponse.forbidden('Not authorized to update these messages');
     }
-    const effectiveUserId = session.user.id;
+    const effectiveUserId = user.id;
 
     // Update messages as read
     const { error } = await (supabase

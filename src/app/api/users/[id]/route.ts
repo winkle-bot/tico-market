@@ -64,13 +64,13 @@ export async function PATCH(
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
     // Users can only update their own profile
-    if (session.user.id !== id) {
+    if (user.id !== id) {
       return ApiResponse.unauthorized('Not authorized to update this profile');
     }
 
