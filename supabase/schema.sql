@@ -7,6 +7,7 @@ alter table if exists public.listings enable row level security;
 alter table if exists public.messages enable row level security;
 alter table if exists public.orders enable row level security;
 alter table if exists public.favorites enable row level security;
+alter table if exists public.reviews enable row level security;
 
 -- ==================== PROFILES TABLE ====================
 -- Extends auth.users with additional user information
@@ -154,6 +155,25 @@ create index if not exists idx_orders_listing_id on public.orders(listing_id);
 create index if not exists idx_orders_created_at on public.orders(created_at);
 create index if not exists idx_orders_stripe_session on public.orders(stripe_checkout_session_id);
 
+-- ==================== REVIEWS TABLE ====================
+
+create table if not exists public.reviews (
+  id bigserial primary key,
+  order_id text references public.orders(id) on delete cascade not null unique,
+  listing_id bigint references public.listings(id) on delete cascade not null,
+  seller_id uuid references public.profiles(id) on delete cascade not null,
+  buyer_id uuid references public.profiles(id) on delete cascade not null,
+  buyer_name text not null,
+  rating integer not null check (rating between 1 and 5),
+  comment text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_reviews_seller_id on public.reviews(seller_id);
+create index if not exists idx_reviews_listing_id on public.reviews(listing_id);
+create index if not exists idx_reviews_buyer_id on public.reviews(buyer_id);
+create index if not exists idx_reviews_created_at on public.reviews(created_at);
+
 -- ==================== FAVORITES TABLE (Junction) ====================
 
 create table if not exists public.favorites (
@@ -238,6 +258,15 @@ create policy "Users can add their own favorites"
 create policy "Users can remove their own favorites"
   on public.favorites for delete
   using (auth.uid() = user_id);
+
+-- Reviews: visible to everyone, only authenticated users create via API checks
+create policy "Reviews are viewable by everyone"
+  on public.reviews for select
+  using (true);
+
+create policy "Authenticated users can create reviews"
+  on public.reviews for insert
+  with check (auth.role() = 'authenticated');
 
 -- ==================== FUNCTIONS ====================
 

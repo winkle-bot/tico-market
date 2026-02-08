@@ -253,6 +253,41 @@ export interface Database {
           created_at?: string;
         };
       };
+      reviews: {
+        Row: {
+          id: number;
+          order_id: string;
+          listing_id: number;
+          seller_id: string;
+          buyer_id: string;
+          buyer_name: string;
+          rating: number;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          order_id: string;
+          listing_id: number;
+          seller_id: string;
+          buyer_id: string;
+          buyer_name: string;
+          rating: number;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          order_id?: string;
+          listing_id?: number;
+          seller_id?: string;
+          buyer_id?: string;
+          buyer_name?: string;
+          rating?: number;
+          comment?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

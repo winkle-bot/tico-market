@@ -181,6 +181,19 @@ export interface GroupedConversation {
   messages: Message[];
 }
 
+// ============ REVIEWS ============
+export interface Review {
+  id: number;
+  orderId: string;
+  listingId: number;
+  sellerId: string;
+  buyerId: string;
+  buyerName: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
 // ============ FORM STATES ============
 
 export interface AuthFormState {

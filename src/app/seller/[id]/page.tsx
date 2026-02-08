@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useListings } from '@/context/ListingsContext';
 import ChatModal from '@/components/ChatModal';
+import type { Review } from '@/types';
 
 export default function SellerProfile({ params }: { params: Promise<{ id: string }> }) {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   // Derived state from context
   const sellerListings = listings.filter((l) => l.sellerId === id);
@@ -41,6 +43,12 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
         }
         const userData = await userRes.json();
         setSeller(userData);
+
+        const reviewsRes = await fetch(`/api/reviews?sellerId=${id}`);
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json();
+          setReviews(reviewsData);
+        }
       } catch (err) {
         setSeller('not_found');
       } finally {
@@ -53,6 +61,10 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
 
   if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
   if (seller === 'not_found') return notFound();
+
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+    : Number(seller.rating || 5).toFixed(1);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,8 +89,8 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                 
                 <div className="flex items-center gap-2 text-orange-500 font-black text-lg mb-6">
                   <Star className="w-5 h-5 fill-current" />
-                  {seller.rating} 
-                  <span className="text-gray-400 font-medium text-sm">({seller.reviews?.length || 0} reviews)</span>
+                  {averageRating}
+                  <span className="text-gray-400 font-medium text-sm">({reviews.length} reviews)</span>
                 </div>
 
                 <div className="w-full space-y-4 text-left">
@@ -167,12 +179,12 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                 Recent Reviews
               </h2>
               <div className="space-y-8">
-                {seller.reviews && seller.reviews.length > 0 ? seller.reviews.map((review: any) => (
+                {reviews.length > 0 ? reviews.map((review) => (
                   <div key={review.id} className="relative pl-6 border-l-2 border-blue-100">
                     <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-blue-600" />
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-black text-gray-900">{review.user}</span>
-                      <span className="text-xs font-bold text-gray-400 uppercase">{review.date}</span>
+                      <span className="font-black text-gray-900">{review.buyerName}</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase">{new Date(review.createdAt).toLocaleDateString('es-CR')}</span>
                     </div>
                     <div className="flex items-center gap-1 text-orange-400 mb-3">
                       {[...Array(5)].map((_, i) => (
@@ -180,7 +192,7 @@ export default function SellerProfile({ params }: { params: Promise<{ id: string
                       ))}
                     </div>
                     <p className="text-gray-600 leading-relaxed">
-                      {review.comment}
+                      {review.comment || 'No comment provided.'}
                     </p>
                   </div>
                 )) : (

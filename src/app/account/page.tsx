@@ -11,7 +11,7 @@ import { categoryEmojis } from '@/lib/data';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
-import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation } from '@/types';
+import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation, Review } from '@/types';
 
 interface EditFormState {
   title: string;
@@ -33,6 +33,7 @@ export default function AccountPage() {
   const favorites = listings.filter((l) => user?.favorites?.includes(l.id));
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reviewsByOrder, setReviewsByOrder] = useState<Record<string, Review>>({});
   const [conversations, setConversations] = useState<GroupedConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -78,6 +79,18 @@ export default function AccountPage() {
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData);
+      }
+
+      const reviewsRes = await fetch(`/api/reviews?buyerId=${user.id}`);
+      if (reviewsRes.ok) {
+        const reviewsData = await reviewsRes.json();
+        const map = (reviewsData as Review[]).reduce<Record<string, Review>>((acc, review) => {
+          acc[review.orderId] = review;
+          return acc;
+        }, {});
+        setReviewsByOrder(map);
+      } else {
+        setReviewsByOrder({});
       }
     } catch (err) {
       console.error('Error loading account data:', err);
@@ -514,7 +527,12 @@ export default function AccountPage() {
 
             {/* Orders Tab */}
             {activeTab === 'orders' && (
-              <OrdersTab orders={orders} userId={user.id} onStatusChange={loadData} />
+              <OrdersTab
+                orders={orders}
+                userId={user.id}
+                reviewsByOrder={reviewsByOrder}
+                onStatusChange={loadData}
+              />
             )}
 
             {/* Favorites Tab */}
@@ -626,12 +644,20 @@ export default function AccountPage() {
 function OrdersTab({ 
   orders, 
   userId, 
+  reviewsByOrder,
   onStatusChange 
 }: { 
   orders: Order[]; 
   userId: string;
+  reviewsByOrder: Record<string, Review>;
   onStatusChange: () => void;
 }) {
+  const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
@@ -648,6 +674,40 @@ function OrdersTab({
       }
     } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
       alert('Error updating order');
+    }
+  };
+
+  const submitReview = async () => {
+    if (!reviewingOrderId || isSubmittingReview) return;
+
+    setReviewError(null);
+    setIsSubmittingReview(true);
+
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          orderId: reviewingOrderId,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to submit review');
+      }
+
+      setReviewingOrderId(null);
+      setReviewComment('');
+      setReviewRating(5);
+      onStatusChange();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit review';
+      setReviewError(message);
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -699,6 +759,7 @@ function OrdersTab({
       {orders.map(order => {
         const isSeller = order.sellerId === userId;
         const isBuyer = order.buyerId === userId;
+        const hasReview = Boolean(reviewsByOrder[order.id]);
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -826,9 +887,94 @@ function OrdersTab({
                 Cancel Order
               </button>
             )}
+            {order.status === 'completed' && isBuyer && !hasReview && (
+              <button
+                onClick={() => {
+                  setReviewingOrderId(order.id);
+                  setReviewRating(5);
+                  setReviewComment('');
+                  setReviewError(null);
+                }}
+                className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors text-sm"
+              >
+                Leave Review
+              </button>
+            )}
+            {order.status === 'completed' && hasReview && (
+              <div className="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-xl text-sm text-center">
+                Reviewed: {reviewsByOrder[order.id].rating}/5
+              </div>
+            )}
           </div>
         );
       })}
+
+      <AnimatePresence>
+        {reviewingOrderId && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReviewingOrderId(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6"
+            >
+              <h3 className="text-lg font-black text-gray-900 mb-2 uppercase">Leave a Review</h3>
+              <p className="text-sm text-gray-500 mb-4">Rate your order experience.</p>
+
+              <div className="flex gap-2 mb-4">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setReviewRating(value)}
+                    className={`w-10 h-10 rounded-full border font-black ${
+                      reviewRating >= value
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-white border-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Optional comment"
+                rows={4}
+                className="w-full p-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:outline-none text-sm"
+              />
+
+              {reviewError && (
+                <p className="text-sm text-red-600 mt-3">{reviewError}</p>
+              )}
+
+              <div className="flex gap-2 mt-5">
+                <button
+                  onClick={() => setReviewingOrderId(null)}
+                  className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitReview}
+                  disabled={isSubmittingReview}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors"
+                >
+                  {isSubmittingReview ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
