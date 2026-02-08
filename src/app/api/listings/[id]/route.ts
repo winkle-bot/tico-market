@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing, FrontendListing } from '@/lib/supabase-types';
 
+const LISTINGS_BUCKET = 'listings';
+
 // GET single listing
 export async function GET(
   request: Request,
@@ -62,8 +64,8 @@ export async function PUT(
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -86,20 +88,26 @@ export async function PUT(
         }
         
         const fileExt = image.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
-        const { error: uploadError } = await supabase
+        const { data: uploadData, error: uploadError } = await supabase
           .storage
-          .from('listings')
+          .from(LISTINGS_BUCKET)
           .upload(fileName, image);
         
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase
-            .storage
-            .from('listings')
-            .getPublicUrl(fileName);
-          imageUrl = publicUrl;
+        if (uploadError) {
+          return ApiResponse.error('Image upload failed', 400, uploadError.name, uploadError.message);
         }
+
+        if (!uploadData?.path) {
+          return ApiResponse.error('Image upload failed', 500, 'UPLOAD_PATH_MISSING');
+        }
+
+        const { data: { publicUrl } } = supabase
+          .storage
+          .from(LISTINGS_BUCKET)
+          .getPublicUrl(uploadData.path);
+        imageUrl = publicUrl;
       }
       
       // Parse other form fields
@@ -127,7 +135,7 @@ export async function PUT(
     }
 
     const typedExisting = existing as { seller_id: string };
-    if (typedExisting.seller_id !== session.user.id) {
+    if (typedExisting.seller_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to update this listing');
     }
 
@@ -190,8 +198,8 @@ export async function DELETE(
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
@@ -209,7 +217,7 @@ export async function DELETE(
     }
 
     const typedExisting = existing as { seller_id: string };
-    if (typedExisting.seller_id !== session.user.id) {
+    if (typedExisting.seller_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to delete this listing');
     }
 

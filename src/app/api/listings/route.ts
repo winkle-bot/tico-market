@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing, FrontendListing } from '@/lib/supabase-types';
 
+const LISTINGS_BUCKET = 'listings';
+
 // GET all listings
 export async function GET() {
   try {
@@ -49,8 +51,8 @@ export async function POST(request: Request) {
     const supabase = await createSupabaseServerClient();
     
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return ApiResponse.unauthorized('Must be logged in to create listings');
     }
 
@@ -67,29 +69,33 @@ export async function POST(request: Request) {
       }
       
       const fileExt = image.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase
         .storage
-        .from('listings')
+        .from(LISTINGS_BUCKET)
         .upload(fileName, image);
       
       if (uploadError) {
-        console.error('Upload error:', uploadError);
-      } else {
-        const { data: { publicUrl } } = supabase
-          .storage
-          .from('listings')
-          .getPublicUrl(fileName);
-        imageUrl = publicUrl;
+        return ApiResponse.error('Image upload failed', 400, uploadError.name, uploadError.message);
       }
+
+      if (!uploadData?.path) {
+        return ApiResponse.error('Image upload failed', 500, 'UPLOAD_PATH_MISSING');
+      }
+
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from(LISTINGS_BUCKET)
+        .getPublicUrl(uploadData.path);
+      imageUrl = publicUrl;
     }
 
     // Get user profile for owner name
     const { data: profile } = await supabase
       .from('profiles')
       .select('name, verified')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single() as { data: { name: string; verified: boolean } | null };
 
     const title = formData.get('title') as string;
@@ -113,7 +119,7 @@ export async function POST(request: Request) {
     const { data: listing, error } = await (supabase
       .from('listings') as any)
       .insert({
-        seller_id: session.user.id,
+        seller_id: user.id,
         title,
         description,
         price,
@@ -121,7 +127,7 @@ export async function POST(request: Request) {
         location_lat: lat,
         location_lng: lng,
         type,
-        owner: profile?.name || session.user.email?.split('@')[0] || 'Unknown',
+        owner: profile?.name || user.email?.split('@')[0] || 'Unknown',
         image_url: imageUrl,
         verified: profile?.verified || false,
         pickup_config: pickupConfig,
