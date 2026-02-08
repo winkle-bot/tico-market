@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, PlusCircle, Truck, MapPin, Trash2, Check } from 'lucide-react';
 import { categoryEmojis, categories } from '@/lib/data';
@@ -12,6 +12,7 @@ import {
   MODAL_CONTENT_VARIANTS,
 } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { useToast } from '@/context/ToastContext';
 import type { Listing, NewListingForm, Category, MarketEvent } from '@/types';
 
 interface SellModalProps {
@@ -51,6 +52,7 @@ export function SellModal({
   onListingCreated,
   onOpenAuth,
 }: SellModalProps) {
+  const toast = useToast();
   const { user } = useAuth();
   const [newItem, setNewItem] = useState<NewListingForm>(INITIAL_FORM_STATE);
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -104,7 +106,7 @@ export function SellModal({
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      toast.error('Geolocation is not supported by your browser.');
       return;
     }
 
@@ -130,21 +132,12 @@ export function SellModal({
            msg += " (Note: GPS requires HTTPS on mobile devices)";
         }
         
-        alert(msg);
+        toast.error(msg);
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
-  
-  // Try to get location on open if user is logged in
-  /* 
-  useEffect(() => {
-    if (isOpen && !coords) {
-       // Optional: Auto-fetch? Maybe too intrusive. Let user click.
-    }
-  }, [isOpen]); 
-  */
 
   const handleAddEvent = () => {
     if (newEvent.name && newEvent.date) {
@@ -229,7 +222,7 @@ export function SellModal({
 
       if (res.ok) {
         onListingCreated(data);
-        alert(`Listing created: ${newItem.title}!`);
+        toast.success(`Listing created: ${newItem.title}!`);
         handleClose();
       } else {
         setSubmitError({
@@ -237,7 +230,7 @@ export function SellModal({
           details: data.details,
         });
       }
-    } catch (err) {
+    } catch {
       setSubmitError({
         message: 'Network error',
         details: 'Could not connect to server. Please try again.',
@@ -534,7 +527,7 @@ export function SellModal({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file && file.size > 2 * 1024 * 1024) {
-                          alert('Image must be smaller than 2MB');
+                          toast.error('Image must be smaller than 2MB');
                           e.target.value = '';
                           return;
                         }

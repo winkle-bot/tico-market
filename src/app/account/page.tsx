@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,6 +11,7 @@ import { categoryEmojis } from '@/lib/data';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
+import { useToast } from '@/context/ToastContext';
 import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation, Review } from '@/types';
 
 interface EditFormState {
@@ -23,8 +24,9 @@ interface EditFormState {
 }
 
 export default function AccountPage() {
+  const toast = useToast();
   const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
-  const { listings, isLoading: isListingsLoading, updateListing, deleteListing } = useListings();
+  const { listings, updateListing, deleteListing } = useListings();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages'>('listings');
   
@@ -61,6 +63,7 @@ export default function AccountPage() {
     wazeLink: ''
   });
   const [showEventForm, setShowEventForm] = useState(false);
+  const pendingDeleteRef = useRef<Record<number, number>>({});
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -111,7 +114,15 @@ export default function AccountPage() {
   }, [user, authLoading, router, loadData]);
 
   const handleDelete = async (listingId: number) => {
-    if (!confirm('Are you sure you want to delete this listing?')) return;
+    const now = Date.now();
+    const lastAttempt = pendingDeleteRef.current[listingId] || 0;
+    if (now - lastAttempt > 5000) {
+      pendingDeleteRef.current[listingId] = now;
+      toast.info('Tap delete again to confirm.', {
+        description: 'This confirmation expires in 5 seconds.',
+      });
+      return;
+    }
     
     try {
       const res = await fetch(`/api/listings/${listingId}`, {
@@ -122,12 +133,14 @@ export default function AccountPage() {
       
       if (res.ok) {
         deleteListing(listingId);
+        delete pendingDeleteRef.current[listingId];
+        toast.success('Listing deleted.');
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to delete listing');
+        toast.error(err.error || 'Failed to delete listing');
       }
-    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      alert('Error deleting listing');
+    } catch {
+      toast.error('Error deleting listing');
     }
   };
 
@@ -201,12 +214,13 @@ export default function AccountPage() {
         const updated = await res.json();
         updateListing(updated);
         setEditingListing(null);
+        toast.success('Listing updated.');
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to update listing');
+        toast.error(err.error || 'Failed to update listing');
       }
-    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      alert('Error updating listing');
+    } catch {
+      toast.error('Error updating listing');
     }
   };
 
@@ -660,6 +674,7 @@ function OrdersTab({
   reviewsByOrder: Record<string, Review>;
   onStatusChange: () => void;
 }) {
+  const toast = useToast();
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
@@ -676,12 +691,13 @@ function OrdersTab({
       
       if (res.ok) {
         onStatusChange();
+        toast.success('Order status updated.');
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to update order');
+        toast.error(err.error || 'Failed to update order');
       }
-    } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
-      alert('Error updating order');
+    } catch {
+      toast.error('Error updating order');
     }
   };
 

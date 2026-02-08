@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, Truck, MapPin } from 'lucide-react';
 import { MODAL_BACKDROP_VARIANTS, MODAL_CONTENT_VARIANTS, DELIVERY_FEE_DISPLAY } from '@/config/constants';
+import { useToast } from '@/context/ToastContext';
 import type { Listing, BookingStep } from '@/types';
 
 interface BookingModalProps {
@@ -13,6 +14,7 @@ interface BookingModalProps {
 }
 
 export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
+  const toast = useToast();
   const [bookingStep, setBookingStep] = useState<BookingStep>(1);
   const [selectedDriver, setSelectedDriver] = useState<Listing | null>(null);
 
@@ -26,7 +28,7 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
   };
 
   const handleBooking = () => {
-    alert(`Booking requested! ${selectedDriver?.owner} is on their way.`);
+    toast.success(`Booking requested! ${selectedDriver?.owner || 'Your driver'} is on their way.`);
     handleClose();
   };
 
