@@ -151,6 +151,22 @@ export function CheckoutModal({
     try {
       const orderData: any = {
         listingId: listing.id,
+        listingSnapshot: {
+          id: listing.id,
+          sellerId: listing.sellerId,
+          title: listing.title,
+          description: listing.description,
+          price: listing.price,
+          category: listing.category,
+          location: listing.location,
+          rating: listing.rating,
+          type: listing.type,
+          owner: listing.owner,
+          imageUrl: listing.imageUrl,
+          verified: listing.verified,
+          pickupConfig: listing.pickupConfig,
+          createdAt: listing.createdAt,
+        },
         sellerId: listing.sellerId,
         sellerName: listing.owner,
         buyerId: currentUser.id,
