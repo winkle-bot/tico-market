@@ -1,9 +1,20 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing, FrontendListing } from '@/lib/supabase-types';
+import { sanitizeText } from '@/lib/security';
+import { z } from 'zod';
 
 const LISTINGS_BUCKET = 'listings';
+const createListingSchema = z.object({
+  title: z.string().min(3).max(120),
+  price: z.string().min(1).max(50),
+  category: z.string().min(1).max(60),
+  description: z.string().max(3000).default(''),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  type: z.enum(['seller', 'driver']).default('seller'),
+  imageUrl: z.string().url().max(2048).nullable().optional(),
+});
 
 // GET all listings
 export async function GET() {
@@ -98,21 +109,41 @@ export async function POST(request: Request) {
       .eq('id', user.id)
       .single() as { data: { name: string; verified: boolean } | null };
 
-    const title = formData.get('title') as string;
-    const price = formData.get('price') as string;
-    const category = formData.get('category') as string;
-    const description = formData.get('description') as string || '';
-    const lat = parseFloat(formData.get('lat') as string) || 9.9281;
-    const lng = parseFloat(formData.get('lng') as string) || -84.0907;
-    const type = (formData.get('type') as 'seller' | 'driver') || 'seller';
+    const rawTitle = String(formData.get('title') ?? '');
+    const rawPrice = String(formData.get('price') ?? '');
+    const rawCategory = String(formData.get('category') ?? '');
+    const rawDescription = String(formData.get('description') ?? '');
+    const rawLat = Number(formData.get('lat') ?? 9.9281);
+    const rawLng = Number(formData.get('lng') ?? -84.0907);
+    const rawType = String(formData.get('type') ?? 'seller');
     const pickupConfigStr = formData.get('pickupConfig') as string;
-    
-    let pickupConfig = {};
+
+    const parsed = createListingSchema.safeParse({
+      title: sanitizeText(rawTitle, 120),
+      price: sanitizeText(rawPrice, 50),
+      category: sanitizeText(rawCategory, 60),
+      description: sanitizeText(rawDescription, 3000),
+      lat: rawLat,
+      lng: rawLng,
+      type: rawType,
+      imageUrl,
+    });
+
+    if (!parsed.success) {
+      return ApiResponse.badRequest('Invalid listing payload', parsed.error.flatten());
+    }
+
+    const { title, price, category, description, lat, lng, type } = parsed.data;
+
+    let pickupConfig: Record<string, unknown> = {};
     if (pickupConfigStr) {
       try {
-        pickupConfig = JSON.parse(pickupConfigStr);
-      } catch (e) {
-        console.error('Failed to parse pickupConfig', e);
+        const parsedPickupConfig = JSON.parse(pickupConfigStr);
+        if (parsedPickupConfig && typeof parsedPickupConfig === 'object') {
+          pickupConfig = parsedPickupConfig as Record<string, unknown>;
+        }
+      } catch {
+        return ApiResponse.badRequest('Invalid pickupConfig payload');
       }
     }
 
@@ -127,7 +158,7 @@ export async function POST(request: Request) {
         location_lat: lat,
         location_lng: lng,
         type,
-        owner: profile?.name || user.email?.split('@')[0] || 'Unknown',
+        owner: sanitizeText(profile?.name || user.email?.split('@')[0] || 'Unknown', 100),
         image_url: imageUrl,
         verified: profile?.verified || false,
         pickup_config: pickupConfig,

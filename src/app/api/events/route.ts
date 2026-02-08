@@ -1,23 +1,27 @@
 import { NextRequest } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
+const userIdSchema = z.string().uuid();
 
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
-  if (!userId) {
+  const parsedUserId = userIdSchema.safeParse(userId);
+  if (!parsedUserId.success) {
     return new Response('userId is required', { status: 400 });
   }
+  const safeUserId = parsedUserId.data;
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return new Response('Must be logged in', { status: 401 });
   }
-  if (userId !== user.id) {
+  if (safeUserId !== user.id) {
     return new Response('Not authorized to subscribe to these events', { status: 403 });
   }
 
@@ -30,14 +34,14 @@ export async function GET(request: NextRequest) {
 
       // Subscribe to relevant changes using Supabase Realtime
       const subscription = supabase
-        .channel(`user-events-${userId}`)
+        .channel(`user-events-${safeUserId}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'messages',
-            filter: `buyer_id=eq.${userId}`,
+            filter: `buyer_id=eq.${safeUserId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -59,7 +63,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'messages',
-            filter: `seller_id=eq.${userId}`,
+            filter: `seller_id=eq.${safeUserId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -81,7 +85,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'orders',
-            filter: `buyer_id=eq.${userId}`,
+            filter: `buyer_id=eq.${safeUserId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -103,7 +107,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'orders',
-            filter: `seller_id=eq.${userId}`,
+            filter: `seller_id=eq.${safeUserId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({
@@ -125,7 +129,7 @@ export async function GET(request: NextRequest) {
             event: '*',
             schema: 'public',
             table: 'orders',
-            filter: `driver_id=eq.${userId}`,
+            filter: `driver_id=eq.${safeUserId}`,
           },
           (payload) => {
             const message = `data: ${JSON.stringify({

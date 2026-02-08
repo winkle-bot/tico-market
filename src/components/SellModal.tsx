@@ -11,6 +11,7 @@ import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_CONTENT_VARIANTS,
 } from '@/config/constants';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type { Listing, NewListingForm, Category, MarketEvent } from '@/types';
 
 interface SellModalProps {
@@ -220,6 +221,7 @@ export function SellModal({
     try {
       const res = await fetch(API_ROUTES.LISTINGS, {
         method: 'POST',
+        headers: withCsrfHeaders(),
         body: formData,
       });
 

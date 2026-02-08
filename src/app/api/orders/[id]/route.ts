@@ -1,6 +1,12 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { readJsonBody } from '@/lib/validation';
+import { z } from 'zod';
+
+const orderIdSchema = z.string().uuid();
+const orderStatusSchema = z.object({
+  status: z.enum(['pending', 'confirmed', 'in_transit', 'completed', 'cancelled']),
+});
 
 // GET single order
 export async function GET(
@@ -10,6 +16,10 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
+    const parsedOrderId = orderIdSchema.safeParse(id);
+    if (!parsedOrderId.success) {
+      return ApiResponse.badRequest('Invalid order id');
+    }
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -19,7 +29,7 @@ export async function GET(
     const { data: order, error } = await (supabase
       .from('orders') as any)
       .select('*')
-      .eq('id', id)
+      .eq('id', parsedOrderId.data)
       .single();
 
     if (error) {
@@ -70,23 +80,28 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
+    const parsedOrderId = orderIdSchema.safeParse(id);
+    if (!parsedOrderId.success) {
+      return ApiResponse.badRequest('Invalid order id');
+    }
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const { status } = await request.json();
-    
-    if (!status) {
-      return ApiResponse.badRequest('Status is required');
+    const body = await readJsonBody(request);
+    const parsedBody = orderStatusSchema.safeParse(body);
+    if (!parsedBody.success) {
+      return ApiResponse.badRequest('Invalid status payload', parsedBody.error.flatten());
     }
+    const { status } = parsedBody.data;
 
     // Verify user is buyer or seller
     const { data: existing } = await (supabase
       .from('orders') as any)
       .select('buyer_id, seller_id')
-      .eq('id', id)
+      .eq('id', parsedOrderId.data)
       .single();
 
     if (!existing) {
@@ -100,7 +115,7 @@ export async function PATCH(
     const { data: order, error } = await (supabase
       .from('orders') as any)
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq('id', parsedOrderId.data)
       .select()
       .single();
 
@@ -114,6 +129,9 @@ export async function PATCH(
       updatedAt: order.updated_at,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     return ApiResponse.serverError(error);
   }
 }

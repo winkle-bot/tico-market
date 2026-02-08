@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useListings } from '@/context/ListingsContext';
 import { categoryEmojis } from '@/lib/data';
+import { withCsrfHeaders } from '@/lib/csrf';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
 import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation } from '@/types';
@@ -102,7 +103,7 @@ export default function AccountPage() {
     try {
       const res = await fetch(`/api/listings/${listingId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ sellerId: user?.id })
       });
       
@@ -173,7 +174,7 @@ export default function AccountPage() {
     try {
       const res = await fetch(`/api/listings/${editingListing.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           sellerId: user?.id,
           title: editForm.title,
@@ -635,7 +636,7 @@ function OrdersTab({
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ status, userId })
       });
       

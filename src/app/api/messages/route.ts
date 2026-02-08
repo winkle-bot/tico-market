@@ -1,6 +1,23 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
+import { readJsonBody } from '@/lib/validation';
+import { z } from 'zod';
+
+const userIdSchema = z.string().uuid();
+const messageCreateSchema = z.object({
+  listingId: z.coerce.number().int().positive(),
+  buyerId: z.string().uuid(),
+  buyerName: z.string().max(100).optional(),
+  sellerId: z.string().uuid(),
+  sellerName: z.string().max(100).optional(),
+  text: z.string().min(1).max(2000),
+});
+const markReadSchema = z.object({
+  userId: z.string().uuid().optional(),
+  listingId: z.coerce.number().int().positive(),
+  otherPartyId: z.string().uuid(),
+});
 
 // GET messages for a user
 export async function GET(request: Request) {
@@ -15,10 +32,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     
-    if (!userId) {
+    const parsedUserId = userIdSchema.safeParse(userId);
+    if (!parsedUserId.success) {
       return ApiResponse.badRequest('userId is required');
     }
-    if (userId !== user.id) {
+    if (parsedUserId.data !== user.id) {
       return ApiResponse.forbidden('Not authorized to view these messages');
     }
     const effectiveUserId = user.id;
@@ -115,12 +133,12 @@ export async function POST(request: Request) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const body = await request.json();
-    const { listingId, buyerId, buyerName, sellerId, sellerName, text } = body;
-    
-    if (!listingId || !buyerId || !sellerId || !text) {
-      return ApiResponse.badRequest('Missing required fields');
+    const body = await readJsonBody(request);
+    const parsed = messageCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return ApiResponse.badRequest('Invalid message payload', parsed.error.flatten());
     }
+    const { listingId, buyerId, buyerName, sellerId, sellerName, text } = parsed.data;
     if (user.id !== buyerId && user.id !== sellerId) {
       return ApiResponse.forbidden('Not authorized to send messages for this listing');
     }
@@ -130,11 +148,11 @@ export async function POST(request: Request) {
       .insert({
         listing_id: listingId,
         sender_id: user.id,
-        text,
+        text: sanitizeText(text, 2000),
         buyer_id: buyerId,
-        buyer_name: buyerName,
+        buyer_name: sanitizeOptionalText(buyerName, 100),
         seller_id: sellerId,
-        seller_name: sellerName,
+        seller_name: sanitizeOptionalText(sellerName, 100),
         read: false,
       })
       .select()
@@ -157,6 +175,9 @@ export async function POST(request: Request) {
       sellerName: message.seller_name,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     console.error('Messages POST error:', error);
     return ApiResponse.serverError(error);
   }
@@ -173,12 +194,12 @@ export async function PATCH(request: Request) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const body = await request.json();
-    const { userId, listingId, otherPartyId } = body;
-
-    if (!listingId || !otherPartyId) {
-      return ApiResponse.badRequest('Missing required fields');
+    const body = await readJsonBody(request);
+    const parsed = markReadSchema.safeParse(body);
+    if (!parsed.success) {
+      return ApiResponse.badRequest('Invalid mark-read payload', parsed.error.flatten());
     }
+    const { userId, listingId, otherPartyId } = parsed.data;
     if (userId && userId !== user.id) {
       return ApiResponse.forbidden('Not authorized to update these messages');
     }
@@ -199,6 +220,9 @@ export async function PATCH(request: Request) {
 
     return ApiResponse.success({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     console.error('Messages PATCH error:', error);
     return ApiResponse.serverError(error);
   }

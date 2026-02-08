@@ -1,7 +1,23 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { ProfileWithFavorites, FrontendProfile } from '@/lib/supabase-types';
+import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
+import { readJsonBody } from '@/lib/validation';
+import { z } from 'zod';
+
+const userIdSchema = z.string().uuid();
+const toggleFavoriteSchema = z.object({
+  action: z.literal('toggleFavorite'),
+  listingId: z.coerce.number().int().positive(),
+});
+const profileUpdateSchema = z.object({
+  action: z.string().optional(),
+  name: z.string().max(100).optional(),
+  bio: z.string().max(1000).nullable().optional(),
+  location: z.string().max(120).nullable().optional(),
+  pickupLocations: z.array(z.record(z.unknown())).optional(),
+  acceptsDelivery: z.boolean().optional(),
+});
 
 // GET user profile
 export async function GET(
@@ -11,6 +27,10 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
+    const parsedUserId = userIdSchema.safeParse(id);
+    if (!parsedUserId.success) {
+      return ApiResponse.badRequest('Invalid user id');
+    }
     
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -18,7 +38,7 @@ export async function GET(
         *,
         favorites:favorites(listing_id)
       `)
-      .eq('id', id)
+      .eq('id', parsedUserId.data)
       .single();
 
     if (error) {
@@ -62,6 +82,11 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
+    const parsedUserId = userIdSchema.safeParse(id);
+    if (!parsedUserId.success) {
+      return ApiResponse.badRequest('Invalid user id');
+    }
+    const safeUserId = parsedUserId.data;
     
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -70,21 +95,25 @@ export async function PATCH(
     }
 
     // Users can only update their own profile
-    if (user.id !== id) {
+    if (user.id !== safeUserId) {
       return ApiResponse.unauthorized('Not authorized to update this profile');
     }
 
-    const body = await request.json();
+    const body = await readJsonBody(request);
 
     // Handle toggleFavorite action
-    if (body.action === 'toggleFavorite') {
-      const { listingId } = body;
+    if (body && typeof body === 'object' && (body as { action?: string }).action === 'toggleFavorite') {
+      const parsedToggle = toggleFavoriteSchema.safeParse(body);
+      if (!parsedToggle.success) {
+        return ApiResponse.badRequest('Invalid toggle favorite payload', parsedToggle.error.flatten());
+      }
+      const { listingId } = parsedToggle.data;
       
       // Check if favorite exists
       const { data: existing } = await (supabase
         .from('favorites') as any)
         .select('id')
-        .eq('user_id', id)
+        .eq('user_id', safeUserId)
         .eq('listing_id', listingId)
         .single();
 
@@ -98,14 +127,14 @@ export async function PATCH(
         // Add favorite
         await (supabase
           .from('favorites') as any)
-          .insert({ user_id: id, listing_id: listingId });
+          .insert({ user_id: safeUserId, listing_id: listingId });
       }
 
       // Return updated favorites
       const { data: favorites } = await supabase
         .from('favorites')
         .select('listing_id')
-        .eq('user_id', id);
+        .eq('user_id', safeUserId);
 
       return ApiResponse.success({
         favorites: favorites?.map((f: any) => f.listing_id) || []
@@ -113,17 +142,23 @@ export async function PATCH(
     }
 
     // Regular profile update
-    const updateData: any = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.bio !== undefined) updateData.bio = body.bio;
-    if (body.location !== undefined) updateData.location = body.location;
-    if (body.pickupLocations !== undefined) updateData.pickup_locations = body.pickupLocations;
-    if (body.acceptsDelivery !== undefined) updateData.accepts_delivery = body.acceptsDelivery;
+    const parsedProfileUpdate = profileUpdateSchema.safeParse(body);
+    if (!parsedProfileUpdate.success) {
+      return ApiResponse.badRequest('Invalid profile update payload', parsedProfileUpdate.error.flatten());
+    }
+
+    const updateData: Record<string, unknown> = {};
+    const payload = parsedProfileUpdate.data;
+    if (payload.name !== undefined) updateData.name = sanitizeText(payload.name, 100);
+    if (payload.bio !== undefined) updateData.bio = sanitizeOptionalText(payload.bio, 1000);
+    if (payload.location !== undefined) updateData.location = sanitizeOptionalText(payload.location, 120);
+    if (payload.pickupLocations !== undefined) updateData.pickup_locations = payload.pickupLocations;
+    if (payload.acceptsDelivery !== undefined) updateData.accepts_delivery = payload.acceptsDelivery;
 
     const { data: profile, error } = await (supabase
       .from('profiles') as any)
       .update(updateData)
-      .eq('id', id)
+      .eq('id', safeUserId)
       .select()
       .single();
 
@@ -141,6 +176,9 @@ export async function PATCH(
       acceptsDelivery: typedProfile.accepts_delivery,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     console.error('User PATCH error:', error);
     return ApiResponse.serverError(error);
   }

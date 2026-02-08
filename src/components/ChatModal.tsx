@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { withCsrfHeaders } from '@/lib/csrf';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -109,7 +110,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
            if (targetId) {
              fetch('/api/messages', {
                method: 'PATCH',
-               headers: { 'Content-Type': 'application/json' },
+               headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
                body: JSON.stringify({
                  userId: currentUser.id,
                  listingId: listing.id,
@@ -159,7 +160,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           listingId: listing.id,
           buyerId,

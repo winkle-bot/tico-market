@@ -19,6 +19,7 @@ import {
   DELIVERY_FEE_DISPLAY,
   API_ROUTES,
 } from '@/config/constants';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type {
   Listing,
   PickupLocation,
@@ -165,7 +166,6 @@ export function CheckoutModal({
           imageUrl: listing.imageUrl,
           verified: listing.verified,
           pickupConfig: listing.pickupConfig,
-          createdAt: listing.createdAt,
         },
         sellerId: listing.sellerId,
         sellerName: listing.owner,
@@ -201,7 +201,7 @@ export function CheckoutModal({
 
       const res = await fetch(API_ROUTES.ORDERS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(orderData),
       });
 

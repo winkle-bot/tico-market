@@ -1,6 +1,27 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
+import { readJsonBody } from '@/lib/validation';
+import { z } from 'zod';
+
+const userIdSchema = z.string().uuid();
+const orderCreateSchema = z.object({
+  listingId: z.coerce.number().int().positive(),
+  listingSnapshot: z.record(z.unknown()),
+  buyerId: z.string().uuid(),
+  buyerName: z.string().min(1).max(100),
+  sellerId: z.string().uuid(),
+  sellerName: z.string().min(1).max(100),
+  type: z.enum(['delivery', 'pickup']),
+  driverId: z.string().uuid().nullable().optional(),
+  driverName: z.string().max(100).nullable().optional(),
+  deliveryAddress: z.string().max(500).nullable().optional(),
+  deliveryFee: z.coerce.number().min(0).nullable().optional(),
+  pickupLocationId: z.string().max(100).nullable().optional(),
+  pickupLocation: z.record(z.unknown()).nullable().optional(),
+  scheduledWindow: z.string().max(120).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
+});
 
 // GET orders for a user
 export async function GET(request: Request) {
@@ -15,10 +36,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     
-    if (!userId) {
+    const parsedUserId = userIdSchema.safeParse(userId);
+    if (!parsedUserId.success) {
       return ApiResponse.badRequest('userId is required');
     }
-    if (userId !== user.id) {
+    if (parsedUserId.data !== user.id) {
       return ApiResponse.forbidden('Not authorized to view these orders');
     }
 
@@ -94,14 +116,18 @@ export async function POST(request: Request) {
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const body = await request.json();
-    const { 
-      listingId, 
+    const body = await readJsonBody(request);
+    const parsed = orderCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return ApiResponse.badRequest('Invalid order payload', parsed.error.flatten());
+    }
+    const {
+      listingId,
       listingSnapshot,
-      buyerId, 
-      buyerName, 
-      sellerId, 
-      sellerName, 
+      buyerId,
+      buyerName,
+      sellerId,
+      sellerName,
       type,
       driverId,
       driverName,
@@ -110,12 +136,9 @@ export async function POST(request: Request) {
       pickupLocationId,
       pickupLocation,
       scheduledWindow,
-      notes
-    } = body;
+      notes,
+    } = parsed.data;
 
-    if (!listingId || !buyerId || !sellerId || !type) {
-      return ApiResponse.badRequest('Missing required fields');
-    }
     if (buyerId !== user.id) {
       return ApiResponse.forbidden('Not authorized to create this order');
     }
@@ -126,18 +149,18 @@ export async function POST(request: Request) {
         listing_id: listingId,
         listing_snapshot: listingSnapshot,
         buyer_id: buyerId,
-        buyer_name: buyerName,
+        buyer_name: sanitizeText(buyerName, 100),
         seller_id: sellerId,
-        seller_name: sellerName,
+        seller_name: sanitizeText(sellerName, 100),
         type,
         driver_id: driverId,
-        driver_name: driverName,
-        delivery_address: deliveryAddress,
+        driver_name: sanitizeOptionalText(driverName, 100),
+        delivery_address: sanitizeOptionalText(deliveryAddress, 500),
         delivery_fee: deliveryFee,
         pickup_location_id: pickupLocationId,
         pickup_location: pickupLocation,
-        scheduled_window: scheduledWindow,
-        notes,
+        scheduled_window: sanitizeOptionalText(scheduledWindow, 120),
+        notes: sanitizeOptionalText(notes, 1000),
       })
       .select()
       .single();
@@ -168,6 +191,9 @@ export async function POST(request: Request) {
       updatedAt: order.updated_at,
     }, 201);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     console.error('Orders POST error:', error);
     return ApiResponse.serverError(error);
   }

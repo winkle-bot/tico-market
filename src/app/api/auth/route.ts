@@ -1,22 +1,33 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
+import { readJsonBody, validationError } from '@/lib/validation';
+import { z } from 'zod';
+
+const authSchema = z.object({
+  action: z.enum(['signup', 'login']),
+  email: z.string().email().max(320).transform((value) => value.trim().toLowerCase()),
+  password: z.string().min(6).max(128),
+  name: z.string().max(100).optional(),
+});
 
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { action, email, password, name } = await request.json();
-
-    if (!email || !password) {
-      return ApiResponse.badRequest('Email and password are required');
+    const rawBody = await readJsonBody(request);
+    const parsed = authSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return validationError(parsed.error);
     }
+    const { action, email, password, name } = parsed.data;
+    const sanitizedName = sanitizeOptionalText(name, 100);
 
     if (action === 'signup') {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name: name || email.split('@')[0] }
+          data: { name: sanitizedName || sanitizeText(email.split('@')[0], 100) }
         }
       });
 
@@ -56,6 +67,9 @@ export async function POST(request: Request) {
     return ApiResponse.badRequest('Invalid action');
   } catch (error) {
     console.error('Auth API Error:', error);
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return ApiResponse.badRequest('Invalid JSON body');
+    }
     return ApiResponse.serverError(error);
   }
 }
