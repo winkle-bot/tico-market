@@ -13,7 +13,7 @@ export async function createSupabaseServerClient() {
         path: '/',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
+        httpOnly: false,
         maxAge: 60 * 60 * 24 * 365, // 1 year
       },
       cookies: {
