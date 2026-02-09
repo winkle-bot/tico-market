@@ -247,7 +247,7 @@ export function SellModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Create listing">
           <motion.div
             {...MODAL_BACKDROP_VARIANTS}
             onClick={handleClose}

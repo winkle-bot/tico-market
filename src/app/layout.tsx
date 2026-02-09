@@ -42,6 +42,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-gray-50 text-gray-900">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
+          Skip to content
+        </a>
         <ToastProvider>
           <AuthProvider>
             <ListingsProvider>

@@ -22,9 +22,10 @@ export function FilterBar({
   return (
     <div className="bg-white/90 backdrop-blur-lg border-b border-[#dce5f7] p-3 sm:p-4 sticky top-16 z-40">
       <div className="tm-shell flex flex-col gap-3 sm:gap-2 sm:flex-row sm:justify-between sm:items-center">
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label="View mode">
           <button
             onClick={() => onViewChange('list')}
+            aria-pressed={view === 'list'}
             className={`tm-btn px-4 py-2 text-[0.72rem] ${
               view === 'list'
                 ? 'tm-btn-primary'
@@ -35,6 +36,7 @@ export function FilterBar({
           </button>
           <button
             onClick={() => onViewChange('map')}
+            aria-pressed={view === 'map'}
             className={`tm-btn px-4 py-2 text-[0.72rem] ${
               view === 'map'
                 ? 'tm-btn-primary'
@@ -44,7 +46,7 @@ export function FilterBar({
             Map View
           </button>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-sm font-medium text-gray-500">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar text-sm font-medium text-gray-500" role="group" aria-label="Category filters">
           {selectedCategories.length > 0 && (
             <button
               onClick={onClearCategories}
@@ -57,6 +59,7 @@ export function FilterBar({
             <button
               key={category}
               onClick={() => onToggleCategory(category as Category)}
+              aria-pressed={selectedCategories.includes(category as Category)}
               className={`tm-chip whitespace-nowrap ${
                 selectedCategories.includes(category as Category)
                   ? 'tm-chip-active'

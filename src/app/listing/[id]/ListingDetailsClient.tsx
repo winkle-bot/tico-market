@@ -431,7 +431,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         </div>
       </nav>
 
-      <main className="pt-20 pb-24">
+      <main id="main-content" className="pt-20 pb-24">
         <div className="tm-shell">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             

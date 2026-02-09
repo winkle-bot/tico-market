@@ -128,7 +128,7 @@ export function AuthModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
           <motion.div
             {...MODAL_BACKDROP_VARIANTS}
             onClick={onClose}
@@ -176,7 +176,9 @@ export function AuthModal({
             <div className="space-y-4">
               {mode === 'signup' && (
                 <div key="name-field">
+                  <label htmlFor="auth-name" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Full Name</label>
                   <input
+                    id="auth-name"
                     type="text"
                     placeholder="Full Name"
                     className={`tm-input ${
@@ -193,7 +195,9 @@ export function AuthModal({
                 </div>
               )}
               <div>
+                <label htmlFor="auth-email" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Email Address</label>
                 <input
+                  id="auth-email"
                   type="email"
                   placeholder="Email Address"
                   className={`tm-input ${
@@ -209,7 +213,9 @@ export function AuthModal({
                 )}
               </div>
               <div>
+                <label htmlFor="auth-password" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Password</label>
                 <input
+                  id="auth-password"
                   type="password"
                   placeholder="Password"
                   className={`tm-input ${
