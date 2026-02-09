@@ -65,7 +65,7 @@ export async function GET(
       createdAt: typedListing.created_at,
     };
 
-    return ApiResponse.success(transformed);
+    return ApiResponse.cached(transformed, 30);
   } catch (error) {
     return ApiResponse.serverError(error);
   }

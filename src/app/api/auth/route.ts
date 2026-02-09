@@ -89,11 +89,10 @@ export async function POST(request: Request) {
 
     return ApiResponse.badRequest('Invalid action');
   } catch (error) {
-    console.error('Auth API Error:', error);
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/auth', method: 'POST' });
   }
 }
 

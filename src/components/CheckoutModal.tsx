@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -397,9 +398,9 @@ export function CheckoutModal({
                 <div className="space-y-4">
                   {/* Listing preview */}
                   <div className="flex gap-4 p-4 bg-[#f5f8ff] rounded-2xl mb-6 border border-[#dce5f7]">
-                    <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden shrink-0 relative">
                       {listing.imageUrl ? (
-                        <img src={listing.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <Image src={listing.imageUrl} alt="" fill sizes="64px" className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package className="w-6 h-6 text-gray-400" />

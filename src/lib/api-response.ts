@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from './logger';
 
 export type ApiError = {
   error: string;
@@ -9,6 +10,15 @@ export type ApiError = {
 export class ApiResponse {
   static success<T>(data: T, status = 200) {
     return NextResponse.json(data, { status });
+  }
+
+  static cached<T>(data: T, maxAge = 60) {
+    return NextResponse.json(data, {
+      status: 200,
+      headers: {
+        'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}`,
+      },
+    });
   }
 
   static error(message: string, status = 400, code?: string, details?: any) {
@@ -34,8 +44,8 @@ export class ApiResponse {
     return this.error(message, 404, 'NOT_FOUND');
   }
 
-  static serverError(error: unknown) {
-    console.error('API Error:', error);
+  static serverError(error: unknown, context?: { route?: string; method?: string }) {
+    logger.error('API server error', context, error);
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return this.error(message, 500, 'INTERNAL_SERVER_ERROR');
   }

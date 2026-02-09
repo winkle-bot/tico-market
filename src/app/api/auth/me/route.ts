@@ -51,7 +51,6 @@ export async function GET() {
 
     return ApiResponse.success(transformed);
   } catch (error) {
-    console.error('Auth me error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/auth/me', method: 'GET' });
   }
 }

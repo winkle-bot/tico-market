@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -187,9 +188,9 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sellerListings.map(item => (
                   <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 hover:border-blue-200 transition-colors cursor-pointer group">
-                    <div className="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-all">
+                    <div className="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-all relative">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                        <Image src={item.imageUrl} alt={item.title} fill sizes="96px" className="object-cover" />
                       ) : (
                         <span className="text-3xl">
                           {categoryEmojis[item.category] || '✨'}
@@ -277,9 +278,9 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                     }}
                     className="w-full p-4 rounded-2xl border border-gray-100 flex gap-4 hover:border-blue-300 hover:bg-blue-50 transition-all text-left group"
                   >
-                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                        <Image src={item.imageUrl} alt={item.title} fill sizes="64px" className="object-cover" />
                       ) : (
                         <span className="text-2xl">{categoryEmojis[item.category] || '✨'}</span>
                       )}

@@ -203,7 +203,6 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
-    console.error('Orders POST error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/orders', method: 'POST' });
   }
 }

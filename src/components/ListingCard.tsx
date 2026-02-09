@@ -1,6 +1,8 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Star, ShieldCheck } from 'lucide-react';
 import { categoryEmojis } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +12,7 @@ interface ListingCardProps {
   item: Listing;
 }
 
-export function ListingCard({ item }: ListingCardProps) {
+export const ListingCard = React.memo(function ListingCard({ item }: ListingCardProps) {
   const { user } = useAuth();
   const isOwner = user?.id === item.sellerId;
 
@@ -26,10 +28,12 @@ export function ListingCard({ item }: ListingCardProps) {
       )}
       <div className="aspect-square bg-[#f1f5ff] relative overflow-hidden">
         {item.imageUrl ? (
-          <img
+          <Image
             src={item.imageUrl}
             alt={item.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#eaf1ff] via-[#e5f4ff] to-[#f0ebff] flex items-center justify-center">
@@ -90,4 +94,4 @@ export function ListingCard({ item }: ListingCardProps) {
       </div>
     </Link>
   );
-}
+});

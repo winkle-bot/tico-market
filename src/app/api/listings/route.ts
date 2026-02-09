@@ -195,10 +195,10 @@ export async function GET(request: Request) {
       const transformed = paged.map(toFrontendListing);
 
       if (!hasQueryParams) {
-        return ApiResponse.success(transformed);
+        return ApiResponse.cached(transformed);
       }
 
-      return ApiResponse.success({
+      return ApiResponse.cached({
         data: transformed,
         pagination: {
           page,
@@ -225,11 +225,11 @@ export async function GET(request: Request) {
     const transformed: FrontendListing[] = typedListings.map(toFrontendListing);
 
     if (!hasQueryParams) {
-      return ApiResponse.success(transformed);
+      return ApiResponse.cached(transformed);
     }
 
     const total = count ?? transformed.length;
-    return ApiResponse.success({
+    return ApiResponse.cached({
       data: transformed,
       pagination: {
         page,
@@ -378,7 +378,6 @@ export async function POST(request: Request) {
       pickupConfig: typedListing.pickup_config,
     }, 201);
   } catch (error) {
-    console.error('Listings POST error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/listings', method: 'POST' });
   }
 }

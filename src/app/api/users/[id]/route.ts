@@ -73,7 +73,7 @@ export async function GET(
       favorites,
     };
 
-    return ApiResponse.success(transformed);
+    return ApiResponse.cached(transformed, 30);
   } catch (error) {
     return ApiResponse.serverError(error);
   }
@@ -185,7 +185,6 @@ export async function PATCH(
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
-    console.error('User PATCH error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/users/[id]', method: 'PATCH' });
   }
 }

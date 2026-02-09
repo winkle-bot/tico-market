@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { logger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
@@ -150,8 +151,7 @@ export async function GET(request: Request) {
 
     return ApiResponse.success(conversations);
   } catch (error) {
-    console.error('Messages GET error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/messages', method: 'GET' });
   }
 }
 
@@ -211,8 +211,7 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
-    console.error('Messages POST error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/messages', method: 'POST' });
   }
 }
 
@@ -248,7 +247,7 @@ export async function PATCH(request: Request) {
       .eq('read', false);
 
     if (error) {
-      console.error('Mark read error:', error);
+      logger.warn('Failed to mark messages as read', { route: '/api/messages', method: 'PATCH', error: error.message });
     }
 
     return ApiResponse.success({ success: true });
@@ -256,7 +255,6 @@ export async function PATCH(request: Request) {
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
-    console.error('Messages PATCH error:', error);
-    return ApiResponse.serverError(error);
+    return ApiResponse.serverError(error, { route: '/api/messages', method: 'PATCH' });
   }
 }

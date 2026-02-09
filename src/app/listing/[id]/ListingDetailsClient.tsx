@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, MapPin, Truck, Share2, Heart, ChevronLeft, ShieldCheck, MessageCircle, ShoppingBag, CheckCircle, Flag, X, Loader2, RefreshCcw } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -438,10 +439,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
             <div className="space-y-4">
               <div className="aspect-square bg-gray-50 rounded-[40px] overflow-hidden border border-gray-100 relative shadow-inner">
                 {listing.imageUrl ? (
-                  <img 
-                    src={listing.imageUrl} 
-                    alt={listing.title} 
-                    className="w-full h-full object-cover"
+                  <Image
+                    src={listing.imageUrl}
+                    alt={listing.title}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover"
+                    priority
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">

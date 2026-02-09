@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
@@ -236,9 +237,9 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         >
           {/* Header */}
           <div className="p-4 border-b border-[#dce5f7] flex items-center gap-4 bg-white">
-            <div className="w-12 h-12 rounded-2xl bg-[#e7efff] flex items-center justify-center overflow-hidden">
+            <div className="w-12 h-12 rounded-2xl bg-[#e7efff] flex items-center justify-center overflow-hidden relative">
               {listing.imageUrl ? (
-                <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
+                <Image src={listing.imageUrl} alt={listing.title} fill sizes="48px" className="object-cover" />
               ) : (
                 <MessageCircle className="w-6 h-6 text-blue-600" />
               )}
