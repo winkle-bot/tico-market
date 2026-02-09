@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 describe('Tico Market Structure Tests', () => {
   test('project has required files', () => {

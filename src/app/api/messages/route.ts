@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
+import { sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
 
@@ -18,6 +18,25 @@ const markReadSchema = z.object({
   listingId: z.coerce.number().int().positive(),
   otherPartyId: z.string().uuid(),
 });
+
+interface MessageRow {
+  id: number;
+  listing_id: number;
+  sender_id: string;
+  text: string;
+  created_at: string;
+  read: boolean;
+  buyer_id: string;
+  buyer_name: string;
+  seller_id: string;
+  seller_name: string;
+}
+
+interface ListingSummary {
+  id: number;
+  title: string;
+  image_url: string | null;
+}
 
 // GET messages for a user
 export async function GET(request: Request) {
@@ -52,34 +71,47 @@ export async function GET(request: Request) {
       return ApiResponse.error(error.message, 500);
     }
 
+    const typedMessages = (messages || []) as unknown as MessageRow[];
+    const uniqueListingIds = Array.from(new Set(typedMessages.map((msg) => msg.listing_id)));
+    const listingTitleById = new Map<number, ListingSummary>();
+    if (uniqueListingIds.length > 0) {
+      const { data: listingRows } = await supabase
+        .from('listings')
+        .select('id, title, image_url')
+        .in('id', uniqueListingIds);
+      for (const listing of (listingRows || []) as ListingSummary[]) {
+        listingTitleById.set(listing.id, listing);
+      }
+    }
+
     // Group by conversation
-    const conversationsMap = new Map<string, any>();
-    
-    const typedMessages = messages as unknown as Array<{ 
-      buyer_id: string; 
-      seller_id: string; 
-      listing_id: string;
-      created_at: string;
-      buyer_name?: string;
-      seller_name?: string;
-      id: string;
-      sender_id: string;
-      text: string;
-      read: boolean;
-    }>;
-    
+    const conversationsMap = new Map<string, {
+      listingId: number;
+      listingTitle: string;
+      listingImage: string | null | undefined;
+      otherPartyId: string;
+      otherPartyName: string | undefined;
+      lastMessageAt: string;
+      messages: Array<{
+        id: number;
+        listingId: number;
+        senderId: string;
+        text: string;
+        createdAt: string;
+        read: boolean;
+        buyerId: string;
+        buyerName: string;
+        sellerId: string;
+        sellerName: string;
+      }>;
+    }>();
+
     for (const msg of typedMessages || []) {
       const otherPartyId = msg.buyer_id === effectiveUserId ? msg.seller_id : msg.buyer_id;
       const key = `${msg.listing_id}-${otherPartyId}`;
-      
+
       if (!conversationsMap.has(key)) {
-        // Get listing info
-        const { data: listing } = await supabase
-          .from('listings')
-          .select('title, image_url')
-          .eq('id', msg.listing_id)
-          .single() as { data: { title: string; image_url: string } | null };
-        
+        const listing = listingTitleById.get(msg.listing_id);
         conversationsMap.set(key, {
           listingId: msg.listing_id,
           listingTitle: listing?.title || 'Unknown Listing',
@@ -92,6 +124,7 @@ export async function GET(request: Request) {
       }
       
       const conv = conversationsMap.get(key);
+      if (!conv) continue;
       conv.messages.push({
         id: msg.id,
         listingId: msg.listing_id,
@@ -150,9 +183,9 @@ export async function POST(request: Request) {
         sender_id: user.id,
         text: sanitizeText(text, 2000),
         buyer_id: buyerId,
-        buyer_name: sanitizeOptionalText(buyerName, 100),
+        buyer_name: sanitizeText(buyerName || 'Buyer', 100),
         seller_id: sellerId,
-        seller_name: sanitizeOptionalText(sellerName, 100),
+        seller_name: sanitizeText(sellerName || 'Seller', 100),
         read: false,
       })
       .select()

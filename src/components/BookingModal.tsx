@@ -64,39 +64,45 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
                   <p className="text-sm text-gray-500 font-medium">
                     Available drivers near your area in San José:
                   </p>
-                  {drivers.map((driver) => (
-                    <div
-                      key={driver.id}
-                      onClick={() => {
-                        setSelectedDriver(driver);
-                        setBookingStep(2);
-                      }}
-                      className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 cursor-pointer transition-all group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-lg">
-                          {driver.owner[0]}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            {driver.owner}
-                          </h3>
-                          <div className="flex items-center gap-1 text-orange-500 text-xs font-black">
-                            <Star className="w-3 h-3 fill-current" />{' '}
-                            {driver.rating}
+                  {drivers.length > 0 ? (
+                    drivers.map((driver) => (
+                      <div
+                        key={driver.id}
+                        onClick={() => {
+                          setSelectedDriver(driver);
+                          setBookingStep(2);
+                        }}
+                        className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 cursor-pointer transition-all group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-lg">
+                            {driver.owner[0]}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">
+                              {driver.owner}
+                            </h3>
+                            <div className="flex items-center gap-1 text-orange-500 text-xs font-black">
+                              <Star className="w-3 h-3 fill-current" />{' '}
+                              {driver.rating}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                            Fee
+                          </span>
+                          <span className="text-blue-600 font-black">
+                            {DELIVERY_FEE_DISPLAY}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                          Fee
-                        </span>
-                        <span className="text-blue-600 font-black">
-                          {DELIVERY_FEE_DISPLAY}
-                        </span>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      No drivers are available right now. Please try again in a few minutes.
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -109,7 +115,7 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
                         Delivery Summary
                       </h4>
                       <p className="text-blue-800 text-sm font-medium">
-                        Express delivery with **{selectedDriver?.owner}**
+                        Express delivery with {selectedDriver?.owner}
                       </p>
                     </div>
                   </div>

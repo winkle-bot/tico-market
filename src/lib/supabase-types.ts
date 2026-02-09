@@ -33,7 +33,7 @@ export interface FrontendListing {
   verified: boolean;
   moderationStatus?: 'active' | 'hidden';
   privateKey: string | null;
-  pickupConfig: any;
+  pickupConfig: Database['public']['Tables']['listings']['Row']['pickup_config'];
   createdAt: string;
 }
 
@@ -47,7 +47,7 @@ export interface FrontendProfile {
   verified: boolean;
   role?: 'user' | 'admin' | 'moderator';
   joined: string;
-  pickupLocations: any;
+  pickupLocations: Database['public']['Tables']['profiles']['Row']['pickup_locations'];
   acceptsDelivery: boolean;
   createdAt: string;
   updatedAt: string;
@@ -55,10 +55,14 @@ export interface FrontendProfile {
 }
 
 // Type guards
-export function isListing(data: any): data is Listing {
-  return data && typeof data.id === 'number' && typeof data.title === 'string';
+export function isListing(data: unknown): data is Listing {
+  if (!data || typeof data !== 'object') return false;
+  const candidate = data as { id?: unknown; title?: unknown };
+  return typeof candidate.id === 'number' && typeof candidate.title === 'string';
 }
 
-export function isProfile(data: any): data is Profile {
-  return data && typeof data.id === 'string' && typeof data.email === 'string';
+export function isProfile(data: unknown): data is Profile {
+  if (!data || typeof data !== 'object') return false;
+  const candidate = data as { id?: unknown; email?: unknown };
+  return typeof candidate.id === 'string' && typeof candidate.email === 'string';
 }

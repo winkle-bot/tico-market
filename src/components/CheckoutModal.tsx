@@ -150,7 +150,7 @@ export function CheckoutModal({
     setError(null);
 
     try {
-      const orderData: any = {
+      const orderData: Record<string, unknown> = {
         listingId: listing.id,
         listingSnapshot: {
           id: listing.id,
@@ -230,8 +230,8 @@ export function CheckoutModal({
       }
 
       onSuccess(order.id);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsSubmitting(false);
     }
@@ -376,7 +376,7 @@ export function CheckoutModal({
               {step === 'pickup-details' && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-500 font-medium">
-                    Select where you'll pick it up:
+                    Select where you&apos;ll pick it up:
                   </p>
 
                   {/* Market Events Section */}

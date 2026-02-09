@@ -14,6 +14,10 @@ interface ListingsContextType {
   deleteListing: (id: number) => void;
 }
 
+interface ListingsResponse {
+  data?: Listing[];
+}
+
 const ListingsContext = createContext<ListingsContextType | undefined>(undefined);
 
 export function ListingsProvider({ children }: { children: React.ReactNode }) {
@@ -28,11 +32,15 @@ export function ListingsProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(API_ROUTES.LISTINGS);
       if (!res.ok) throw new Error('Failed to fetch listings');
       
-      const data = await res.json();
-      setListings(data);
-    } catch (err: any) {
+      const payload = (await res.json()) as Listing[] | ListingsResponse;
+      if (Array.isArray(payload)) {
+        setListings(payload);
+      } else {
+        setListings(payload.data || []);
+      }
+    } catch (err: unknown) {
       console.error('Error fetching listings:', err);
-      setError(err.message || 'Failed to load listings');
+      setError(err instanceof Error ? err.message : 'Failed to load listings');
     } finally {
       setIsLoading(false);
     }

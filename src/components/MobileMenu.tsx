@@ -64,6 +64,7 @@ export function MobileMenu({
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Search listings"
                 />
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing, FrontendListing } from '@/lib/supabase-types';
+import type { Json } from '@/lib/database.types';
 import { sanitizeText } from '@/lib/security';
 import { z } from 'zod';
 
@@ -65,7 +66,7 @@ function toFrontendListing(listing: Listing): FrontendListing {
     owner: listing.owner,
     imageUrl: listing.image_url,
     verified: listing.verified,
-    moderationStatus: (listing as any).moderation_status ?? 'active',
+    moderationStatus: listing.moderation_status ?? 'active',
     privateKey: listing.private_key,
     pickupConfig: listing.pickup_config,
     createdAt: listing.created_at,
@@ -335,8 +336,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: listing, error } = await supabase
-      .from('listings')
+    const { data: listing, error } = await (supabase
+      .from('listings') as any)
       .insert({
         seller_id: user.id,
         title,
@@ -349,8 +350,8 @@ export async function POST(request: Request) {
         owner: sanitizeText(profile?.name || user.email?.split('@')[0] || 'Unknown', 100),
         image_url: imageUrl,
         verified: profile?.verified || false,
-        pickup_config: pickupConfig,
-      } as any)
+        pickup_config: pickupConfig as Json,
+      })
       .select()
       .single();
 
@@ -358,7 +359,7 @@ export async function POST(request: Request) {
       return ApiResponse.error(error.message, 500);
     }
 
-    const typedListing = listing as any;
+    const typedListing = listing as unknown as Listing;
     return ApiResponse.success({
       id: typedListing.id,
       sellerId: typedListing.seller_id,

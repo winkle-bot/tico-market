@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { ProfileWithFavorites, FrontendProfile } from '@/lib/supabase-types';

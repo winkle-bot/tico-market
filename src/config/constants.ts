@@ -11,11 +11,7 @@ export const DEFAULT_LISTING_COORDS = {
 };
 
 // Driver delivery fee
-export const DELIVERY_FEE = 2500; // ₡2,500
 export const DELIVERY_FEE_DISPLAY = '₡2,500';
-
-// Currency
-export const CURRENCY_SYMBOL = '₡';
 
 // API endpoints
 export const API_ROUTES = {

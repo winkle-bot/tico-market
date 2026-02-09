@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
@@ -29,6 +29,13 @@ interface Message {
   senderId: string;
   text: string;
   createdAt: string;
+  read?: boolean;
+}
+
+interface Conversation {
+  listingId: number;
+  otherPartyId: string;
+  messages: Message[];
 }
 
 export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired, chatWithName, chatWithId }: ChatModalProps) {
@@ -37,49 +44,29 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasLoadedMessagesRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    if (isOpen && currentUser) {
-      loadMessages();
-      
-      // Use SSE for real-time updates instead of polling
-      const eventSource = new EventSource(`/api/events?userId=${currentUser.id}`);
-      
-      eventSource.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        if (data.type === 'update') {
-          loadMessages();
-        }
-      };
-
-      return () => {
-        eventSource.close();
-      };
-    }
-  }, [isOpen, currentUser, listing.id, chatWithId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     if (!currentUser) return;
-    
-    // Only show loading on initial fetch if we have no messages
-    if (messages.length === 0) setIsLoading(true);
-    
+
+    // Only show loading on initial fetch.
+    if (!hasLoadedMessagesRef.current) setIsLoading(true);
+
     try {
       const res = await fetch(`/api/messages?userId=${currentUser.id}`);
-      const conversations = await res.json();
-      
+      if (!res.ok) {
+        throw new Error('Failed to load conversations');
+      }
+      const conversations = (await res.json()) as Conversation[];
+
       // Find conversation for this listing
       // If chatWithId is provided, look for that specific conversation
       // Otherwise, default to finding the conversation where the other party is the seller
-      const conv = conversations.find((c: any) => {
+      const conv = conversations.find((c) => {
         if (c.listingId !== listing.id) return false;
 
         if (chatWithId) {
@@ -94,7 +81,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
       if (conv) {
         // Only update if we have new messages or count changed
         // Simple length check for now, could be more robust
-        setMessages(prev => {
+        setMessages((prev) => {
           if (prev.length !== conv.messages.length) return conv.messages;
           // Check last message ID
           if (prev.length > 0 && conv.messages.length > 0 && prev[prev.length - 1].id !== conv.messages[conv.messages.length - 1].id) {
@@ -104,7 +91,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         });
 
         // Check for unread messages and mark them as read
-        const hasUnread = conv.messages.some((m: any) => !m.read && m.senderId !== currentUser.id);
+        const hasUnread = conv.messages.some((m) => !m.read && m.senderId !== currentUser.id);
         if (hasUnread) {
            const targetId = chatWithId || (currentUser.id === listing.sellerId ? null : listing.sellerId);
            if (targetId) {
@@ -116,16 +103,52 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                  listingId: listing.id,
                  otherPartyId: targetId
                })
-             }).catch(console.error);
+             }).catch((error: unknown) => {
+               console.error('Failed to mark messages as read:', error);
+             });
            }
         }
+      } else {
+        setMessages([]);
       }
+      hasLoadedMessagesRef.current = true;
     } catch (err) {
       console.error('Error loading messages:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [chatWithId, currentUser, listing.id, listing.sellerId]);
+
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      void loadMessages();
+
+      // Use SSE for real-time updates instead of polling
+      const eventSource = new EventSource(`/api/events?userId=${currentUser.id}`);
+
+      eventSource.onmessage = (e) => {
+        const data = JSON.parse(e.data) as { type?: string };
+        if (data.type === 'update') {
+          void loadMessages();
+        }
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    }
+    return undefined;
+  }, [currentUser, isOpen, loadMessages]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasLoadedMessagesRef.current = false;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUser || isSending) return;
@@ -177,7 +200,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         setMessages(prev => [...prev, msg]);
         setNewMessage('');
         // Refresh immediately
-        loadMessages();
+        void loadMessages();
       }
     } catch (err) {
       console.error('Error sending message:', err);
@@ -186,10 +209,10 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
   };
 
@@ -299,7 +322,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
                   placeholder="Type a message..."
                   className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                 />
