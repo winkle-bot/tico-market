@@ -43,6 +43,10 @@ const es = {
   'sell.image': 'Imagen del artículo',
   'sell.postListing': 'Publicar artículo',
   'sell.posting': 'Publicando...',
+  'home.deliveryMarketplace': 'Marketplace de entregas',
+  'home.expressCardTitle': 'Entrega express',
+  'home.nearbyDriversCount': '{count} repartidores en linea cerca de ti',
+  'home.openDelivery': 'Abrir pagina de entregas',
 };
 
 export default es;

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Truck } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 import {
   Navbar,
@@ -10,12 +11,12 @@ import {
   ListingCard,
   MapView,
   AuthModal,
-  BookingModal,
   SellModal,
   MobileMenu,
   ListingGridSkeleton,
 } from '@/components';
 import { API_ROUTES } from '@/config/constants';
+import { useI18n } from '@/context/I18nContext';
 import type { Listing, Category, AuthFormState } from '@/types';
 
 interface ListingsApiResponse {
@@ -33,6 +34,7 @@ interface ListingsApiResponse {
 const PAGE_LIMIT = 24;
 
 export default function Home() {
+  const { t } = useI18n();
   // View/filter state
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,9 +55,9 @@ export default function Home() {
   });
   const [isListingsLoading, setIsListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
+  const [onlineDriversCount, setOnlineDriversCount] = useState(0);
 
   // Modal state
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -67,9 +69,6 @@ export default function Home() {
     password: '',
     name: '',
   });
-
-  // Drivers for booking modal
-  const [drivers, setDrivers] = useState<Listing[]>([]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -83,6 +82,20 @@ export default function Home() {
   useEffect(() => {
     setPage(1);
   }, [selectedCategories, sort]);
+
+  useEffect(() => {
+    const fetchOnlineDriversCount = async () => {
+      try {
+        const res = await fetch(`${API_ROUTES.DRIVERS}?online=true`);
+        if (!res.ok) return;
+        const payload = await res.json();
+        setOnlineDriversCount(Array.isArray(payload?.data) ? payload.data.length : 0);
+      } catch {
+        setOnlineDriversCount(0);
+      }
+    };
+    fetchOnlineDriversCount();
+  }, []);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -126,26 +139,6 @@ export default function Home() {
     fetchListings();
   }, [page, debouncedSearch, selectedCategories, sort]);
 
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      try {
-        const res = await fetch(`${API_ROUTES.LISTINGS}?type=driver&page=1&limit=40&sort=newest`);
-        if (!res.ok) return;
-
-        const payload = await res.json();
-        if (payload && Array.isArray(payload.data)) {
-          setDrivers(payload.data);
-        } else if (Array.isArray(payload)) {
-          setDrivers(payload.filter((listing: Listing) => listing.type === 'driver'));
-        }
-      } catch {
-        setDrivers([]);
-      }
-    };
-
-    fetchDrivers();
-  }, []);
-
   const toggleCategory = (category: Category) => {
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
@@ -181,12 +174,6 @@ export default function Home() {
         onModeChange={setAuthMode}
         formState={authForm}
         onFormChange={setAuthForm}
-      />
-
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        drivers={drivers}
       />
 
       <SellModal
@@ -238,6 +225,27 @@ export default function Home() {
               <option value="price_asc">Price: Low to high</option>
               <option value="price_desc">Price: High to low</option>
             </select>
+          </div>
+        </div>
+
+        <div className="px-4 py-4 border-b border-[#dce5f7] bg-gradient-to-r from-[#e9f0ff] via-[#f5f8ff] to-[#ecf6ff]">
+          <div className="tm-shell">
+            <div className="rounded-2xl bg-white/90 border border-[#dce5f7] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-[#6b84b3]">
+                  {t('home.deliveryMarketplace')}
+                </p>
+                <h2 className="text-lg sm:text-xl font-black text-[#18284a] mt-1">
+                  {t('home.expressCardTitle')}
+                </h2>
+                <p className="text-sm text-[#5d739f] mt-1">
+                  {t('home.nearbyDriversCount', `${onlineDriversCount} drivers online`).replace('{count}', String(onlineDriversCount))}
+                </p>
+              </div>
+              <Link href="/delivery" className="tm-btn tm-btn-primary">
+                {t('home.openDelivery')}
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -317,19 +325,6 @@ export default function Home() {
           </AnimatePresence>
         </div>
       </main>
-
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => setIsBookingModalOpen(true)}
-          className="bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-2xl flex items-center gap-2 group transition-all duration-300 transform active:scale-95"
-          aria-label="Book express delivery"
-        >
-          <Truck className="w-6 h-6" />
-          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap font-bold uppercase tracking-wider text-xs">
-            Find Express Delivery
-          </span>
-        </button>
-      </div>
     </div>
   );
 }

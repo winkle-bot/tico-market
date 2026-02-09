@@ -100,6 +100,75 @@ export interface User {
   acceptsDelivery?: boolean; // Default true
 }
 
+// ============ DRIVER MARKETPLACE ============
+
+export type VehicleType = 'motorcycle' | 'car' | 'bike' | 'walker';
+
+export interface DriverProfile {
+  id: string;
+  userId: string;
+  name: string;
+  photoUrl?: string;
+  vehicleType: VehicleType | null;
+  capacityDescription?: string;
+  specialties: string[];
+  serviceRadiusKm: number;
+  baseLocationLat?: number;
+  baseLocationLng?: number;
+  currentLat?: number;
+  currentLng?: number;
+  isOnline: boolean;
+  totalDeliveries: number;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DeliveryRequestStatus = 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled';
+export type DeliveryBidStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface DeliveryRequest {
+  id: string;
+  requesterId: string;
+  status: DeliveryRequestStatus;
+  pickupAddress: string;
+  pickupLat?: number;
+  pickupLng?: number;
+  pickupInstructions?: string;
+  pickupWindowStart?: string;
+  pickupWindowEnd?: string;
+  dropoffAddress: string;
+  dropoffLat?: number;
+  dropoffLng?: number;
+  dropoffInstructions?: string;
+  dropoffWindowStart?: string;
+  dropoffWindowEnd?: string;
+  itemDescription: string;
+  itemPhotos: string[];
+  estimatedWeightKg?: number;
+  isFragile: boolean;
+  budgetAmount?: number;
+  finalAmount?: number;
+  assignedDriverId?: string;
+  assignedAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliveryBid {
+  id: string;
+  deliveryRequestId: string;
+  driverId: string;
+  amount: number;
+  etaMinutes?: number;
+  message?: string;
+  status: DeliveryBidStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ============ ORDERS ============
 
 export type OrderType = 'delivery' | 'pickup';

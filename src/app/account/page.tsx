@@ -13,7 +13,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
 import { OrdersTab } from '@/components/account/OrdersTab';
 import { useToast } from '@/context/ToastContext';
-import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation, Review } from '@/types';
+import type {
+  MarketEvent,
+  ListingPickupConfig,
+  Listing,
+  Order,
+  GroupedConversation,
+  Review,
+  DeliveryRequest,
+  DeliveryBid,
+} from '@/types';
 
 interface EditFormState {
   title: string;
@@ -29,7 +38,8 @@ export default function AccountPage() {
   const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
   const { listings, updateListing, deleteListing } = useListings();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages' | 'deliveries'>('listings');
+  const [deliverySection, setDeliverySection] = useState<'requests' | 'bids' | 'tasks'>('requests');
   
   // Derived state from context
   const myListings = useMemo(
@@ -43,6 +53,9 @@ export default function AccountPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviewsByOrder, setReviewsByOrder] = useState<Record<string, Review>>({});
+  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([]);
+  const [deliveryBids, setDeliveryBids] = useState<DeliveryBid[]>([]);
+  const [deliveryTasks, setDeliveryTasks] = useState<DeliveryRequest[]>([]);
   const [conversations, setConversations] = useState<GroupedConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -105,18 +118,49 @@ export default function AccountPage() {
     }
   }, [user]);
 
+  const refreshDeliveries = useCallback(async () => {
+    if (!user) return;
+
+    const [requestsRes, bidsRes, tasksRes] = await Promise.all([
+      fetch(`/api/delivery-requests?requesterId=${user.id}&limit=60`),
+      fetch(`/api/delivery-bids?driverId=${user.id}&limit=60`),
+      fetch(`/api/delivery-requests?assignedDriverId=${user.id}&limit=60`),
+    ]);
+
+    if (requestsRes.ok) {
+      const payload = await requestsRes.json();
+      setDeliveryRequests(payload.data || []);
+    } else {
+      setDeliveryRequests([]);
+    }
+
+    if (bidsRes.ok) {
+      const payload = await bidsRes.json();
+      setDeliveryBids(payload.data || []);
+    } else {
+      setDeliveryBids([]);
+    }
+
+    if (tasksRes.ok) {
+      const payload = await tasksRes.json();
+      setDeliveryTasks(payload.data || []);
+    } else {
+      setDeliveryTasks([]);
+    }
+  }, [user]);
+
   const loadData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
     
     try {
-      await Promise.all([refreshConversations(), refreshOrdersAndReviews()]);
+      await Promise.all([refreshConversations(), refreshOrdersAndReviews(), refreshDeliveries()]);
     } catch (err) {
       console.error('Error loading account data:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [refreshConversations, refreshOrdersAndReviews, user]);
+  }, [refreshConversations, refreshDeliveries, refreshOrdersAndReviews, user]);
 
   const refreshByTable = useCallback((table: 'messages' | 'orders') => {
     const lockUntil = refreshLockRef.current[table] || 0;
@@ -510,7 +554,8 @@ export default function AccountPage() {
               { id: 'listings', label: 'Listings', icon: Package, count: myListings.length },
               { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length },
               { id: 'favorites', label: 'Saved', icon: Heart, count: favorites.length },
-              { id: 'messages', label: 'Chats', icon: MessageCircle, count: conversations.length }
+              { id: 'messages', label: 'Chats', icon: MessageCircle, count: conversations.length },
+              { id: 'deliveries', label: 'Deliveries', icon: Truck, count: deliveryRequests.length + deliveryTasks.length }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -705,6 +750,90 @@ export default function AccountPage() {
                       </button>
                     );
                   })
+                )}
+              </div>
+            )}
+
+            {activeTab === 'deliveries' && (
+              <div className="space-y-4">
+                <div className="inline-flex rounded-2xl border border-[#dce5f7] bg-white p-1">
+                  <button
+                    onClick={() => setDeliverySection('requests')}
+                    className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold ${deliverySection === 'requests' ? 'bg-blue-600 text-white' : 'text-[#4f6899]'}`}
+                  >
+                    My Requests
+                  </button>
+                  <button
+                    onClick={() => setDeliverySection('bids')}
+                    className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold ${deliverySection === 'bids' ? 'bg-blue-600 text-white' : 'text-[#4f6899]'}`}
+                  >
+                    My Bids
+                  </button>
+                  <button
+                    onClick={() => setDeliverySection('tasks')}
+                    className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold ${deliverySection === 'tasks' ? 'bg-blue-600 text-white' : 'text-[#4f6899]'}`}
+                  >
+                    My Tasks
+                  </button>
+                </div>
+
+                {deliverySection === 'requests' && (
+                  <div className="space-y-3">
+                    {deliveryRequests.length === 0 ? (
+                      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-sm text-gray-500">
+                        No delivery requests yet.
+                      </div>
+                    ) : (
+                      deliveryRequests.map((request) => (
+                        <div key={request.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                          <p className="text-xs uppercase tracking-wider text-gray-400 font-black">Request #{request.id.slice(0, 8)}</p>
+                          <p className="font-bold text-gray-900 mt-1 line-clamp-2">{request.itemDescription}</p>
+                          <p className="text-sm text-gray-600 mt-1">Pickup: {request.pickupAddress}</p>
+                          <p className="text-sm text-gray-600">Dropoff: {request.dropoffAddress}</p>
+                          <p className="text-xs font-semibold text-blue-600 mt-2">Status: {request.status}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {deliverySection === 'bids' && (
+                  <div className="space-y-3">
+                    {deliveryBids.length === 0 ? (
+                      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-sm text-gray-500">
+                        No delivery bids yet.
+                      </div>
+                    ) : (
+                      deliveryBids.map((bid) => (
+                        <div key={bid.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                          <p className="text-xs uppercase tracking-wider text-gray-400 font-black">Bid #{bid.id.slice(0, 8)}</p>
+                          <p className="text-sm text-gray-700 mt-1">Task: {bid.deliveryRequestId.slice(0, 8)}</p>
+                          <p className="text-sm font-bold text-gray-900">Amount: ₡{bid.amount.toLocaleString('es-CR')}</p>
+                          <p className="text-xs font-semibold text-blue-600 mt-1">Status: {bid.status}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {deliverySection === 'tasks' && (
+                  <div className="space-y-3">
+                    {deliveryTasks.length === 0 ? (
+                      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-sm text-gray-500">
+                        No assigned delivery tasks.
+                      </div>
+                    ) : (
+                      deliveryTasks.map((task) => (
+                        <div key={task.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                          <p className="text-xs uppercase tracking-wider text-gray-400 font-black">Task #{task.id.slice(0, 8)}</p>
+                          <p className="font-bold text-gray-900 mt-1 line-clamp-2">{task.itemDescription}</p>
+                          <p className="text-sm text-gray-600 mt-1">Pickup: {task.pickupAddress}</p>
+                          <p className="text-sm text-gray-600">Dropoff: {task.dropoffAddress}</p>
+                          <p className="text-xs font-semibold text-blue-600 mt-2">Status: {task.status}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             )}

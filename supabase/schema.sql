@@ -8,6 +8,9 @@ alter table if exists public.messages enable row level security;
 alter table if exists public.orders enable row level security;
 alter table if exists public.favorites enable row level security;
 alter table if exists public.reviews enable row level security;
+alter table if exists public.driver_profiles enable row level security;
+alter table if exists public.delivery_requests enable row level security;
+alter table if exists public.delivery_bids enable row level security;
 
 -- ==================== PROFILES TABLE ====================
 -- Extends auth.users with additional user information
@@ -182,6 +185,96 @@ create index if not exists idx_orders_listing_id on public.orders(listing_id);
 create index if not exists idx_orders_created_at on public.orders(created_at);
 create index if not exists idx_orders_stripe_session on public.orders(stripe_checkout_session_id);
 
+-- ==================== DRIVER PROFILES TABLE ====================
+
+create table if not exists public.driver_profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade unique not null,
+  vehicle_type text check (vehicle_type in ('motorcycle', 'car', 'bike', 'walker')),
+  capacity_description text,
+  specialties text[] default '{}'::text[],
+  service_radius_km integer default 10,
+  base_location_lat double precision,
+  base_location_lng double precision,
+  current_lat double precision,
+  current_lng double precision,
+  is_online boolean default false,
+  total_deliveries integer default 0,
+  rating double precision default 5.0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_driver_profiles_user_id on public.driver_profiles(user_id);
+create index if not exists idx_driver_profiles_online on public.driver_profiles(is_online);
+create index if not exists idx_driver_profiles_vehicle_type on public.driver_profiles(vehicle_type);
+alter table public.driver_profiles enable row level security;
+
+-- ==================== DELIVERY REQUESTS TABLE ====================
+
+create table if not exists public.delivery_requests (
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid references public.profiles(id) on delete cascade not null,
+  status text check (status in ('open', 'assigned', 'in_transit', 'completed', 'cancelled')) default 'open',
+
+  pickup_address text not null,
+  pickup_lat double precision,
+  pickup_lng double precision,
+  pickup_instructions text,
+  pickup_window_start timestamptz,
+  pickup_window_end timestamptz,
+
+  dropoff_address text not null,
+  dropoff_lat double precision,
+  dropoff_lng double precision,
+  dropoff_instructions text,
+  dropoff_window_start timestamptz,
+  dropoff_window_end timestamptz,
+
+  item_description text not null,
+  item_photos text[] default '{}'::text[],
+  estimated_weight_kg double precision,
+  is_fragile boolean default false,
+
+  budget_amount integer,
+  final_amount integer,
+
+  assigned_driver_id uuid references public.profiles(id),
+  assigned_at timestamptz,
+  picked_up_at timestamptz,
+  delivered_at timestamptz,
+
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_delivery_requests_requester_id on public.delivery_requests(requester_id);
+create index if not exists idx_delivery_requests_status on public.delivery_requests(status);
+create index if not exists idx_delivery_requests_assigned_driver on public.delivery_requests(assigned_driver_id);
+create index if not exists idx_delivery_requests_created_at on public.delivery_requests(created_at);
+alter table public.delivery_requests enable row level security;
+
+-- ==================== DELIVERY BIDS TABLE ====================
+
+create table if not exists public.delivery_bids (
+  id uuid primary key default gen_random_uuid(),
+  delivery_request_id uuid references public.delivery_requests(id) on delete cascade not null,
+  driver_id uuid references public.profiles(id) on delete cascade not null,
+  amount integer not null,
+  eta_minutes integer,
+  message text,
+  status text check (status in ('pending', 'accepted', 'rejected')) default 'pending',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+
+  unique(delivery_request_id, driver_id)
+);
+
+create index if not exists idx_delivery_bids_request_id on public.delivery_bids(delivery_request_id);
+create index if not exists idx_delivery_bids_driver_id on public.delivery_bids(driver_id);
+create index if not exists idx_delivery_bids_status on public.delivery_bids(status);
+alter table public.delivery_bids enable row level security;
+
 -- ==================== REVIEWS TABLE ====================
 
 create table if not exists public.reviews (
@@ -325,6 +418,65 @@ create policy "Authenticated users can create reports"
   on public.reports for insert
   with check (auth.uid() = reporter_id);
 
+-- Driver profiles: anyone can view online drivers, users manage own profile
+create policy "Driver profiles are viewable by everyone"
+  on public.driver_profiles for select
+  using (true);
+
+create policy "Users can create own driver profile"
+  on public.driver_profiles for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own driver profile"
+  on public.driver_profiles for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own driver profile"
+  on public.driver_profiles for delete
+  using (auth.uid() = user_id);
+
+-- Delivery requests: public read for marketplace, requester creates/updates, assigned driver can update transit states
+create policy "Delivery requests are viewable by everyone"
+  on public.delivery_requests for select
+  using (true);
+
+create policy "Users can create own delivery requests"
+  on public.delivery_requests for insert
+  with check (auth.uid() = requester_id);
+
+create policy "Requesters and assigned drivers can update delivery requests"
+  on public.delivery_requests for update
+  using (auth.uid() = requester_id or auth.uid() = assigned_driver_id);
+
+create policy "Requesters can delete their own delivery requests"
+  on public.delivery_requests for delete
+  using (auth.uid() = requester_id);
+
+-- Delivery bids: marketplace-visible, drivers create own bids, requesters and drivers can update status
+create policy "Delivery bids are viewable by everyone"
+  on public.delivery_bids for select
+  using (true);
+
+create policy "Drivers can create own bids"
+  on public.delivery_bids for insert
+  with check (auth.uid() = driver_id);
+
+create policy "Drivers and requesters can update bids"
+  on public.delivery_bids for update
+  using (
+    auth.uid() = driver_id
+    or exists (
+      select 1
+      from public.delivery_requests dr
+      where dr.id = delivery_request_id
+        and dr.requester_id = auth.uid()
+    )
+  );
+
+create policy "Drivers can delete own bids"
+  on public.delivery_bids for delete
+  using (auth.uid() = driver_id);
+
 -- ==================== FUNCTIONS ====================
 
 -- Function to update updated_at timestamp
@@ -347,4 +499,19 @@ create trigger handle_listings_updated_at
 
 create trigger handle_orders_updated_at
   before update on public.orders
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_driver_profiles_updated_at on public.driver_profiles;
+create trigger handle_driver_profiles_updated_at
+  before update on public.driver_profiles
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_delivery_requests_updated_at on public.delivery_requests;
+create trigger handle_delivery_requests_updated_at
+  before update on public.delivery_requests
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_delivery_bids_updated_at on public.delivery_bids;
+create trigger handle_delivery_bids_updated_at
+  before update on public.delivery_bids
   for each row execute procedure public.handle_updated_at();

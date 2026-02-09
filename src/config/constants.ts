@@ -21,6 +21,9 @@ export const API_ROUTES = {
   USERS: '/api/users',
   ORDERS: '/api/orders',
   CHECKOUT: '/api/checkout',
+  DRIVERS: '/api/drivers',
+  DELIVERY_REQUESTS: '/api/delivery-requests',
+  DELIVERY_BIDS: '/api/delivery-bids',
 } as const;
 
 // Animation variants for Framer Motion

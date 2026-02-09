@@ -7,6 +7,9 @@ export type Listing = Database['public']['Tables']['listings']['Row'];
 export type Favorite = Database['public']['Tables']['favorites']['Row'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type Order = Database['public']['Tables']['orders']['Row'];
+export type DriverProfile = Database['public']['Tables']['driver_profiles']['Row'];
+export type DeliveryRequest = Database['public']['Tables']['delivery_requests']['Row'];
+export type DeliveryBid = Database['public']['Tables']['delivery_bids']['Row'];
 
 // Joined types
 export type ProfileWithFavorites = Profile & {
