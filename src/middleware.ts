@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { supabaseCookieOptions } from '@/lib/supabase-cookie-options';
 import {
   applyRateLimit,
   createCsrfToken,
@@ -21,22 +22,24 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
-      cookieOptions: {
-        path: '/',
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: false,
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-      },
+      cookieOptions: supabaseCookieOptions,
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
+          const currentHeaders = new Headers(response.headers);
+
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
+
           response = NextResponse.next({
             request,
           });
+
+          currentHeaders.forEach((value, key) => {
+            response.headers.set(key, value);
+          });
+
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });

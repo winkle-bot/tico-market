@@ -13,6 +13,7 @@ import {
 } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
+import { useListings } from '@/context/ListingsContext';
 import type { Listing, NewListingForm, Category, MarketEvent } from '@/types';
 
 interface SellModalProps {
@@ -54,6 +55,7 @@ export function SellModal({
 }: SellModalProps) {
   const toast = useToast();
   const { user } = useAuth();
+  const { addListing } = useListings();
   const [newItem, setNewItem] = useState<NewListingForm>(INITIAL_FORM_STATE);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [locationName, setLocationName] = useState<string>(''); // Display name for location
@@ -221,7 +223,9 @@ export function SellModal({
       const data = await res.json();
 
       if (res.ok) {
-        onListingCreated(data);
+        const createdListing = data as Listing;
+        addListing(createdListing);
+        onListingCreated(createdListing);
         toast.success(`Listing created: ${newItem.title}!`);
         handleClose();
       } else {
