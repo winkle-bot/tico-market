@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Invalid checkout payload', parsed.error.flatten());
     }
 
-    const ordersTable = supabase.from('orders');
-    const { data: order, error: orderError } = await ordersTable
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
       .select('*')
       .eq('id', parsed.data.orderId)
       .single();
@@ -33,12 +33,14 @@ export async function POST(request: Request) {
       return ApiResponse.notFound('Order not found');
     }
 
-    if (order.buyer_id !== user.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderRecord = order as any;
+    if (orderRecord.buyer_id !== user.id) {
       return ApiResponse.forbidden('Not authorized to checkout this order');
     }
 
-    const itemAmount = parseColonPriceToCents(order.listing_snapshot?.price || '');
-    const deliveryFee = Number.isFinite(order.delivery_fee) ? Number(order.delivery_fee) : 0;
+    const itemAmount = parseColonPriceToCents(orderRecord.listing_snapshot?.price || '');
+    const deliveryFee = Number.isFinite(orderRecord.delivery_fee) ? Number(orderRecord.delivery_fee) : 0;
     const deliveryAmount = deliveryFee > 0 ? deliveryFee * 100 : 0;
     const subtotalAmount = itemAmount + deliveryAmount;
     const ivaAmount = calculateIvaCents(subtotalAmount);
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
 
     const stripe = getStripeClient();
     const currency = getStripeCurrency();
-    const listingTitle = String(order.listing_snapshot?.title || `Order ${order.id}`);
+    const listingTitle = String(orderRecord.listing_snapshot?.title || `Order ${orderRecord.id}`);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -92,26 +94,27 @@ export async function POST(request: Request) {
         }] : []),
       ],
       metadata: {
-        orderId: order.id,
-        buyerId: order.buyer_id,
-        sellerId: order.seller_id,
+        orderId: orderRecord.id,
+        buyerId: orderRecord.buyer_id,
+        sellerId: orderRecord.seller_id,
       },
-      success_url: `${origin}/account?payment=success&orderId=${order.id}`,
-      cancel_url: `${origin}/listing/${order.listing_id}?payment=cancelled&orderId=${order.id}`,
+      success_url: `${origin}/account?payment=success&orderId=${orderRecord.id}`,
+      cancel_url: `${origin}/listing/${orderRecord.listing_id}?payment=cancelled&orderId=${orderRecord.id}`,
     });
 
     if (!session.url) {
       return ApiResponse.serverError('Stripe checkout session URL missing');
     }
 
-    await ordersTable
+    await supabase
+      .from('orders')
       .update({
         payment_status: 'requires_payment',
         stripe_checkout_session_id: session.id,
         payment_amount: totalAmount,
         payment_currency: currency,
-      })
-      .eq('id', order.id);
+      } as never)
+      .eq('id', orderRecord.id);
 
     return ApiResponse.success({
       sessionId: session.id,
