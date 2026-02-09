@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin, PlusCircle } from 'lucide-react';
+import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Clock, CheckCircle, XCircle, Truck, MapPin, PlusCircle, Route, Zap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -12,7 +12,7 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
 import { useToast } from '@/context/ToastContext';
-import type { MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation, Review } from '@/types';
+import type { DeliveryMeta, MarketEvent, ListingPickupConfig, Listing, Order, GroupedConversation, Review } from '@/types';
 
 interface EditFormState {
   title: string;
@@ -112,6 +112,29 @@ export default function AccountPage() {
     }
     loadData();
   }, [user, authLoading, router, loadData]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const source = new EventSource(`/api/events?userId=${user.id}`);
+    source.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as { type?: string; table?: string };
+        if (payload.type === 'update' && (payload.table === 'orders' || payload.table === 'messages')) {
+          void loadData();
+        }
+      } catch {
+        // Ignore malformed heartbeat payloads.
+      }
+    };
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [loadData, user]);
 
   const handleDelete = async (listingId: number) => {
     const now = Date.now();
@@ -680,18 +703,23 @@ function OrdersTab({
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [deliveryNoteByOrder, setDeliveryNoteByOrder] = useState<Record<string, string>>({});
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrder = async (
+    orderId: string,
+    payload: Record<string, unknown>,
+    successMessage = 'Order status updated.'
+  ) => {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ status, userId })
+        body: JSON.stringify(payload)
       });
       
       if (res.ok) {
         onStatusChange();
-        toast.success('Order status updated.');
+        toast.success(successMessage);
       } else {
         const err = await res.json();
         toast.error(err.error || 'Failed to update order');
@@ -699,6 +727,12 @@ function OrdersTab({
     } catch {
       toast.error('Error updating order');
     }
+  };
+
+  const getDeliveryMeta = (order: Order): DeliveryMeta | null => {
+    const raw = order.listingSnapshot?.deliveryMeta;
+    if (!raw || typeof raw !== 'object') return null;
+    return raw as DeliveryMeta;
   };
 
   const submitReview = async () => {
@@ -783,7 +817,23 @@ function OrdersTab({
       {orders.map(order => {
         const isSeller = order.sellerId === userId;
         const isBuyer = order.buyerId === userId;
+        const isDriver = order.driverId === userId;
         const hasReview = Boolean(reviewsByOrder[order.id]);
+        const deliveryMeta = getDeliveryMeta(order);
+        const updates = deliveryMeta?.updates || [];
+        const recentUpdates = updates.slice(-3).reverse();
+        const driverEta = deliveryMeta?.estimatedEtaMinutes;
+        const phase = deliveryMeta?.phase || (order.status === 'in_transit' ? 'picked_up' : 'awaiting_confirmation');
+        const phaseIndex = (() => {
+          const map: Record<string, number> = {
+            awaiting_confirmation: 0,
+            awaiting_pickup: 1,
+            picked_up: 2,
+            near_buyer: 3,
+            delivered: 4,
+          };
+          return map[phase] ?? 0;
+        })();
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -853,6 +903,46 @@ function OrdersTab({
               </div>
             )}
 
+            {order.type === 'delivery' && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-blue-600 flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5" /> Express Tracking
+                  </p>
+                  <p className="text-xs text-blue-700 font-bold">
+                    {driverEta ? `ETA ~${driverEta} min` : 'Updating ETA'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-5 gap-2 mb-3">
+                  {['Seller', 'Pickup', 'En ruta', 'Cerca', 'Entregado'].map((label, idx) => (
+                    <div key={label} className="text-center">
+                      <div className={`w-6 h-6 rounded-full mx-auto mb-1 border ${idx <= phaseIndex ? 'bg-blue-600 border-blue-600' : 'bg-white border-blue-200'}`} />
+                      <p className="text-[10px] text-blue-700 font-semibold">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p className="font-semibold">Driver: {order.driverName || 'Unassigned'}</p>
+                  {deliveryMeta?.driverLocationLabel && <p>Location: {deliveryMeta.driverLocationLabel}</p>}
+                </div>
+              </div>
+            )}
+
+            {order.type === 'delivery' && recentUpdates.length > 0 && (
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                  <Route className="w-3.5 h-3.5" /> Live Order Room
+                </p>
+                {recentUpdates.map((update) => (
+                  <div key={update.id} className="text-xs text-slate-700">
+                    <span className="font-bold capitalize">{update.byRole}</span>
+                    <span className="mx-1 text-slate-400">•</span>
+                    <span>{update.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Notes */}
             {order.notes && (
               <div className="bg-yellow-50 rounded-xl p-3 mb-4 text-sm border border-yellow-100">
@@ -864,13 +954,25 @@ function OrdersTab({
             {order.status === 'pending' && isSeller && (
               <div className="flex gap-2">
                 <button
-                  onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                  onClick={() =>
+                    updateOrder(
+                      order.id,
+                      {
+                        status: 'confirmed',
+                        trackingEvent: {
+                          phase: 'awaiting_pickup',
+                          message: 'Seller confirmed. Preparing handoff to driver.',
+                        },
+                      },
+                      'Order confirmed.'
+                    )
+                  }
                   className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
                 >
                   Confirm Order
                 </button>
                 <button
-                  onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                  onClick={() => updateOrder(order.id, { status: 'cancelled' }, 'Order cancelled.')}
                   className="px-4 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
                 >
                   Decline
@@ -881,35 +983,169 @@ function OrdersTab({
               <div className="flex gap-2">
                 {order.type === 'delivery' && (
                   <button
-                    onClick={() => updateOrderStatus(order.id, 'in_transit')}
+                    onClick={() =>
+                      updateOrder(
+                        order.id,
+                        {
+                          status: 'in_transit',
+                          trackingEvent: {
+                            phase: 'picked_up',
+                            message: 'Package handed to driver.',
+                          },
+                        },
+                        'Driver handoff recorded.'
+                      )
+                    }
                     className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
                   >
-                    Mark In Transit
+                    Hand to Driver
                   </button>
                 )}
                 <button
-                  onClick={() => updateOrderStatus(order.id, 'completed')}
+                  onClick={() =>
+                    updateOrder(
+                      order.id,
+                      { status: 'completed', trackingEvent: { phase: 'delivered', message: 'Seller marked order completed.' } },
+                      'Order completed.'
+                    )
+                  }
                   className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
                 >
                   Mark Completed
                 </button>
               </div>
             )}
+            {order.status === 'confirmed' && isDriver && (
+              <button
+                onClick={() =>
+                  updateOrder(
+                    order.id,
+                    {
+                      status: 'in_transit',
+                      trackingEvent: {
+                        phase: 'picked_up',
+                        message: 'Driver picked up package from seller.',
+                      },
+                    },
+                    'Pickup confirmed.'
+                  )
+                }
+                className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
+              >
+                I Picked It Up
+              </button>
+            )}
             {order.status === 'in_transit' && isSeller && (
               <button
-                onClick={() => updateOrderStatus(order.id, 'completed')}
+                onClick={() =>
+                  updateOrder(
+                    order.id,
+                    { status: 'completed', trackingEvent: { phase: 'delivered', message: 'Seller marked as delivered.' } },
+                    'Order completed.'
+                  )
+                }
                 className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
               >
                 Mark Completed
               </button>
             )}
+            {order.status === 'in_transit' && isDriver && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() =>
+                    updateOrder(
+                      order.id,
+                      {
+                        trackingEvent: {
+                          phase: 'near_buyer',
+                          message: 'Driver is near the delivery point.',
+                          etaMinutes: 8,
+                        },
+                      },
+                      'Buyer notified.'
+                    )
+                  }
+                  className="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Near Buyer
+                </button>
+                <button
+                  onClick={() =>
+                    updateOrder(
+                      order.id,
+                      {
+                        status: 'completed',
+                        trackingEvent: {
+                          phase: 'delivered',
+                          message: 'Driver delivered the order.',
+                          etaMinutes: 0,
+                        },
+                      },
+                      'Delivery completed.'
+                    )
+                  }
+                  className="bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
+                >
+                  Delivered
+                </button>
+              </div>
+            )}
             {order.status === 'pending' && isBuyer && (
               <button
-                onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                onClick={() => updateOrder(order.id, { status: 'cancelled' }, 'Order cancelled.')}
                 className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
               >
                 Cancel Order
               </button>
+            )}
+            {order.status === 'in_transit' && isBuyer && (
+              <button
+                onClick={() =>
+                  updateOrder(
+                    order.id,
+                    {
+                      status: 'completed',
+                      trackingEvent: { phase: 'delivered', message: 'Buyer confirmed delivery received.' },
+                    },
+                    'Thanks. Delivery confirmed.'
+                  )
+                }
+                className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
+              >
+                I Received It
+              </button>
+            )}
+            {order.type === 'delivery' && order.status !== 'completed' && order.status !== 'cancelled' && (isBuyer || isSeller || isDriver) && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={deliveryNoteByOrder[order.id] || ''}
+                  onChange={(e) =>
+                    setDeliveryNoteByOrder((prev) => ({ ...prev, [order.id]: e.target.value }))
+                  }
+                  placeholder="Post a quick update"
+                  className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400"
+                />
+                <button
+                  onClick={() => {
+                    const note = (deliveryNoteByOrder[order.id] || '').trim();
+                    if (!note) return;
+                    void updateOrder(
+                      order.id,
+                      {
+                        trackingEvent: {
+                          message: note,
+                        },
+                      },
+                      'Update posted.'
+                    );
+                    setDeliveryNoteByOrder((prev) => ({ ...prev, [order.id]: '' }));
+                  }}
+                  className="px-4 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-colors"
+                >
+                  Post
+                </button>
+              </div>
             )}
             {order.status === 'completed' && isBuyer && !hasReview && (
               <button

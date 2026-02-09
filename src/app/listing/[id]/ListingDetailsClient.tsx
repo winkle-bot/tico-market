@@ -26,6 +26,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   // Modal states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [preferredCheckoutMethod, setPreferredCheckoutMethod] = useState<'delivery' | 'pickup' | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
@@ -119,11 +120,12 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
     }
   };
 
-  const handleGetItem = () => {
+  const handleGetItem = (preferredMethod: 'delivery' | 'pickup' | null = null) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
+    setPreferredCheckoutMethod(preferredMethod);
     setIsCheckoutOpen(true);
   };
 
@@ -272,11 +274,15 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
       {/* Checkout Modal */}
       <CheckoutModal
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={() => {
+          setIsCheckoutOpen(false);
+          setPreferredCheckoutMethod(null);
+        }}
         listing={listing}
         seller={seller}
         currentUser={user}
         drivers={drivers}
+        preferredMethod={preferredCheckoutMethod}
         onSuccess={handleOrderSuccess}
         onAuthRequired={() => {
           setIsCheckoutOpen(false);
@@ -629,7 +635,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 ) : (
                   <>
                     <button 
-                      onClick={handleGetItem}
+                      onClick={() => handleGetItem('delivery')}
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-black py-5 rounded-[24px] transition-all shadow-2xl shadow-orange-200 uppercase tracking-widest text-sm flex items-center justify-center gap-3"
+                    >
+                      <Truck className="w-5 h-5" /> Express Ahora
+                    </button>
+                    <button 
+                      onClick={() => handleGetItem()}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[24px] transition-all shadow-2xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-3"
                     >
                       <ShoppingBag className="w-5 h-5" /> Get This Item
@@ -662,7 +674,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
           ) : (
             <>
               <button 
-                onClick={handleGetItem}
+                onClick={() => handleGetItem('delivery')}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-orange-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+              >
+                <Truck className="w-4 h-4" /> Express
+              </button>
+              <button 
+                onClick={() => handleGetItem()}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
               >
                 <ShoppingBag className="w-4 h-4" /> Get This Item

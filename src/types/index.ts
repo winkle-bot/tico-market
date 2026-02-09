@@ -106,6 +106,31 @@ export type OrderType = 'delivery' | 'pickup';
 export type OrderStatus = 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
 
+export type DeliveryTrackingPhase =
+  | 'awaiting_confirmation'
+  | 'awaiting_pickup'
+  | 'picked_up'
+  | 'near_buyer'
+  | 'delivered';
+
+export interface DeliveryTrackingUpdate {
+  id: string;
+  byUserId?: string;
+  byRole: 'buyer' | 'seller' | 'driver' | 'system';
+  message: string;
+  createdAt: string;
+}
+
+export interface DeliveryMeta {
+  mode?: 'express' | 'scheduled';
+  estimatedEtaMinutes?: number;
+  estimatedDistanceKm?: number;
+  driverAssignedAt?: string;
+  driverLocationLabel?: string;
+  phase?: DeliveryTrackingPhase;
+  updates?: DeliveryTrackingUpdate[];
+}
+
 export interface Order {
   id: string;
   listingId: number;
@@ -114,6 +139,8 @@ export interface Order {
     title: string;
     price: string;
     imageUrl?: string;
+    deliveryMeta?: DeliveryMeta;
+    [key: string]: unknown;
   };
   buyerId: string;
   buyerName: string;

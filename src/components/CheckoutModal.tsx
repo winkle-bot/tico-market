@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Truck,
   MapPin,
   Clock,
+  Zap,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -37,6 +38,7 @@ interface CheckoutModalProps {
   drivers: Listing[];
   onSuccess: (orderId: string) => void;
   onAuthRequired: () => void;
+  preferredMethod?: OrderType | null;
 }
 
 // Helper to format schedule for display
@@ -58,6 +60,36 @@ function formatSchedule(schedule: PickupLocation['schedule']): string {
   return available.join(' • ') || 'Contact seller for availability';
 }
 
+function getDistanceKm(from: [number, number], to: [number, number]): number {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRadians(to[0] - from[0]);
+  const dLng = toRadians(to[1] - from[1]);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(from[0])) * Math.cos(toRadians(to[0])) * Math.sin(dLng / 2) ** 2;
+  return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function estimateEtaMinutes(distanceKm: number): number {
+  return Math.max(12, Math.round(8 + distanceKm * 6));
+}
+
+function parseDeliveryFee(display: string): number {
+  const value = Number.parseInt(display.replace(/[^\d]/g, ''), 10);
+  return Number.isFinite(value) ? value : 2500;
+}
+
+interface DriverOption {
+  id: string;
+  listingId: number;
+  name: string;
+  rating: number;
+  verified: boolean;
+  distanceKm: number;
+  etaMinutes: number;
+  availabilityLabel: string;
+}
+
 export function CheckoutModal({
   isOpen,
   onClose,
@@ -67,9 +99,11 @@ export function CheckoutModal({
   drivers,
   onSuccess,
   onAuthRequired,
+  preferredMethod,
 }: CheckoutModalProps) {
   const [step, setStep] = useState<CheckoutStep>('method');
   const [method, setMethod] = useState<OrderType | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<'express' | 'scheduled'>('express');
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [scheduledWindow, setScheduledWindow] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -81,8 +115,10 @@ export function CheckoutModal({
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setStep('method');
-      setMethod(null);
+      const startMethod = preferredMethod ?? null;
+      setStep(startMethod === 'delivery' ? 'delivery-details' : startMethod === 'pickup' ? 'pickup-details' : 'method');
+      setMethod(startMethod);
+      setDeliveryMode('express');
       setSelectedLocationId(null);
       setScheduledWindow('');
       setDeliveryAddress('');
@@ -90,23 +126,59 @@ export function CheckoutModal({
       setNotes('');
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, preferredMethod]);
 
-  if (!listing || !seller) return null;
-
-  const pickupLocations = seller.pickupLocations || [];
-  const marketEvents = listing.pickupConfig?.marketEvents || [];
-  const deliveryAvailable = seller.acceptsDelivery !== false && 
-    (listing.pickupConfig?.deliveryAvailable !== false) && // check override
-    !listing.pickupConfig?.pickupOnly;
+  const pickupLocations = seller?.pickupLocations || [];
+  const marketEvents = listing?.pickupConfig?.marketEvents || [];
+  const deliveryAvailable = seller?.acceptsDelivery !== false &&
+    (listing?.pickupConfig?.deliveryAvailable !== false) && // check override
+    !listing?.pickupConfig?.pickupOnly;
     
-  const pickupAvailable = (listing.pickupConfig?.pickupAvailable !== false) && // check explicit flag
+  const pickupAvailable = (listing?.pickupConfig?.pickupAvailable !== false) && // check explicit flag
     (pickupLocations.length > 0 || marketEvents.length > 0);
 
   const selectedLocation = pickupLocations.find(l => l.id === selectedLocationId);
   const selectedEvent = marketEvents.find(e => e.id === selectedLocationId); // Reuse ID for events
   
-  const selectedDriver = drivers.find(d => d.id === Number(selectedDriverId));
+  const driverOptions = useMemo<DriverOption[]>(() => {
+    if (!Array.isArray(drivers) || !Array.isArray(listing?.location) || listing.location.length !== 2) {
+      return [];
+    }
+    return drivers
+      .map((driver) => {
+        const distanceKm = getDistanceKm(listing.location, driver.location);
+        const etaMinutes = estimateEtaMinutes(distanceKm);
+        return {
+          id: driver.sellerId,
+          listingId: driver.id,
+          name: driver.owner,
+          rating: driver.rating,
+          verified: Boolean(driver.verified),
+          distanceKm,
+          etaMinutes,
+          availabilityLabel: etaMinutes <= 20 ? 'Disponible ahora' : `Listo en ~${etaMinutes} min`,
+        };
+      })
+      .sort((a, b) => {
+        const aScore = a.distanceKm - a.rating * 0.35;
+        const bScore = b.distanceKm - b.rating * 0.35;
+        return aScore - bScore;
+      })
+      .slice(0, 6);
+  }, [drivers, listing?.location]);
+
+  const selectedDriver = driverOptions.find((d) => d.id === selectedDriverId) || null;
+
+  useEffect(() => {
+    if (!isOpen || method !== 'delivery' || driverOptions.length === 0 || selectedDriverId) {
+      return;
+    }
+    if (deliveryMode === 'express') {
+      setSelectedDriverId(driverOptions[0].id);
+    }
+  }, [deliveryMode, driverOptions, isOpen, method, selectedDriverId]);
+
+  if (!listing || !seller) return null;
 
   const handleMethodSelect = (m: OrderType) => {
     if (!currentUser) {
@@ -139,6 +211,14 @@ export function CheckoutModal({
         setError('Please enter a delivery address');
         return;
       }
+      if (deliveryMode === 'express' && !selectedDriverId && driverOptions.length > 0) {
+        setError('Please choose an express driver');
+        return;
+      }
+      if (deliveryMode === 'scheduled' && !scheduledWindow.trim()) {
+        setError('Please choose a preferred delivery window');
+        return;
+      }
       setStep('confirm');
     }
   };
@@ -150,6 +230,8 @@ export function CheckoutModal({
     setError(null);
 
     try {
+      const deliveryFee = parseDeliveryFee(DELIVERY_FEE_DISPLAY);
+      const expressEta = selectedDriver?.etaMinutes ?? 35;
       const orderData: Record<string, unknown> = {
         listingId: listing.id,
         listingSnapshot: {
@@ -193,10 +275,32 @@ export function CheckoutModal({
         orderData.scheduledWindow = scheduledWindow || undefined;
       } else {
         orderData.deliveryAddress = deliveryAddress;
+        orderData.deliveryFee = deliveryFee;
         if (selectedDriverId && selectedDriver) {
-          orderData.driverId = selectedDriverId;
-          orderData.driverName = selectedDriver.owner;
+          orderData.driverId = selectedDriver.id;
+          orderData.driverName = selectedDriver.name;
         }
+        orderData.scheduledWindow = deliveryMode === 'scheduled'
+          ? scheduledWindow
+          : `Express ETA ~${expressEta} min`;
+        const listingSnapshot = orderData.listingSnapshot as Record<string, unknown>;
+        listingSnapshot.deliveryMeta = {
+          mode: deliveryMode,
+          phase: 'awaiting_confirmation',
+          estimatedEtaMinutes: expressEta,
+          estimatedDistanceKm: selectedDriver?.distanceKm,
+          driverLocationLabel: selectedDriver?.availabilityLabel ?? 'Buscando repartidor',
+          updates: [
+            {
+              id: `u-${Date.now()}`,
+              byRole: 'system',
+              message: selectedDriver
+                ? `Express assigned to ${selectedDriver.name}.`
+                : 'Order created. Finding available express driver.',
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
       }
 
       const res = await fetch(API_ROUTES.ORDERS, {
@@ -470,48 +574,92 @@ export function CheckoutModal({
               {/* Step 2b: Delivery Details */}
               {step === 'delivery-details' && (
                 <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMode('express')}
+                      className={`rounded-2xl border-2 px-3 py-3 text-left transition-colors min-h-16 ${
+                        deliveryMode === 'express' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
+                      }`}
+                    >
+                      <p className="text-xs font-black uppercase tracking-wider text-blue-600 flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5" /> Fastest
+                      </p>
+                      <p className="font-bold text-[#18284a] text-sm">Express Now</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMode('scheduled')}
+                      className={`rounded-2xl border-2 px-3 py-3 text-left transition-colors min-h-16 ${
+                        deliveryMode === 'scheduled' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
+                      }`}
+                    >
+                      <p className="text-xs font-black uppercase tracking-wider text-[#6f83ad]">Flexible</p>
+                      <p className="font-bold text-[#18284a] text-sm">Schedule Window</p>
+                    </button>
+                  </div>
+
                   <div>
                     <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Delivery Address *
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter your full address"
+                      placeholder="District, landmarks, house/apartment"
                       className="tm-input"
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
                     />
                   </div>
 
-                  {/* Driver selection (optional) */}
-                  {drivers.length > 0 && (
+                  {deliveryMode === 'scheduled' && (
+                    <div>
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
+                        Preferred Window *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Today 6:00-8:00pm"
+                        className="tm-input"
+                        value={scheduledWindow}
+                        onChange={(e) => setScheduledWindow(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {deliveryMode === 'express' && driverOptions.length > 0 && (
                     <div className="pt-2">
                       <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-                        Preferred Driver (optional)
+                        Available Express Drivers
                       </label>
                       <div className="space-y-2">
-                        {drivers.map((driver) => (
+                        {driverOptions.map((driver, index) => (
                           <button
-                            key={driver.id}
+                            key={driver.listingId}
                             onClick={() =>
                               setSelectedDriverId(
-                                selectedDriverId === String(driver.id) ? null : String(driver.id)
+                                selectedDriverId === driver.id ? null : driver.id
                               )
                             }
                             className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 min-h-14 ${
-                              selectedDriverId === String(driver.id)
+                              selectedDriverId === driver.id
                                 ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-100 hover:border-blue-300'
                             }`}
                           >
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold">
-                              {driver.owner[0]}
+                              {driver.name[0]}
                             </div>
                             <div className="flex-1 text-left">
-                              <span className="font-bold text-gray-900">{driver.owner}</span>
-                              <span className="text-xs text-gray-500 ml-2">⭐ {driver.rating}</span>
+                              <p className="font-bold text-gray-900 flex items-center gap-2">
+                                <span>{driver.name}</span>
+                                {index === 0 && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 uppercase tracking-wider">Best match</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-500">⭐ {driver.rating.toFixed(1)} • {driver.distanceKm.toFixed(1)} km • {driver.availabilityLabel}</p>
                             </div>
-                            {selectedDriverId === String(driver.id) && (
+                            {selectedDriverId === driver.id && (
                               <Check className="w-5 h-5 text-blue-600" />
                             )}
                           </button>
@@ -589,8 +737,13 @@ export function CheckoutModal({
                       <>
                         <h4 className="font-bold text-gray-900 mb-1">Deliver to:</h4>
                         <p className="text-sm text-gray-600">{deliveryAddress}</p>
+                        <p className="text-sm text-blue-600 mt-2">
+                          {deliveryMode === 'express' ? 'Mode: Express now' : `Mode: Scheduled (${scheduledWindow})`}
+                        </p>
                         {selectedDriver && (
-                          <p className="text-sm text-blue-600 mt-2">Driver: {selectedDriver.owner}</p>
+                          <p className="text-sm text-blue-600 mt-2">
+                            Driver: {selectedDriver.name} • ETA ~{selectedDriver.etaMinutes} min
+                          </p>
                         )}
                       </>
                     )}
