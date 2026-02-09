@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Manrope, Space_Grotesk } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { ListingsProvider } from "@/context/ListingsContext";
 import { ToastProvider } from "@/context/ToastContext";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
 
 export const metadata: Metadata = {
   title: "TicoMarket - P2P Marketplace Costa Rica",
@@ -12,8 +23,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  themeColor: "#f5f8ff",
 };
 
 export default function RootLayout({
@@ -22,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
       <head>
         <link
           rel="stylesheet"

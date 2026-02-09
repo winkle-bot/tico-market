@@ -138,9 +138,9 @@ export function AuthModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8"
+            className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#dce5f7]"
           >
-            <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">
+            <h2 className="text-2xl font-black text-[#18284a] uppercase mb-6">
               {(emailSent || passwordResetSent) ? 'Check Your Email' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
             {(emailSent || passwordResetSent) ? (
@@ -150,12 +150,12 @@ export function AuthModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-600">
+                <p className="text-[#465f91]">
                   {passwordResetSent
-                    ? <>We sent a password reset link to <span className="font-bold text-gray-900">{formState.email}</span></>
-                    : <>We sent a confirmation link to <span className="font-bold text-gray-900">{formState.email}</span></>}
+                    ? <>We sent a password reset link to <span className="font-bold text-[#18284a]">{formState.email}</span></>
+                    : <>We sent a confirmation link to <span className="font-bold text-[#18284a]">{formState.email}</span></>}
                 </p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[#7d91b8]">
                   {passwordResetSent
                     ? 'Open the link in that email to choose a new password.'
                     : 'Click the link in the email to verify your account and log in.'}
@@ -167,7 +167,7 @@ export function AuthModal({
                     onFormChange({ email: '', password: '', name: '' });
                     onClose();
                   }}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-black py-4 rounded-2xl uppercase tracking-widest text-sm transition-colors mt-4"
+                  className="w-full tm-btn tm-btn-muted mt-4"
                 >
                   Got it
                 </button>
@@ -179,9 +179,9 @@ export function AuthModal({
                   <input
                     type="text"
                     placeholder="Full Name"
-                    className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
-                      fieldErrors.name ? 'border-red-500' : 'border-gray-100'
-                    } focus:border-blue-500 focus:outline-none font-bold`}
+                    className={`tm-input ${
+                      fieldErrors.name ? 'border-red-500' : ''
+                    }`}
                     value={formState.name}
                     onChange={(e) =>
                       onFormChange({ ...formState, name: e.target.value })
@@ -196,9 +196,9 @@ export function AuthModal({
                 <input
                   type="email"
                   placeholder="Email Address"
-                  className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
-                    fieldErrors.email ? 'border-red-500' : 'border-gray-100'
-                  } focus:border-blue-500 focus:outline-none font-bold`}
+                  className={`tm-input ${
+                    fieldErrors.email ? 'border-red-500' : ''
+                  }`}
                   value={formState.email}
                   onChange={(e) =>
                     onFormChange({ ...formState, email: e.target.value })
@@ -212,9 +212,9 @@ export function AuthModal({
                 <input
                   type="password"
                   placeholder="Password"
-                  className={`w-full p-4 bg-gray-50 rounded-2xl border-2 ${
-                    fieldErrors.password ? 'border-red-500' : 'border-gray-100'
-                  } focus:border-blue-500 focus:outline-none font-bold`}
+                  className={`tm-input ${
+                    fieldErrors.password ? 'border-red-500' : ''
+                  }`}
                   value={formState.password}
                   onChange={(e) =>
                     onFormChange({ ...formState, password: e.target.value })
@@ -228,7 +228,7 @@ export function AuthModal({
                 <button
                   onClick={handleForgotPassword}
                   disabled={isSubmitting}
-                  className="text-sm text-blue-600 font-bold hover:underline disabled:text-blue-300"
+                  className="text-sm text-blue-700 font-bold hover:underline disabled:text-blue-300 min-h-10"
                 >
                   Forgot your password?
                 </button>
@@ -241,11 +241,11 @@ export function AuthModal({
               <button
                 onClick={handleAuth}
                 disabled={isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-xl shadow-blue-200 transition-colors"
+                className="w-full tm-btn tm-btn-primary disabled:opacity-70"
               >
                 {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Login' : 'Sign Up'}
               </button>
-              <p className="text-center text-sm font-bold text-gray-400">
+              <p className="text-center text-sm font-bold text-[#7d91b8]">
                 {mode === 'login'
                   ? "Don't have an account?"
                   : 'Already have an account?'}
@@ -253,7 +253,7 @@ export function AuthModal({
                   onClick={() =>
                     onModeChange(mode === 'login' ? 'signup' : 'login')
                   }
-                  className="text-blue-600 ml-1"
+                  className="text-blue-700 ml-1 min-h-10"
                 >
                   {mode === 'login' ? 'Sign Up' : 'Login'}
                 </button>

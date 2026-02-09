@@ -248,21 +248,21 @@ export function CheckoutModal({
           />
           <motion.div
             {...MODAL_CONTENT_VARIANTS}
-            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-[#dce5f7]"
           >
             {/* Header */}
-            <div className="p-6 border-b flex justify-between items-center shrink-0">
+            <div className="p-5 sm:p-6 border-b border-[#dce5f7] flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 {step !== 'method' && (
                   <button
                     onClick={handleBack}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors -ml-2"
+                    className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors -ml-2"
                     aria-label="Go back"
                   >
-                    <ChevronLeft className="w-5 h-5 text-gray-500" />
+                    <ChevronLeft className="w-5 h-5 text-[#6f83ad]" />
                   </button>
                 )}
-                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                <h2 className="text-xl font-black text-[#18284a] uppercase tracking-tight">
                   {step === 'method' && 'Get This Item'}
                   {step === 'pickup-details' && 'Choose Pickup'}
                   {step === 'delivery-details' && 'Delivery Details'}
@@ -271,15 +271,15 @@ export function CheckoutModal({
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label="Close"
               >
-                <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6 text-[#6f83ad]" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 bg-[#fbfcff]">
               {/* Error message */}
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-600 text-sm font-medium">
@@ -292,7 +292,7 @@ export function CheckoutModal({
               {step === 'method' && (
                 <div className="space-y-4">
                   {/* Listing preview */}
-                  <div className="flex gap-4 p-4 bg-gray-50 rounded-2xl mb-6">
+                  <div className="flex gap-4 p-4 bg-[#f5f8ff] rounded-2xl mb-6 border border-[#dce5f7]">
                     <div className="w-16 h-16 rounded-xl bg-gray-200 overflow-hidden shrink-0">
                       {listing.imageUrl ? (
                         <img src={listing.imageUrl} alt="" className="w-full h-full object-cover" />
@@ -303,13 +303,13 @@ export function CheckoutModal({
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-gray-900 truncate">{listing.title}</h3>
+                      <h3 className="font-bold text-[#18284a] truncate">{listing.title}</h3>
                       <p className="text-blue-600 font-black text-lg">{listing.price}</p>
                       <p className="text-xs text-gray-500">Sold by {listing.owner}</p>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-500 font-medium mb-2">
+                  <p className="text-sm text-[#6f83ad] font-medium mb-2">
                     How do you want to get it?
                   </p>
 
@@ -317,17 +317,17 @@ export function CheckoutModal({
                   {deliveryAvailable && (
                     <button
                       onClick={() => handleMethodSelect('delivery')}
-                      className="w-full p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 transition-all flex items-center gap-4 text-left group"
+                      className="w-full p-4 rounded-2xl border-2 border-[#dce5f7] hover:border-blue-500 transition-all flex items-center gap-4 text-left group min-h-16"
                     >
                       <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                         <Truck className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-bold text-gray-900">Express Delivery</h3>
+                          <h3 className="font-bold text-[#18284a]">Express Delivery</h3>
                           <span className="text-blue-600 font-black">{DELIVERY_FEE_DISPLAY}</span>
                         </div>
-                        <p className="text-sm text-gray-500">Same-day delivery in GAM</p>
+                        <p className="text-sm text-[#6f83ad]">Same-day delivery in GAM</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500" />
                     </button>
@@ -337,17 +337,17 @@ export function CheckoutModal({
                   {pickupAvailable && (
                     <button
                       onClick={() => handleMethodSelect('pickup')}
-                      className="w-full p-4 rounded-2xl border-2 border-gray-100 hover:border-green-500 transition-all flex items-center gap-4 text-left group"
+                      className="w-full p-4 rounded-2xl border-2 border-[#dce5f7] hover:border-green-500 transition-all flex items-center gap-4 text-left group min-h-16"
                     >
                       <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
                         <MapPin className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-bold text-gray-900">Pickup</h3>
+                          <h3 className="font-bold text-[#18284a]">Pickup</h3>
                           <span className="text-green-600 font-black">FREE</span>
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[#6f83ad]">
                           {marketEvents.length > 0 ? `${marketEvents.length} event(s), ` : ''}
                           {pickupLocations.length} location{pickupLocations.length !== 1 ? 's' : ''} available
                         </p>
@@ -375,7 +375,7 @@ export function CheckoutModal({
               {/* Step 2a: Pickup Details */}
               {step === 'pickup-details' && (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-[#6f83ad] font-medium">
                     Select where you&apos;ll pick it up:
                   </p>
 
@@ -388,7 +388,7 @@ export function CheckoutModal({
                           <button
                             key={event.id}
                             onClick={() => setSelectedLocationId(event.id)}
-                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
+                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left min-h-16 ${
                               selectedLocationId === event.id
                                 ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-100 hover:border-blue-300'
@@ -417,7 +417,7 @@ export function CheckoutModal({
                           <button
                             key={location.id}
                             onClick={() => setSelectedLocationId(location.id)}
-                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left ${
+                            className={`w-full p-4 rounded-2xl border-2 transition-all text-left min-h-16 ${
                               selectedLocationId === location.id
                                 ? 'border-green-500 bg-green-50'
                                 : 'border-gray-100 hover:border-green-300'
@@ -446,13 +446,13 @@ export function CheckoutModal({
                   {/* Preferred time (Only show if not an event, or maybe allow it for events too as a "I'll be there at X" confirmation?) */}
                   {/* Let's keep it general for now. */}
                   <div className="pt-4">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Preferred pickup time (optional)
                     </label>
                     <input
                       type="text"
                       placeholder="e.g., Saturday morning"
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-green-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300"
+                      className="tm-input"
                       value={scheduledWindow}
                       onChange={(e) => setScheduledWindow(e.target.value)}
                     />
@@ -460,7 +460,7 @@ export function CheckoutModal({
 
                   <button
                     onClick={handleContinue}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-2xl transition-all uppercase tracking-widest text-sm mt-4"
+                    className="w-full tm-btn bg-green-600 text-white hover:bg-green-700 mt-4"
                   >
                     Continue
                   </button>
@@ -471,13 +471,13 @@ export function CheckoutModal({
               {step === 'delivery-details' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Delivery Address *
                     </label>
                     <input
                       type="text"
                       placeholder="Enter your full address"
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300"
+                      className="tm-input"
                       value={deliveryAddress}
                       onChange={(e) => setDeliveryAddress(e.target.value)}
                     />
@@ -486,7 +486,7 @@ export function CheckoutModal({
                   {/* Driver selection (optional) */}
                   {drivers.length > 0 && (
                     <div className="pt-2">
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                         Preferred Driver (optional)
                       </label>
                       <div className="space-y-2">
@@ -498,7 +498,7 @@ export function CheckoutModal({
                                 selectedDriverId === String(driver.id) ? null : String(driver.id)
                               )
                             }
-                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                            className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 min-h-14 ${
                               selectedDriverId === String(driver.id)
                                 ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-100 hover:border-blue-300'
@@ -522,7 +522,7 @@ export function CheckoutModal({
 
                   <button
                     onClick={handleContinue}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all uppercase tracking-widest text-sm mt-4"
+                    className="w-full tm-btn tm-btn-primary mt-4"
                   >
                     Continue
                   </button>
@@ -533,7 +533,7 @@ export function CheckoutModal({
               {step === 'confirm' && (
                 <div className="space-y-4">
                   {/* Order Summary */}
-                  <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                  <div className="bg-[#f5f8ff] rounded-2xl p-4 space-y-3 border border-[#dce5f7]">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500">Item</span>
                       <span className="font-bold text-gray-900">{listing.title}</span>
@@ -565,7 +565,7 @@ export function CheckoutModal({
                   </div>
 
                   {/* Location/Address details */}
-                  <div className="bg-gray-50 rounded-2xl p-4">
+                  <div className="bg-[#f5f8ff] rounded-2xl p-4 border border-[#dce5f7]">
                     {method === 'pickup' && (
                       <>
                         {selectedEvent ? (
@@ -598,13 +598,13 @@ export function CheckoutModal({
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Note to seller (optional)
                     </label>
                     <textarea
                       placeholder="Any special instructions..."
                       rows={2}
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-medium text-gray-900 placeholder:text-gray-300 resize-none"
+                      className="tm-input resize-none"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                     />
@@ -613,10 +613,10 @@ export function CheckoutModal({
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`w-full font-black py-4 rounded-2xl transition-all uppercase tracking-widest text-sm ${
+                    className={`w-full tm-btn font-black ${
                       method === 'pickup'
-                        ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'
-                        : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
+                        ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white'
+                        : 'tm-btn-primary disabled:opacity-70'
                     } text-white`}
                   >
                     {isSubmitting ? 'Placing Order...' : 'Confirm Order'}

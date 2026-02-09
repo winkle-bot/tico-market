@@ -43,25 +43,25 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
           />
           <motion.div
             {...MODAL_CONTENT_VARIANTS}
-            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
+            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-[#dce5f7]"
           >
-            <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+            <div className="p-5 sm:p-6 border-b border-[#dce5f7] flex justify-between items-center">
+              <h2 className="text-xl font-black text-[#18284a] uppercase tracking-tight">
                 {bookingStep === 1 ? 'Choose Your Driver' : 'Confirm Delivery'}
               </h2>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label="Close modal"
               >
-                <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6 text-[#6f83ad]" />
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               {bookingStep === 1 ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-[#6f83ad] font-medium">
                     Available drivers near your area in San José:
                   </p>
                   {drivers.length > 0 ? (
@@ -72,14 +72,14 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
                           setSelectedDriver(driver);
                           setBookingStep(2);
                         }}
-                        className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100 hover:border-blue-500 cursor-pointer transition-all group"
+                        className="flex items-center justify-between p-4 rounded-2xl border-2 border-[#e2eafe] hover:border-blue-500 cursor-pointer transition-all group min-h-16"
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-lg">
                             {driver.owner[0]}
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900">
+                            <h3 className="font-bold text-[#18284a]">
                               {driver.owner}
                             </h3>
                             <div className="flex items-center gap-1 text-orange-500 text-xs font-black">
@@ -89,7 +89,7 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                          <span className="text-xs font-bold text-[#7d91b8] uppercase tracking-widest block mb-1">
                             Fee
                           </span>
                           <span className="text-blue-600 font-black">
@@ -99,7 +99,7 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                    <div className="rounded-2xl border border-[#dce5f7] bg-[#f5f8ff] p-4 text-sm text-[#465f91]">
                       No drivers are available right now. Please try again in a few minutes.
                     </div>
                   )}
@@ -122,26 +122,26 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                         Pick-up Location
                       </label>
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-bold text-gray-700">
+                      <div className="flex items-center gap-2 p-3 bg-[#f7faff] rounded-xl border border-[#dce5f7]">
+                        <MapPin className="w-4 h-4 text-[#7d91b8]" />
+                        <span className="text-sm font-bold text-[#334d80]">
                           Central Market, San José
                         </span>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                         Drop-off Location
                       </label>
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-2 p-3 bg-[#f7faff] rounded-xl border border-[#dce5f7]">
                         <MapPin className="w-4 h-4 text-blue-500" />
                         <input
                           type="text"
                           placeholder="Enter your address..."
-                          className="bg-transparent border-none focus:outline-none text-sm font-bold text-gray-900 w-full placeholder:text-gray-300"
+                          className="tm-input bg-transparent border-none shadow-none focus:shadow-none p-0 min-h-0 rounded-none text-sm"
                         />
                       </div>
                     </div>
@@ -149,13 +149,13 @@ export function BookingModal({ isOpen, onClose, drivers }: BookingModalProps) {
 
                   <button
                     onClick={handleBooking}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm"
+                    className="w-full tm-btn tm-btn-primary"
                   >
                     Book Now • {DELIVERY_FEE_DISPLAY}
                   </button>
                   <button
                     onClick={() => setBookingStep(1)}
-                    className="w-full text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600 transition-colors"
+                    className="w-full text-[#7d91b8] font-bold text-xs uppercase tracking-widest hover:text-[#465f91] transition-colors min-h-10"
                   >
                     Change Driver
                   </button>

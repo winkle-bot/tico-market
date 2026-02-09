@@ -56,7 +56,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
     fetchData();
   }, [sellerId]);
 
-  if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
+  if (isLoading) return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center font-bold text-blue-600">Loading profile...</div>;
   if (seller === 'not_found' || !seller) return notFound();
 
   const averageRating = reviews.length > 0
@@ -93,16 +93,16 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f5f8ff]">
       {/* Profile Header Background */}
-      <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-700 w-full" />
+      <div className="h-48 bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 w-full" />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Left Column: Profile Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 sticky top-8">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-[#dce5f7] sticky top-8">
               <div className="p-8 flex flex-col items-center text-center">
                 <div className="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-5xl mb-6 border-8 border-white shadow-lg">
                   {seller.name && seller.name.length > 0 ? seller.name[0].toUpperCase() : 'S'}
@@ -145,19 +145,19 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                       }
                     }}
                     disabled={sellerListings.length === 0}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full tm-btn tm-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MessageCircle className="w-5 h-5" /> Message Seller
                   </button>
                   <Link 
                     href="/"
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-4 rounded-2xl transition-all uppercase tracking-widest text-sm text-center"
+                    className="w-full tm-btn tm-btn-muted text-center"
                   >
                     Back to Feed
                   </Link>
                   <button
                     onClick={reportSeller}
-                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-black py-3 rounded-2xl transition-all uppercase tracking-widest text-xs"
+                    className="w-full tm-btn bg-red-50 hover:bg-red-100 text-red-700 border border-red-100"
                   >
                     Report Seller
                   </button>
@@ -170,7 +170,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
           <div className="lg:col-span-2 space-y-8">
             
             {/* Bio Section */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-[#dce5f7]">
               <h2 className="text-xl font-black text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6 text-green-500" /> About the Seller
               </h2>
@@ -206,7 +206,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
             </div>
 
             {/* Reviews Section */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-[#dce5f7]">
               <h2 className="text-xl font-black text-gray-900 mb-8 uppercase tracking-wider">
                 Recent Reviews
               </h2>
@@ -252,7 +252,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+              className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-[#dce5f7]"
             >
               <div className="p-6 border-b flex items-center justify-between">
                 <div>
@@ -261,9 +261,9 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                 </div>
                 <button
                   onClick={() => setShowListingPicker(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 >
-                  <X className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5 text-[#6f83ad]" />
                 </button>
               </div>
               <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">

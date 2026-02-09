@@ -249,7 +249,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
     : null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f5f8ff]">
       {/* Auth Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
@@ -400,22 +400,22 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
       )}
 
       {/* Header / Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors group">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-[#dce5f7]">
+        <div className="tm-shell h-16 flex items-center justify-between">
+          <Link href="/" className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors group">
             <ChevronLeft className="w-6 h-6 text-gray-900 group-hover:-translate-x-1 transition-transform" />
           </Link>
           <div className="flex gap-2">
             <button 
               onClick={handleShareListing}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600"
+              className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors text-[#60749f]"
               aria-label="Share"
             >
               <Share2 className="w-5 h-5" />
             </button>
             <button 
               onClick={handleToggleFavorite}
-              className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${isLiked ? 'text-red-500' : 'text-gray-600'}`}
+              className={`p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors ${isLiked ? 'text-red-500' : 'text-[#60749f]'}`}
               aria-label={isLiked ? 'Remove from favorites' : 'Add to favorites'}
             >
               <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
@@ -425,7 +425,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
       </nav>
 
       <main className="pt-20 pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="tm-shell">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             
             {/* Left: Image Section */}
@@ -527,7 +527,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
               </div>
 
               {/* Seller Card */}
-              <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 mb-8">
+              <div className="bg-white rounded-3xl p-6 border border-[#dce5f7] mb-8 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <Link href={`/seller/${listing.sellerId}`} className="flex items-center gap-4 group">
                     <div className="w-14 h-14 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-blue-600 font-black text-xl shadow-sm group-hover:scale-105 transition-transform">
@@ -540,14 +540,14 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   </Link>
                   <button 
                     onClick={() => setIsChatOpen(true)}
-                    className="p-3 bg-white hover:bg-blue-600 hover:text-white rounded-2xl border border-gray-100 shadow-sm transition-all group"
+                    className="p-3 bg-white hover:bg-blue-600 hover:text-white rounded-2xl border border-[#dce5f7] shadow-sm transition-all group min-h-12"
                     aria-label="Message seller"
                   >
                     <MessageCircle className="w-5 h-5" />
                   </button>
                   <button 
                     onClick={handleOpenReportListing}
-                    className="p-3 bg-white hover:bg-red-600 hover:text-white rounded-2xl border border-gray-100 shadow-sm transition-all"
+                    className="p-3 bg-white hover:bg-red-600 hover:text-white rounded-2xl border border-[#dce5f7] shadow-sm transition-all min-h-12"
                     aria-label="Report listing"
                     title="Report listing"
                   >
@@ -650,7 +650,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
       </main>
 
       {/* Mobile Action Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50 pb-safe">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-[#dce5f7] p-4 z-50 pb-safe">
         <div className="max-w-md mx-auto flex gap-3">
           {isOwnListing ? (
             <Link 

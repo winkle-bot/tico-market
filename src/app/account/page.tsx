@@ -233,7 +233,7 @@ export default function AccountPage() {
   // Show loading while auth is hydrating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center">
         <div className="animate-pulse text-gray-400 font-medium">Loading...</div>
       </div>
     );
@@ -244,7 +244,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f5f8ff]">
       {/* Chat Modal */}
       <ChatModal
         isOpen={!!activeChat}
@@ -414,13 +414,13 @@ export default function AccountPage() {
       </AnimatePresence>
 
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-[#dce5f7]">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4 mb-6">
-            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Link href="/" className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors">
               <ChevronLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">My Account</h1>
+            <h1 className="text-2xl font-black text-[#18284a] uppercase tracking-tight">My Account</h1>
           </div>
           
           <div className="flex items-center gap-4">
@@ -441,7 +441,7 @@ export default function AccountPage() {
             )}
             <button
               onClick={() => { logout(); router.push('/'); }}
-              className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
+              className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors min-h-12"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -450,7 +450,7 @@ export default function AccountPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-[#dce5f7] sticky top-0 z-10">
         <div className="max-w-4xl mx-auto">
           <div className="flex overflow-x-auto no-scrollbar">
             {[
@@ -462,7 +462,7 @@ export default function AccountPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
-                className={`flex items-center justify-center gap-1.5 min-w-0 flex-1 px-2 sm:px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap ${
+                className={`flex items-center justify-center gap-1.5 min-w-0 flex-1 px-2 sm:px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap min-h-12 ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'

@@ -223,15 +223,15 @@ export default function Home() {
           onClearCategories={() => setSelectedCategories([])}
         />
 
-        <div className="bg-white border-b px-4 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500 font-medium">
+        <div className="bg-white/90 backdrop-blur-lg border-b border-[#dce5f7] px-4 py-3">
+          <div className="tm-shell flex items-center justify-between gap-3">
+            <p className="text-sm text-[#6780b3] font-semibold">
               {pagination.total} listing{pagination.total === 1 ? '' : 's'} found
             </p>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as 'newest' | 'price_asc' | 'price_desc')}
-              className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="tm-input w-auto min-h-10 text-sm"
               aria-label="Sort listings"
             >
               <option value="newest">Newest</option>
@@ -241,7 +241,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex-1 relative bg-gray-50/50">
+        <div className="flex-1 relative bg-[#f5f8ff]/80">
           <AnimatePresence mode="wait">
             {isListingsLoading ? (
               <motion.div
@@ -258,7 +258,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="max-w-7xl mx-auto p-4 md:p-8"
+                className="tm-shell py-4 md:py-8"
               >
                 {listingsError ? (
                   <EmptyState
@@ -269,27 +269,27 @@ export default function Home() {
                   />
                 ) : listings.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
                       {listings.map((item) => (
                         <ListingCard key={item.id} item={item} />
                       ))}
                     </div>
 
-                    <div className="mt-8 flex items-center justify-center gap-3">
+                    <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
                       <button
                         onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                         disabled={!pagination.hasPrevPage}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="tm-btn tm-btn-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Previous
                       </button>
-                      <span className="text-sm text-gray-500 font-medium">
+                      <span className="text-sm text-[#6e84b1] font-semibold px-2">
                         Page {pagination.page} of {Math.max(1, pagination.totalPages)}
                       </span>
                       <button
                         onClick={() => setPage((prev) => prev + 1)}
                         disabled={!pagination.hasNextPage}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="tm-btn tm-btn-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
                       </button>

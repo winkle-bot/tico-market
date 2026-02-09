@@ -232,11 +232,11 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative bg-white w-full max-w-lg h-[600px] max-h-[80vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative bg-white w-full max-w-lg h-[600px] max-h-[84vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-[#dce5f7]"
         >
           {/* Header */}
-          <div className="p-4 border-b flex items-center gap-4 bg-white">
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center overflow-hidden">
+          <div className="p-4 border-b border-[#dce5f7] flex items-center gap-4 bg-white">
+            <div className="w-12 h-12 rounded-2xl bg-[#e7efff] flex items-center justify-center overflow-hidden">
               {listing.imageUrl ? (
                 <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
               ) : (
@@ -244,29 +244,29 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-gray-900 truncate">{listing.title}</h3>
-              <p className="text-sm text-gray-500">Chat with {chatWithName || listing.owner}</p>
+              <h3 className="font-bold text-[#18284a] truncate">{listing.title}</h3>
+              <p className="text-sm text-[#6f83ad]">Chat with {chatWithName || listing.owner}</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-[#6f83ad]" />
             </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#f5f8ff]">
             {!currentUser ? (
               <div className="h-full flex flex-col items-center justify-center text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <MessageCircle className="w-8 h-8 text-blue-600" />
                 </div>
-                <h4 className="font-bold text-gray-900 mb-2">Sign in to message</h4>
-                <p className="text-sm text-gray-500 mb-4">Create an account to contact sellers</p>
+                <h4 className="font-bold text-[#18284a] mb-2">Sign in to message</h4>
+                <p className="text-sm text-[#6f83ad] mb-4">Create an account to contact sellers</p>
                 <button
                   onClick={() => { onClose(); onAuthRequired(); }}
-                  className="bg-blue-600 text-white font-bold px-6 py-3 rounded-full hover:bg-blue-700 transition-colors"
+                  className="tm-btn tm-btn-primary rounded-full px-6"
                 >
                   Sign In / Sign Up
                 </button>
@@ -280,8 +280,8 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <MessageCircle className="w-8 h-8 text-gray-300" />
                 </div>
-                <h4 className="font-bold text-gray-900 mb-2">Start a conversation</h4>
-                <p className="text-sm text-gray-500">Send a message about this listing</p>
+                <h4 className="font-bold text-[#18284a] mb-2">Start a conversation</h4>
+                <p className="text-sm text-[#6f83ad]">Send a message about this listing</p>
               </div>
             ) : (
               <>
@@ -294,12 +294,12 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                       className={`max-w-[75%] px-4 py-3 rounded-2xl ${
                         msg.senderId === currentUser.id
                           ? 'bg-blue-600 text-white rounded-br-md'
-                          : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
+                          : 'bg-white text-[#18284a] rounded-bl-md shadow-sm border border-[#dce5f7]'
                       }`}
                     >
                       <p className="text-sm">{msg.text}</p>
                       <p className={`text-[10px] mt-1 ${
-                        msg.senderId === currentUser.id ? 'text-blue-200' : 'text-gray-400'
+                        msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'
                       }`}>
                         {new Date(msg.createdAt).toLocaleTimeString('es-CR', { 
                           hour: '2-digit', 
@@ -316,7 +316,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
 
           {/* Input Area */}
           {currentUser && (
-            <div className="p-4 border-t bg-white">
+            <div className="p-4 border-t border-[#dce5f7] bg-white">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -324,12 +324,12 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="tm-input flex-1 font-medium"
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!newMessage.trim() || isSending}
-                  className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="tm-btn tm-btn-primary px-3 min-w-12 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
                 </button>

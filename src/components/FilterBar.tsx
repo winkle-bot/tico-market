@@ -20,25 +20,25 @@ export function FilterBar({
   onClearCategories,
 }: FilterBarProps) {
   return (
-    <div className="bg-white border-b p-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="bg-white/90 backdrop-blur-lg border-b border-[#dce5f7] p-3 sm:p-4 sticky top-16 z-40">
+      <div className="tm-shell flex flex-col gap-3 sm:gap-2 sm:flex-row sm:justify-between sm:items-center">
         <div className="flex gap-2">
           <button
             onClick={() => onViewChange('list')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`tm-btn px-4 py-2 text-[0.72rem] ${
               view === 'list'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'tm-btn-primary'
+                : 'tm-btn-muted'
             }`}
           >
             List View
           </button>
           <button
             onClick={() => onViewChange('map')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`tm-btn px-4 py-2 text-[0.72rem] ${
               view === 'map'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'tm-btn-primary'
+                : 'tm-btn-muted'
             }`}
           >
             Map View
@@ -48,7 +48,7 @@ export function FilterBar({
           {selectedCategories.length > 0 && (
             <button
               onClick={onClearCategories}
-              className="bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 whitespace-nowrap hover:bg-red-100 transition-colors flex items-center gap-1"
+              className="tm-chip bg-red-50 text-red-600 border-red-100 hover:bg-red-100 whitespace-nowrap"
             >
               <X className="w-3 h-3" /> Clear
             </button>
@@ -57,10 +57,10 @@ export function FilterBar({
             <button
               key={category}
               onClick={() => onToggleCategory(category as Category)}
-              className={`px-3 py-1 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+              className={`tm-chip whitespace-nowrap ${
                 selectedCategories.includes(category as Category)
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
+                  ? 'tm-chip-active'
+                  : ''
               }`}
             >
               <span>{categoryEmojis[category]}</span>

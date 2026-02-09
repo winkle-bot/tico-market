@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f8ff;
+  --foreground: #14213d;
+  --surface: #ffffff;
+  --surface-muted: #eef3ff;
+  --line: #dce5f7;
+  --primary: #0f62fe;
+  --primary-strong: #004de0;
+  --primary-soft: #dbe7ff;
+  --accent: #00a97f;
+  --danger: #d6455d;
+  --radius: 1.1rem;
+  --radius-lg: 1.6rem;
+  --shadow-soft: 0 14px 45px rgba(20, 33, 61, 0.09);
+  --shadow-card: 0 8px 24px rgba(20, 33, 61, 0.08);
+  --container: min(1200px, 100% - 1.5rem);
   --font-geist-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-geist-mono:
@@ -21,6 +34,56 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(circle at 0% 0%, #edf4ff 0%, transparent 45%),
+    radial-gradient(circle at 100% 20%, #ecfff9 0%, transparent 38%);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--primary) 24%, white);
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"],
+a {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in oklab, var(--primary) 40%, white);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -36,4 +99,129 @@ body {
   height: 100%;
   width: 100%;
   z-index: 10;
+}
+
+.pb-safe {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.tm-shell {
+  width: var(--container);
+  margin-inline: auto;
+}
+
+.tm-surface {
+  background: color-mix(in oklab, var(--surface) 92%, #f7faff);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.tm-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.tm-input {
+  width: 100%;
+  min-height: 2.9rem;
+  padding: 0.72rem 0.95rem;
+  border: 1px solid color-mix(in oklab, var(--line) 72%, white);
+  border-radius: 0.95rem;
+  background: #f9fbff;
+  color: var(--foreground);
+  font-weight: 600;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.tm-input::placeholder {
+  color: #91a2c7;
+}
+
+.tm-input:hover {
+  border-color: color-mix(in oklab, var(--primary) 20%, var(--line));
+}
+
+.tm-input:focus {
+  border-color: color-mix(in oklab, var(--primary) 50%, white);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 15%, white);
+  background: #fff;
+}
+
+.tm-btn {
+  min-height: 2.85rem;
+  padding: 0.72rem 1rem;
+  border-radius: 0.95rem;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition:
+    transform 160ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.tm-btn:active {
+  transform: scale(0.98);
+}
+
+.tm-btn-primary {
+  background: linear-gradient(130deg, var(--primary) 0%, #2c7cff 100%);
+  color: white;
+  box-shadow: 0 10px 24px rgba(15, 98, 254, 0.28);
+}
+
+.tm-btn-primary:hover {
+  background: linear-gradient(130deg, var(--primary-strong) 0%, var(--primary) 100%);
+}
+
+.tm-btn-muted {
+  background: #eef3ff;
+  border: 1px solid var(--line);
+  color: #2f4e87;
+}
+
+.tm-btn-muted:hover {
+  background: #e5edff;
+}
+
+.tm-chip {
+  min-height: 2.4rem;
+  padding: 0.46rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: #f4f7ff;
+  color: #3a578f;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 180ms ease;
+}
+
+.tm-chip:hover {
+  border-color: color-mix(in oklab, var(--primary) 35%, var(--line));
+  background: #eaf1ff;
+}
+
+.tm-chip-active {
+  color: white;
+  border-color: var(--primary);
+  background: linear-gradient(130deg, var(--primary) 0%, #2c7cff 100%);
+}
+
+.tm-raise:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
 }

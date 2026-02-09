@@ -255,22 +255,22 @@ export function SellModal({
           />
           <motion.div
             {...MODAL_CONTENT_VARIANTS}
-            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+            className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-[#dce5f7]"
           >
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+            <div className="p-5 sm:p-6 border-b border-[#dce5f7] flex justify-between items-center sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-black text-[#18284a] uppercase tracking-tight">
                 List Your Item
               </h2>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label="Close modal"
               >
-                <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6 text-[#6f83ad]" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-5 sm:p-6 space-y-6 bg-[#fbfcff]">
               {/* Error display */}
               {submitError && (
                 <div className="bg-red-50 p-4 rounded-2xl border border-red-200">
@@ -283,13 +283,13 @@ export function SellModal({
               
               {/* Basic Info */}
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Item Title
                     </label>
                     <input
                       type="text"
                       placeholder="What are you selling?"
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                      className="tm-input"
                       value={newItem.title}
                       onChange={(e) =>
                         setNewItem({ ...newItem, title: e.target.value })
@@ -300,13 +300,13 @@ export function SellModal({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                         Price (₡)
                       </label>
                       <input
                         type="text"
                         placeholder="15,000"
-                        className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all"
+                        className="tm-input"
                         value={newItem.price}
                         onChange={(e) =>
                           setNewItem({ ...newItem, price: e.target.value })
@@ -315,11 +315,11 @@ export function SellModal({
                       {errors.price && <p className="text-xs text-red-500 font-bold mt-1">{errors.price}</p>}
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                         Category
                       </label>
                       <select
-                        className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 transition-all appearance-none"
+                        className="tm-input appearance-none"
                         value={newItem.category}
                         onChange={(e) =>
                           setNewItem({
@@ -338,12 +338,12 @@ export function SellModal({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Description
                     </label>
                     <textarea
                       placeholder="Describe your item... (Condition, details, etc.)"
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold text-gray-900 placeholder:text-gray-300 transition-all min-h-[100px]"
+                      className="tm-input min-h-[100px]"
                       value={newItem.description}
                       onChange={(e) =>
                         setNewItem({ ...newItem, description: e.target.value })
@@ -353,7 +353,7 @@ export function SellModal({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Item Location
                     </label>
                     <div className="flex gap-2">
@@ -363,7 +363,7 @@ export function SellModal({
                         className={`flex-1 p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 text-sm font-bold ${
                           coords && locationName === 'Current GPS Location'
                             ? 'bg-blue-50 border-blue-500 text-blue-700'
-                            : 'bg-gray-50 border-gray-100 text-gray-600 hover:border-gray-300'
+                            : 'bg-[#f5f8ff] border-[#dce5f7] text-[#465f91] hover:border-[#a7bae0]'
                         }`}
                       >
                         {isLocating ? (
@@ -381,7 +381,7 @@ export function SellModal({
                       {/* Only show "Saved Locations" if user has them */}
                       {user?.pickupLocations && user.pickupLocations.length > 0 && (
                         <select
-                           className={`flex-1 p-3 rounded-2xl border-2 transition-all text-sm font-bold bg-gray-50 border-gray-100 text-gray-900 focus:border-blue-500 outline-none appearance-none`}
+                           className={`tm-input flex-1 min-h-[48px]`}
                            onChange={(e) => {
                              const locId = e.target.value;
                              if (!locId) return;
@@ -409,9 +409,9 @@ export function SellModal({
 
                   {/* Logistics Section */}
                   <div className="space-y-4 pt-4 border-t border-gray-100">
-                    <h3 className="text-sm font-black text-gray-900 uppercase">Fulfillment Options</h3>
+                    <h3 className="text-sm font-black text-[#18284a] uppercase">Fulfillment Options</h3>
                     
-                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
                       <input 
                         type="checkbox"
                         className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -427,7 +427,7 @@ export function SellModal({
                       </div>
                     </label>
 
-                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
                       <input 
                         type="checkbox"
                         className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -448,13 +448,13 @@ export function SellModal({
                     {newItem.pickupAvailable && (
                     <div className="pl-8 space-y-4">
                        <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                           Lead Time / Availability
                         </label>
                         <input
                           type="text"
                           placeholder="e.g. Ready in 2 days, Available Wednesdays..."
-                          className="w-full p-3 bg-gray-50 rounded-xl border-2 border-gray-100 focus:border-blue-500 text-sm font-bold"
+                          className="tm-input min-h-[44px]"
                           value={newItem.leadTime}
                           onChange={(e) => setNewItem({...newItem, leadTime: e.target.value})}
                         />
@@ -462,7 +462,7 @@ export function SellModal({
 
                       {/* Market Events */}
                       <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                           Market Days / Events
                         </label>
                         
@@ -481,30 +481,30 @@ export function SellModal({
                         </div>
 
                         {showEventForm ? (
-                          <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
+                          <div className="bg-[#f5f8ff] p-3 rounded-xl border border-[#dce5f7] space-y-3">
                             <input 
                               placeholder="Event Name (e.g. Feria de Escazú)"
-                              className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                              className="tm-input min-h-[40px] text-sm font-semibold"
                               value={newEvent.name}
                               onChange={e => setNewEvent({...newEvent, name: e.target.value})}
                             />
                             <div className="grid grid-cols-2 gap-2">
                                <input 
                                 placeholder="When? (e.g. Sat 7-12)"
-                                className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                                className="tm-input min-h-[40px] text-sm font-semibold"
                                 value={newEvent.date}
                                 onChange={e => setNewEvent({...newEvent, date: e.target.value})}
                               />
                                <input 
                                 placeholder="Waze Link (Optional)"
-                                className="w-full p-2 rounded-lg border border-gray-200 text-sm font-semibold"
+                                className="tm-input min-h-[40px] text-sm font-semibold"
                                 value={newEvent.wazeLink}
                                 onChange={e => setNewEvent({...newEvent, wazeLink: e.target.value})}
                               />
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={handleAddEvent} className="flex-1 bg-black text-white text-xs font-bold py-2 rounded-lg">Add Event</button>
-                              <button onClick={() => setShowEventForm(false)} className="px-3 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg">Cancel</button>
+                              <button onClick={handleAddEvent} className="flex-1 tm-btn bg-black text-white hover:bg-[#101010] text-xs">Add Event</button>
+                              <button onClick={() => setShowEventForm(false)} className="px-3 tm-btn tm-btn-muted text-xs">Cancel</button>
                             </div>
                           </div>
                         ) : (
@@ -521,13 +521,13 @@ export function SellModal({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
                       Item Image
                     </label>
                     <input
                       type="file"
                       accept="image/*"
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 focus:border-blue-500 focus:outline-none font-bold text-gray-400 transition-all cursor-pointer"
+                      className="w-full p-4 bg-[#f5f8ff] rounded-2xl border-2 border-dashed border-[#dce5f7] focus:border-blue-500 focus:outline-none font-bold text-[#7d91b8] transition-all cursor-pointer"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file && file.size > 2 * 1024 * 1024) {
@@ -547,7 +547,7 @@ export function SellModal({
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                    className="w-full tm-btn tm-btn-primary disabled:opacity-70"
                   >
                     <PlusCircle className="w-5 h-5" />{' '}
                     {isSubmitting ? 'Posting...' : 'Post Listing'}

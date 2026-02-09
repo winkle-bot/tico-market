@@ -41,13 +41,13 @@ export function MobileMenu({
           <motion.div
             {...SLIDE_IN_VARIANTS}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-2xl"
+            className="absolute right-0 top-0 bottom-0 w-80 max-w-[88vw] bg-white shadow-2xl border-l border-[#dce5f7]"
           >
-            <div className="p-4 border-b flex justify-between items-center">
-              <span className="text-xl font-bold text-blue-600">TicoMarket</span>
+            <div className="p-4 border-b border-[#dce5f7] flex justify-between items-center">
+              <span className="text-xl font-black text-blue-700">TicoMarket</span>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-6 h-6" />
@@ -55,23 +55,23 @@ export function MobileMenu({
             </div>
 
             {/* Mobile Search */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-[#dce5f7]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f83ad] w-5 h-5" />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="tm-input pl-10"
                   aria-label="Search listings"
                 />
               </div>
             </div>
 
             {/* Categories */}
-            <div className="p-4 border-b">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+            <div className="p-4 border-b border-[#dce5f7]">
+              <h3 className="text-xs font-black text-[#6f83ad] uppercase tracking-widest mb-3">
                 Categories
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -82,10 +82,10 @@ export function MobileMenu({
                       onToggleCategory(cat as Category);
                       onClose();
                     }}
-                    className={`px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-colors ${
+                    className={`tm-chip ${
                       selectedCategories.includes(cat as Category)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'tm-chip-active'
+                        : ''
                     }`}
                   >
                     {categoryEmojis[cat]} {cat}
@@ -98,29 +98,29 @@ export function MobileMenu({
             <div className="p-4">
               {user ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl mb-4">
+                  <div className="flex items-center gap-3 p-3 bg-[#f5f8ff] rounded-2xl mb-4 border border-[#dce5f7]">
                     <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
                       {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : 'U'}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{user.name || 'User'}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="font-bold text-[#18284a]">{user.name || 'User'}</p>
+                      <p className="text-sm text-[#6f83ad]">{user.email}</p>
                     </div>
                   </div>
                   <Link
                     href="/account"
                     onClick={onClose}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                    className="flex items-center gap-3 p-3 hover:bg-[#f5f8ff] rounded-xl transition-colors min-h-12"
                   >
-                    <User className="w-5 h-5 text-gray-400" />
-                    <span className="font-bold text-gray-700">My Account</span>
+                    <User className="w-5 h-5 text-[#6f83ad]" />
+                    <span className="font-bold text-[#334d80]">My Account</span>
                   </Link>
                   <button
                     onClick={() => {
                       logout();
                       onClose();
                     }}
-                    className="flex items-center gap-3 p-3 hover:bg-red-50 rounded-xl transition-colors w-full text-left"
+                    className="flex items-center gap-3 p-3 hover:bg-red-50 rounded-xl transition-colors w-full text-left min-h-12"
                   >
                     <LogOut className="w-5 h-5 text-red-500" />
                     <span className="font-bold text-red-600">Logout</span>
@@ -132,7 +132,7 @@ export function MobileMenu({
                     onClose();
                     onOpenAuth();
                   }}
-                  className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-colors"
+                  className="w-full tm-btn tm-btn-primary"
                 >
                   Sign In / Sign Up
                 </button>
