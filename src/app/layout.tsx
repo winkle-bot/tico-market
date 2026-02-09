@@ -4,6 +4,7 @@ import { Manrope, Space_Grotesk } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { ListingsProvider } from "@/context/ListingsContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -46,11 +47,13 @@ export default function RootLayout({
           Skip to content
         </a>
         <ToastProvider>
-          <AuthProvider>
-            <ListingsProvider>
-              {children}
-            </ListingsProvider>
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <ListingsProvider>
+                {children}
+              </ListingsProvider>
+            </AuthProvider>
+          </ErrorBoundary>
         </ToastProvider>
       </body>
     </html>
