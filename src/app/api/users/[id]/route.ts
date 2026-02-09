@@ -52,9 +52,13 @@ export async function GET(
     const typedProfile = profile as unknown as ProfileWithFavorites;
     const favorites = typedProfile.favorites?.map((f: { listing_id: number }) => f.listing_id) || [];
 
+    // Only include email when viewing own profile
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const isOwnProfile = currentUser?.id === parsedUserId.data;
+
     const transformed: FrontendProfile = {
       id: typedProfile.id,
-      email: typedProfile.email,
+      ...(isOwnProfile ? { email: typedProfile.email } : {}),
       name: typedProfile.name,
       bio: typedProfile.bio,
       location: typedProfile.location,

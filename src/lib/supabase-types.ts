@@ -39,7 +39,7 @@ export interface FrontendListing {
 
 export interface FrontendProfile {
   id: string;
-  email: string;
+  email?: string;
   name: string;
   bio: string | null;
   location: string | null;

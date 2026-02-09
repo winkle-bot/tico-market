@@ -258,7 +258,7 @@ create policy "Listings are viewable by everyone"
 
 create policy "Authenticated users can create listings"
   on public.listings for insert
-  with check (auth.role() = 'authenticated');
+  with check (auth.uid() = seller_id);
 
 create policy "Sellers can update their own listings"
   on public.listings for update
@@ -275,7 +275,7 @@ create policy "Users can view messages they're part of"
 
 create policy "Authenticated users can send messages"
   on public.messages for insert
-  with check (auth.role() = 'authenticated');
+  with check (auth.uid() = sender_id);
 
 create policy "Recipients can mark messages as read"
   on public.messages for update
@@ -288,7 +288,7 @@ create policy "Users can view their own orders"
 
 create policy "Authenticated users can create orders"
   on public.orders for insert
-  with check (auth.role() = 'authenticated');
+  with check (auth.uid() = buyer_id);
 
 create policy "Buyers and sellers can update orders"
   on public.orders for update
@@ -314,7 +314,7 @@ create policy "Reviews are viewable by everyone"
 
 create policy "Authenticated users can create reviews"
   on public.reviews for insert
-  with check (auth.role() = 'authenticated');
+  with check (auth.uid() = buyer_id);
 
 -- Reports: users can create and view own reports
 create policy "Users can view own reports"

@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "deploy": "npx opennextjs-cloudflare build && CLOUDFLARE_API_TOKEN=eHk3_Uk0DIqnhn10BBK2avTe0CuPRSrbPe3soAHN npx wrangler deploy"
+    "deploy": "npx opennextjs-cloudflare build && npx wrangler deploy"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.16.3",

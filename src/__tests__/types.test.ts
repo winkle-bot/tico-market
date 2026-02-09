@@ -37,7 +37,6 @@ describe('TypeScript Type Tests', () => {
   test('FrontendProfile type has correct properties', () => {
     const sampleProfile: FrontendProfile = {
       id: 'user-123',
-      email: 'test@example.com',
       name: 'Test User',
       bio: 'Test bio',
       location: 'San José, Costa Rica',
@@ -52,7 +51,6 @@ describe('TypeScript Type Tests', () => {
     };
 
     expect(sampleProfile).toHaveProperty('id');
-    expect(sampleProfile).toHaveProperty('email');
     expect(sampleProfile).toHaveProperty('name');
     expect(sampleProfile).toHaveProperty('favorites');
     expect(Array.isArray(sampleProfile.favorites)).toBe(true);
