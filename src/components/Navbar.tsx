@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Search, PlusCircle, User, LogOut, Menu, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface NavbarProps {
   searchQuery: string;
@@ -20,6 +22,7 @@ export function Navbar({
   onOpenMobileMenu,
 }: NavbarProps) {
   const { user, logout, unreadCount } = useAuth();
+  const { t } = useI18n();
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[#dce5f7]/90 bg-white/90 backdrop-blur-xl">
@@ -36,7 +39,7 @@ export function Navbar({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f83ad] w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search in Costa Rica..."
+                placeholder={t('navbar.searchPlaceholder')}
                 className="tm-input pl-10 rounded-full"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -46,13 +49,14 @@ export function Navbar({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
+            <LanguageSwitcher />
             <button
               onClick={onOpenSellModal}
               className="tm-btn tm-btn-primary rounded-full text-[0.7rem] sm:text-[0.8rem] px-3.5 sm:px-4"
             >
               <PlusCircle className="w-4 h-4" />{' '}
-              <span className="hidden sm:inline">Sell Something</span>
-              <span className="sm:hidden">Sell</span>
+              <span className="hidden sm:inline">{t('navbar.sellSomething')}</span>
+              <span className="sm:hidden">{t('navbar.sell')}</span>
             </button>
 
             {user && (
@@ -94,13 +98,13 @@ export function Navbar({
                     href="/account"
                     className="w-full flex items-center gap-2 p-3 text-[#334d80] font-bold text-sm hover:bg-[#f5f8ff] rounded-xl transition-colors"
                   >
-                    <User className="w-4 h-4" /> My Account
+                    <User className="w-4 h-4" /> {t('navbar.account')}
                   </Link>
                   <button
                     onClick={logout}
                     className="w-full flex items-center gap-2 p-3 text-red-600 font-bold text-sm hover:bg-red-50 rounded-xl transition-colors"
                   >
-                    <LogOut className="w-4 h-4" /> Logout
+                    <LogOut className="w-4 h-4" /> {t('navbar.logout')}
                   </button>
                 </div>
               )}
@@ -108,7 +112,7 @@ export function Navbar({
             <button
               onClick={onOpenMobileMenu}
               className="md:hidden p-2.5 text-[#60749f] hover:bg-[#edf2ff] rounded-full transition-colors"
-              aria-label="Open menu"
+              aria-label={t('navbar.openMenu')}
             >
               <Menu className="w-6 h-6" />
             </button>

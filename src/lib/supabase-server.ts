@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './database.types';
 import { supabaseCookieOptions } from './supabase-cookie-options';
+import { logger } from './logger';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -21,7 +22,9 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options)
             );
           } catch (error) {
-            console.error('Failed to set Supabase auth cookies:', error);
+            logger.error('Failed to set Supabase auth cookies', {
+              route: 'supabase-server',
+            }, error);
           }
         },
       },

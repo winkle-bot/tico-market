@@ -1,5 +1,5 @@
 import { ApiResponse } from '@/lib/api-response';
-import { parseColonPriceToCents } from '@/lib/payments';
+import { calculateIvaCents, parseColonPriceToCents } from '@/lib/payments';
 import { getStripeClient, getStripeCurrency } from '@/lib/stripe';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { readJsonBody } from '@/lib/validation';
@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Invalid checkout payload', parsed.error.flatten());
     }
 
-    const { data: order, error: orderError } = await (supabase
-      .from('orders') as any)
+    const ordersTable = supabase.from('orders');
+    const { data: order, error: orderError } = await ordersTable
       .select('*')
       .eq('id', parsed.data.orderId)
       .single();
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
     const itemAmount = parseColonPriceToCents(order.listing_snapshot?.price || '');
     const deliveryFee = Number.isFinite(order.delivery_fee) ? Number(order.delivery_fee) : 0;
     const deliveryAmount = deliveryFee > 0 ? deliveryFee * 100 : 0;
-    const totalAmount = itemAmount + deliveryAmount;
+    const subtotalAmount = itemAmount + deliveryAmount;
+    const ivaAmount = calculateIvaCents(subtotalAmount);
+    const totalAmount = subtotalAmount + ivaAmount;
 
     if (totalAmount <= 0) {
       return ApiResponse.badRequest('Order amount must be greater than zero');
@@ -78,6 +80,16 @@ export async function POST(request: Request) {
           },
           quantity: 1,
         }] : []),
+        ...(ivaAmount > 0 ? [{
+          price_data: {
+            currency,
+            product_data: {
+              name: 'IVA (13%)',
+            },
+            unit_amount: ivaAmount,
+          },
+          quantity: 1,
+        }] : []),
       ],
       metadata: {
         orderId: order.id,
@@ -92,8 +104,7 @@ export async function POST(request: Request) {
       return ApiResponse.serverError('Stripe checkout session URL missing');
     }
 
-    await (supabase
-      .from('orders') as any)
+    await ordersTable
       .update({
         payment_status: 'requires_payment',
         stripe_checkout_session_id: session.id,
