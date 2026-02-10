@@ -416,6 +416,82 @@ export interface Database {
           updated_at?: string;
         };
       };
+      sinpe_config: {
+        Row: {
+          id: string;
+          label: string;
+          phone_number: string;
+          account_holder: string;
+          instructions: string | null;
+          is_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          label?: string;
+          phone_number: string;
+          account_holder: string;
+          instructions?: string | null;
+          is_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          label?: string;
+          phone_number?: string;
+          account_holder?: string;
+          instructions?: string | null;
+          is_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      event_drivers: {
+        Row: {
+          id: string;
+          driver_id: string;
+          event_id: string;
+          event_name: string;
+          event_date: string;
+          location_name: string;
+          availability_start: string | null;
+          availability_end: string | null;
+          notes: string | null;
+          status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          event_id: string;
+          event_name: string;
+          event_date: string;
+          location_name: string;
+          availability_start?: string | null;
+          availability_end?: string | null;
+          notes?: string | null;
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          driver_id?: string;
+          event_id?: string;
+          event_name?: string;
+          event_date?: string;
+          location_name?: string;
+          availability_start?: string | null;
+          availability_end?: string | null;
+          notes?: string | null;
+          status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       favorites: {
         Row: {
           id: number;

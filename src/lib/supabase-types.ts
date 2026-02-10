@@ -10,6 +10,8 @@ export type Order = Database['public']['Tables']['orders']['Row'];
 export type DriverProfile = Database['public']['Tables']['driver_profiles']['Row'];
 export type DeliveryRequest = Database['public']['Tables']['delivery_requests']['Row'];
 export type DeliveryBid = Database['public']['Tables']['delivery_bids']['Row'];
+export type SinpeConfig = Database['public']['Tables']['sinpe_config']['Row'];
+export type EventDriver = Database['public']['Tables']['event_drivers']['Row'];
 
 // Joined types
 export type ProfileWithFavorites = Profile & {

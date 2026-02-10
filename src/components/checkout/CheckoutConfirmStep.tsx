@@ -1,6 +1,7 @@
 import { MapPin, Truck } from 'lucide-react';
 import { useI18n } from '@/context/I18nContext';
-import type { Listing, MarketEvent, OrderType, PickupLocation } from '@/types';
+import type { CheckoutPaymentMethod, Listing, MarketEvent, OrderType, PickupLocation, SinpeConfig } from '@/types';
+import { SinpePaymentOption } from './SinpePaymentOption';
 import type { DriverOption } from './checkout-utils';
 
 interface CheckoutConfirmStepProps {
@@ -18,7 +19,14 @@ interface CheckoutConfirmStepProps {
   deliveryFeeDisplay: string;
   ivaDisplay: string;
   totalDisplay: string;
+  paymentMethod: CheckoutPaymentMethod;
+  sinpeConfig: SinpeConfig | null;
+  sinpeReference: string;
+  senderPhone: string;
   onNotesChange: (value: string) => void;
+  onPaymentMethodChange: (method: CheckoutPaymentMethod) => void;
+  onSinpeReferenceChange: (value: string) => void;
+  onSenderPhoneChange: (value: string) => void;
   onSubmit: () => void;
 }
 
@@ -37,7 +45,14 @@ export function CheckoutConfirmStep({
   deliveryFeeDisplay,
   ivaDisplay,
   totalDisplay,
+  paymentMethod,
+  sinpeConfig,
+  sinpeReference,
+  senderPhone,
   onNotesChange,
+  onPaymentMethodChange,
+  onSinpeReferenceChange,
+  onSenderPhoneChange,
   onSubmit,
 }: CheckoutConfirmStepProps) {
   const { t } = useI18n();
@@ -130,6 +145,16 @@ export function CheckoutConfirmStep({
         />
       </div>
 
+      <SinpePaymentOption
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={onPaymentMethodChange}
+        sinpeConfig={sinpeConfig}
+        sinpeReference={sinpeReference}
+        senderPhone={senderPhone}
+        onSinpeReferenceChange={onSinpeReferenceChange}
+        onSenderPhoneChange={onSenderPhoneChange}
+      />
+
       <button
         onClick={onSubmit}
         disabled={isSubmitting}
@@ -139,7 +164,7 @@ export function CheckoutConfirmStep({
             : 'tm-btn-primary disabled:opacity-70'
         } text-white`}
       >
-        {isSubmitting ? t('checkout.placingOrder') : t('checkout.confirm')}
+        {isSubmitting ? t('checkout.placingOrder') : paymentMethod === 'sinpe_movil' ? 'Confirm SINPE Order' : t('checkout.confirm')}
       </button>
 
       <p className="text-xs text-center text-gray-400">The seller will be notified and will confirm your order</p>

@@ -13,9 +13,11 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import { COSTA_RICA_IVA_RATE, formatColonFromCents, parseColonPriceToCents } from '@/lib/payments';
 import { useI18n } from '@/context/I18nContext';
 import type {
+  CheckoutPaymentMethod,
   Listing,
   CheckoutStep,
   OrderType,
+  SinpeConfig,
   User,
 } from '@/types';
 import { CheckoutConfirmStep } from './checkout/CheckoutConfirmStep';
@@ -56,6 +58,10 @@ export function CheckoutModal({
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>('card');
+  const [sinpeConfig, setSinpeConfig] = useState<SinpeConfig | null>(null);
+  const [sinpeReference, setSinpeReference] = useState('');
+  const [senderPhone, setSenderPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,9 +76,32 @@ export function CheckoutModal({
       setDeliveryAddress('');
       setSelectedDriverId(null);
       setNotes('');
+      setPaymentMethod('card');
+      setSinpeReference('');
+      setSenderPhone('');
       setError(null);
     }
   }, [isOpen, preferredMethod]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchSinpeConfig = async () => {
+      try {
+        const res = await fetch('/api/sinpe-config');
+        if (!res.ok) {
+          setSinpeConfig(null);
+          return;
+        }
+        const payload = await res.json();
+        setSinpeConfig(payload?.data || null);
+      } catch {
+        setSinpeConfig(null);
+      }
+    };
+
+    void fetchSinpeConfig();
+  }, [isOpen]);
 
   const pickupLocations = seller?.pickupLocations || [];
   const marketEvents = listing?.pickupConfig?.marketEvents || [];
@@ -219,6 +248,11 @@ export function CheckoutModal({
         notes: notes.trim() || undefined,
       };
 
+      const listingSnapshot = orderData.listingSnapshot as Record<string, unknown>;
+      listingSnapshot.paymentMeta = {
+        method: paymentMethod,
+      };
+
       if (method === 'pickup') {
         orderData.pickupLocationId = selectedLocationId;
         if (selectedLocation) {
@@ -245,7 +279,6 @@ export function CheckoutModal({
           ? scheduledWindow
           : `Express ETA ~${expressEta} min`;
 
-        const listingSnapshot = orderData.listingSnapshot as Record<string, unknown>;
         listingSnapshot.deliveryMeta = {
           mode: deliveryMode,
           phase: 'awaiting_confirmation',
@@ -265,6 +298,30 @@ export function CheckoutModal({
         };
       }
 
+      if (paymentMethod === 'sinpe_movil') {
+        if (!sinpeConfig?.isEnabled) {
+          throw new Error('SINPE Móvil is currently unavailable');
+        }
+        if (!sinpeReference.trim()) {
+          throw new Error('Please enter a SINPE transfer reference');
+        }
+
+        listingSnapshot.paymentMeta = {
+          method: paymentMethod,
+          status: 'pending_manual_confirmation',
+          sinpeReference: sinpeReference.trim(),
+          senderPhone: senderPhone.trim() || undefined,
+          sinpePhone: sinpeConfig.phoneNumber,
+          sinpeAccountHolder: sinpeConfig.accountHolder,
+        };
+
+        orderData.notes = [
+          notes.trim(),
+          `SINPE ref: ${sinpeReference.trim()}`,
+          senderPhone.trim() ? `Sender phone: ${senderPhone.trim()}` : null,
+        ].filter(Boolean).join(' | ');
+      }
+
       const res = await fetch(API_ROUTES.ORDERS, {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -277,6 +334,11 @@ export function CheckoutModal({
       }
 
       const order = await res.json();
+
+      if (paymentMethod === 'sinpe_movil') {
+        onSuccess(order.id);
+        return;
+      }
 
       const checkoutRes = await fetch(API_ROUTES.CHECKOUT, {
         method: 'POST',
@@ -405,7 +467,14 @@ export function CheckoutModal({
                   deliveryFeeDisplay={formatColonFromCents(deliveryFeeValue * 100)}
                   ivaDisplay={formatColonFromCents(ivaCents)}
                   totalDisplay={formatColonFromCents(totalCents)}
+                  paymentMethod={paymentMethod}
+                  sinpeConfig={sinpeConfig}
+                  sinpeReference={sinpeReference}
+                  senderPhone={senderPhone}
                   onNotesChange={setNotes}
+                  onPaymentMethodChange={setPaymentMethod}
+                  onSinpeReferenceChange={setSinpeReference}
+                  onSenderPhoneChange={setSenderPhone}
                   onSubmit={handleSubmit}
                 />
               )}

@@ -11,6 +11,8 @@ alter table if exists public.reviews enable row level security;
 alter table if exists public.driver_profiles enable row level security;
 alter table if exists public.delivery_requests enable row level security;
 alter table if exists public.delivery_bids enable row level security;
+alter table if exists public.sinpe_config enable row level security;
+alter table if exists public.event_drivers enable row level security;
 
 -- ==================== PROFILES TABLE ====================
 -- Extends auth.users with additional user information
@@ -275,6 +277,45 @@ create index if not exists idx_delivery_bids_driver_id on public.delivery_bids(d
 create index if not exists idx_delivery_bids_status on public.delivery_bids(status);
 alter table public.delivery_bids enable row level security;
 
+-- ==================== SINPE CONFIG TABLE ====================
+
+create table if not exists public.sinpe_config (
+  id uuid primary key default gen_random_uuid(),
+  label text not null default 'SINPE Movil',
+  phone_number text not null,
+  account_holder text not null,
+  instructions text,
+  is_enabled boolean not null default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_sinpe_config_enabled on public.sinpe_config(is_enabled);
+alter table public.sinpe_config enable row level security;
+
+-- ==================== EVENT DRIVERS TABLE ====================
+
+create table if not exists public.event_drivers (
+  id uuid primary key default gen_random_uuid(),
+  driver_id uuid references public.profiles(id) on delete cascade not null,
+  event_id text not null,
+  event_name text not null,
+  event_date date not null,
+  location_name text not null,
+  availability_start time,
+  availability_end time,
+  notes text,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(driver_id, event_id, event_date)
+);
+
+create index if not exists idx_event_drivers_driver_id on public.event_drivers(driver_id);
+create index if not exists idx_event_drivers_event_date on public.event_drivers(event_date);
+create index if not exists idx_event_drivers_status on public.event_drivers(status);
+alter table public.event_drivers enable row level security;
+
 -- ==================== REVIEWS TABLE ====================
 
 create table if not exists public.reviews (
@@ -477,6 +518,58 @@ create policy "Drivers can delete own bids"
   on public.delivery_bids for delete
   using (auth.uid() = driver_id);
 
+-- SINPE config: public read, admin/moderator write
+create policy "SINPE config is viewable by everyone"
+  on public.sinpe_config for select
+  using (true);
+
+create policy "Admins can insert SINPE config"
+  on public.sinpe_config for insert
+  with check (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('admin', 'moderator')
+    )
+  );
+
+create policy "Admins can update SINPE config"
+  on public.sinpe_config for update
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('admin', 'moderator')
+    )
+  );
+
+create policy "Admins can delete SINPE config"
+  on public.sinpe_config for delete
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('admin', 'moderator')
+    )
+  );
+
+-- Event driver signups: users can manage their own entries
+create policy "Event driver signups are viewable by everyone"
+  on public.event_drivers for select
+  using (true);
+
+create policy "Drivers can create their event signups"
+  on public.event_drivers for insert
+  with check (auth.uid() = driver_id);
+
+create policy "Drivers can update their event signups"
+  on public.event_drivers for update
+  using (auth.uid() = driver_id);
+
+create policy "Drivers can delete their event signups"
+  on public.event_drivers for delete
+  using (auth.uid() = driver_id);
+
 -- ==================== FUNCTIONS ====================
 
 -- Function to update updated_at timestamp
@@ -514,4 +607,14 @@ create trigger handle_delivery_requests_updated_at
 drop trigger if exists handle_delivery_bids_updated_at on public.delivery_bids;
 create trigger handle_delivery_bids_updated_at
   before update on public.delivery_bids
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_sinpe_config_updated_at on public.sinpe_config;
+create trigger handle_sinpe_config_updated_at
+  before update on public.sinpe_config
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_event_drivers_updated_at on public.event_drivers;
+create trigger handle_event_drivers_updated_at
+  before update on public.event_drivers
   for each row execute procedure public.handle_updated_at();

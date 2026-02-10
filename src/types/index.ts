@@ -174,6 +174,33 @@ export interface DeliveryBid {
 export type OrderType = 'delivery' | 'pickup';
 export type OrderStatus = 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
+export type CheckoutPaymentMethod = 'card' | 'sinpe_movil';
+
+export interface SinpeConfig {
+  id: string;
+  label: string;
+  phoneNumber: string;
+  accountHolder: string;
+  instructions?: string;
+  isEnabled: boolean;
+}
+
+export type EventDriverStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface EventDriverSignup {
+  id: string;
+  driverId: string;
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  locationName: string;
+  availabilityStart?: string;
+  availabilityEnd?: string;
+  notes?: string;
+  status: EventDriverStatus;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type DeliveryTrackingPhase =
   | 'awaiting_confirmation'
