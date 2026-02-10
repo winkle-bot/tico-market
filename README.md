@@ -4,9 +4,9 @@ Costa Rica-first marketplace for buying and selling locally, with built-in expre
 
 ## Overview
 
-`tico-market` is a Next.js marketplace app focused on Costa Rica (especially GAM) where users can:
+`tico-market` is a Next.js marketplace app focused on Costa Rica where users can:
 - publish listings or driver profiles
-- chat with buyers/sellers in-app
+- chat with buyers/sellers/drivers in-app
 - place pickup or delivery orders
 - pay through Stripe Checkout (CRC)
 - track order progress through status + delivery timeline updates
@@ -92,6 +92,8 @@ SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
+# Stripe keys
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
@@ -165,35 +167,86 @@ tico-market/
 
 This project is configured for OpenNext on Cloudflare Workers.
 
-### Build + deploy
+### Local Development
 
+For Next.js dev server:
+```bash
+npm run dev
+```
+
+For Cloudflare Workers local (wrangler dev):
 ```bash
 npm run build
 npx opennextjs-cloudflare build
+npx wrangler dev
+```
+
+Note: `wrangler dev` reads secrets from `.dev.vars` (not `.env.local`).
+
+### Production Deploy
+
+Full deploy workflow:
+```bash
+# 1. Build Next.js
+npm run build
+
+# 2. Build OpenNext for Cloudflare
+npx opennextjs-cloudflare build
+
+# 3. Deploy to Cloudflare Workers
 npx wrangler deploy
 ```
 
-`wrangler.jsonc` points the worker entry to:
-- `.open-next/worker.js`
-- static assets in `.open-next/assets`
+Or as a one-liner:
+```bash
+npm run build && npx opennextjs-cloudflare build && npx wrangler deploy
+```
 
-### Required production secrets/vars
+### Setting Production Secrets
 
-Set in Cloudflare (Wrangler secrets/vars):
+Use `wrangler secret put` for sensitive values:
+```bash
+wrangler secret put STRIPE_SECRET_KEY
+# Paste the key when prompted
+
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+```
+
+For non-secret env vars, use `wrangler.toml` or:
+```bash
+wrangler secret put NEXT_PUBLIC_SUPABASE_URL  # public but needs to be set
+```
+
+### Required Production Vars/Secrets
+
+Set via `wrangler secret put` or dashboard:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` ⚠️ secret
+- `STRIPE_SECRET_KEY` ⚠️ secret
+- `STRIPE_WEBHOOK_SECRET` ⚠️ secret
 - `NEXT_PUBLIC_SITE_URL`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
 - `NEXTJS_ENV=production`
 
-### Stripe webhook
+### Stripe Webhook
 
 Configure Stripe to send events to:
-- `/api/stripe/webhook`
+```
+https://your-domain.com/api/stripe/webhook
+```
 
 The webhook route updates order payment status and stores Stripe IDs for reconciliation.
+
+### Environment Files Summary
+
+| File | Purpose |
+|------|---------|
+| `.env.local` | Next.js local dev (`npm run dev`) |
+| `.dev.vars` | Wrangler local dev (`wrangler dev`) |
+| `wrangler secrets` | Production secrets |
+| `.env.local.example` | Template (no real secrets!) |
 
 ## API Surface (High-Level)
 
