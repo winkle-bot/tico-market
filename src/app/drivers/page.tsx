@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, Truck } from 'lucide-react';
+import { ChevronLeft, Truck, UserPlus } from 'lucide-react';
 import { DriverProfileCard } from '@/components/drivers/DriverProfileCard';
 import { DriversMap } from '@/components/drivers/DriversMap';
 import type { DriverProfile, VehicleType } from '@/types';
@@ -114,8 +114,26 @@ export default function DriversPage() {
           {loading ? (
             <div className="py-16 text-center text-[#6780b3] font-medium">Loading drivers...</div>
           ) : filteredDrivers.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#dce5f7] p-8 text-center text-[#6780b3]">
-              No drivers match your filters right now.
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl border border-[#dce5f7] p-8 text-center text-[#6780b3]">
+                No drivers match your filters right now.
+              </div>
+              <div className="rounded-2xl border border-[#dce5f7] bg-gradient-to-br from-[#1f4fbf] to-[#1a3d9e] p-5 text-white">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-white/20 p-2.5">
+                      <UserPlus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black uppercase tracking-wide">Be the First</h3>
+                      <p className="mt-1 text-sm text-white/80">Join our delivery network and start earning today.</p>
+                    </div>
+                  </div>
+                  <Link href="/driver-application" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
+                    Apply to Drive
+                  </Link>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

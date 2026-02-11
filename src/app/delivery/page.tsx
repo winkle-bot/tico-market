@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Clock3, Truck } from 'lucide-react';
+import { ChevronLeft, Clock3, Truck, UserCheck } from 'lucide-react';
 import { QuickDeliveryForm } from '@/components/delivery/QuickDeliveryForm';
 import { ScheduledDeliveryForm } from '@/components/delivery/ScheduledDeliveryForm';
 import { DeliveryHero } from '@/components/delivery/DeliveryHero';
@@ -201,6 +201,23 @@ export default function DeliveryPage() {
               </div>
             )}
           </aside>
+        </section>
+
+        <section className="rounded-2xl border border-[#dce5f7] bg-gradient-to-br from-[#1f4fbf] to-[#1a3d9e] p-5 text-white">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-white/20 p-2.5">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black uppercase tracking-wide">Become a Driver</h2>
+                <p className="mt-1 text-sm text-white/80">Join our delivery network and earn money on your schedule.</p>
+              </div>
+            </div>
+            <Link href="/driver-application" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
+              Apply Now
+            </Link>
+          </div>
         </section>
       </main>
     </div>
