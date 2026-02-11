@@ -201,6 +201,7 @@ create table if not exists public.driver_profiles (
   current_lat double precision,
   current_lng double precision,
   is_online boolean default false,
+  live_now boolean default false,
   total_deliveries integer default 0,
   rating double precision default 5.0,
   face_image_url text,
