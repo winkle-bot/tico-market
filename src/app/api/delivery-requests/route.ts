@@ -5,7 +5,12 @@ import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
 
+const DRIVER_REQUEST_EXPIRY_MS = 3 * 60 * 1000; // 3 minutes
+
 const createDeliveryRequestSchema = z.object({
+  requestType: z.enum(['auto', 'manual', 'broadcast']).optional().default('broadcast'),
+  targetDriverId: z.string().uuid().nullable().optional(),
+  offeredPrice: z.number().int().min(0).nullable().optional(),
   pickupAddress: z.string().min(5).max(300),
   pickupLat: z.number().min(-90).max(90).nullable().optional(),
   pickupLng: z.number().min(-180).max(180).nullable().optional(),
@@ -23,6 +28,7 @@ const createDeliveryRequestSchema = z.object({
   estimatedWeightKg: z.number().min(0).max(1000).nullable().optional(),
   isFragile: z.boolean().optional(),
   budgetAmount: z.number().int().min(0).nullable().optional(),
+  vehicleTypeFilter: z.enum(['motorcycle', 'car', 'pickup']).nullable().optional(),
 });
 
 const requestStatusValues = ['open', 'assigned', 'in_transit', 'completed', 'cancelled'] as const;
@@ -33,6 +39,10 @@ function toRequestResponse(row: Record<string, unknown>) {
     id: row.id,
     requesterId: row.requester_id,
     status: row.status,
+    requestType: row.request_type || 'broadcast',
+    targetDriverId: row.target_driver_id,
+    offeredPrice: row.offered_price,
+    expiresAt: row.expires_at,
     pickupAddress: row.pickup_address,
     pickupLat: row.pickup_lat,
     pickupLng: row.pickup_lng,
@@ -65,7 +75,8 @@ export async function GET(request: Request) {
     const supabase = await createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
 
-    const status = searchParams.get('status');
+    const statusParam = searchParams.get('status');
+    const status = statusParam === 'pending' ? 'open' : statusParam;
     const requesterId = searchParams.get('requesterId');
     const assignedDriverId = searchParams.get('assignedDriverId');
     const limit = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('limit') || '30', 10)));
@@ -115,10 +126,24 @@ export async function POST(request: Request) {
     }
 
     const payload = parsed.data;
+    const requestType = payload.requestType || 'broadcast';
+    if (requestType === 'manual' && !payload.targetDriverId) {
+      return ApiResponse.badRequest('Manual requests require a target driver.');
+    }
+
+    // For auto/manual requests, set 3 minute expiry
+    const expiresAt = requestType !== 'broadcast'
+      ? new Date(Date.now() + DRIVER_REQUEST_EXPIRY_MS).toISOString()
+      : null;
+
     const { data, error } = await (supabase
       .from('delivery_requests') as any)
       .insert({
         requester_id: user.id,
+        request_type: requestType,
+        target_driver_id: requestType === 'broadcast' ? null : (payload.targetDriverId ?? null),
+        offered_price: payload.offeredPrice ?? null,
+        expires_at: expiresAt,
         pickup_address: sanitizeText(payload.pickupAddress, 300),
         pickup_lat: payload.pickupLat,
         pickup_lng: payload.pickupLng,

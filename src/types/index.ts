@@ -102,13 +102,18 @@ export interface User {
 
 // ============ DRIVER MARKETPLACE ============
 
-export type VehicleType = 'motorcycle' | 'car' | 'bike' | 'walker';
+export type VehicleType = 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker';
+export type DriverVehicleType = 'motorcycle' | 'car' | 'pickup';
+export type VerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
+export type DeliveryRequestType = 'auto' | 'manual' | 'broadcast';
+export type NegotiationStatus = 'proposed' | 'accepted' | 'rejected' | 'countered';
 
 export interface DriverProfile {
   id: string;
   userId: string;
   name: string;
   photoUrl?: string;
+  faceImageUrl?: string;
   vehicleType: VehicleType | null;
   capacityDescription?: string;
   specialties: string[];
@@ -118,10 +123,31 @@ export interface DriverProfile {
   currentLat?: number;
   currentLng?: number;
   isOnline: boolean;
+  isVerified: boolean;
+  verificationStatus: VerificationStatus;
   totalDeliveries: number;
   rating: number;
+  baseRate?: number;
+  distanceKm?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DriverDocument {
+  id: string;
+  driverProfileId: string;
+  documentType: 'license';
+  storageKey: string;
+  uploadedAt: string;
+}
+
+export interface DeliveryNegotiation {
+  id: string;
+  deliveryRequestId: string;
+  proposedBy: string;
+  amount: number;
+  status: NegotiationStatus;
+  createdAt: string;
 }
 
 export type DeliveryRequestStatus = 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled';
@@ -131,6 +157,10 @@ export interface DeliveryRequest {
   id: string;
   requesterId: string;
   status: DeliveryRequestStatus;
+  requestType: DeliveryRequestType;
+  targetDriverId?: string;
+  offeredPrice?: number;
+  expiresAt?: string;
   pickupAddress: string;
   pickupLat?: number;
   pickupLng?: number;

@@ -192,7 +192,7 @@ create index if not exists idx_orders_stripe_session on public.orders(stripe_che
 create table if not exists public.driver_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade unique not null,
-  vehicle_type text check (vehicle_type in ('motorcycle', 'car', 'bike', 'walker')),
+  vehicle_type text check (vehicle_type in ('motorcycle', 'car', 'pickup', 'bike', 'walker')),
   capacity_description text,
   specialties text[] default '{}'::text[],
   service_radius_km integer default 10,
@@ -203,9 +203,22 @@ create table if not exists public.driver_profiles (
   is_online boolean default false,
   total_deliveries integer default 0,
   rating double precision default 5.0,
+  face_image_url text,
+  is_verified boolean default false,
+  verification_status text not null default 'none' check (verification_status in ('none', 'pending', 'approved', 'rejected')),
+  license_image_key text,
+  base_rate integer,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Safe upgrades for existing driver_profiles
+alter table public.driver_profiles add column if not exists face_image_url text;
+alter table public.driver_profiles add column if not exists is_verified boolean default false;
+alter table public.driver_profiles add column if not exists verification_status text not null default 'none';
+alter table public.driver_profiles add column if not exists license_image_key text;
+alter table public.driver_profiles add column if not exists base_rate integer;
+alter table public.driver_profiles add column if not exists live_now boolean default false;
 
 create index if not exists idx_driver_profiles_user_id on public.driver_profiles(user_id);
 create index if not exists idx_driver_profiles_online on public.driver_profiles(is_online);
@@ -246,14 +259,26 @@ create table if not exists public.delivery_requests (
   picked_up_at timestamptz,
   delivered_at timestamptz,
 
+  request_type text not null default 'broadcast' check (request_type in ('auto', 'manual', 'broadcast')),
+  target_driver_id uuid references public.driver_profiles(id),
+  expires_at timestamptz,
+  offered_price integer,
+
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Safe upgrades for existing delivery_requests
+alter table public.delivery_requests add column if not exists request_type text not null default 'broadcast';
+alter table public.delivery_requests add column if not exists target_driver_id uuid;
+alter table public.delivery_requests add column if not exists expires_at timestamptz;
+alter table public.delivery_requests add column if not exists offered_price integer;
 
 create index if not exists idx_delivery_requests_requester_id on public.delivery_requests(requester_id);
 create index if not exists idx_delivery_requests_status on public.delivery_requests(status);
 create index if not exists idx_delivery_requests_assigned_driver on public.delivery_requests(assigned_driver_id);
 create index if not exists idx_delivery_requests_created_at on public.delivery_requests(created_at);
+create index if not exists idx_delivery_requests_type on public.delivery_requests(request_type);
 alter table public.delivery_requests enable row level security;
 
 -- ==================== DELIVERY BIDS TABLE ====================
@@ -276,6 +301,38 @@ create index if not exists idx_delivery_bids_request_id on public.delivery_bids(
 create index if not exists idx_delivery_bids_driver_id on public.delivery_bids(driver_id);
 create index if not exists idx_delivery_bids_status on public.delivery_bids(status);
 alter table public.delivery_bids enable row level security;
+
+-- ==================== DRIVER DOCUMENTS TABLE ====================
+
+create table if not exists public.driver_documents (
+  id uuid primary key default gen_random_uuid(),
+  driver_profile_id uuid references public.driver_profiles(id) on delete cascade not null,
+  document_type text not null default 'license' check (document_type in ('license')),
+  storage_key text not null,
+  uploaded_at timestamptz default now()
+);
+
+create index if not exists idx_driver_documents_profile_id on public.driver_documents(driver_profile_id);
+alter table public.driver_documents enable row level security;
+
+-- ==================== DELIVERY NEGOTIATIONS TABLE ====================
+
+create table if not exists public.delivery_negotiations (
+  id uuid primary key default gen_random_uuid(),
+  delivery_request_id uuid references public.delivery_requests(id) on delete cascade not null,
+  proposed_by uuid references public.profiles(id) on delete cascade not null,
+  amount integer not null,
+  status text not null default 'proposed' check (status in ('proposed', 'accepted', 'rejected', 'countered')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Safe upgrades for existing delivery_negotiations
+alter table public.delivery_negotiations add column if not exists updated_at timestamptz default now();
+
+create index if not exists idx_delivery_negotiations_request_id on public.delivery_negotiations(delivery_request_id);
+create index if not exists idx_delivery_negotiations_proposed_by on public.delivery_negotiations(proposed_by);
+alter table public.delivery_negotiations enable row level security;
 
 -- ==================== SINPE CONFIG TABLE ====================
 
@@ -570,6 +627,59 @@ create policy "Drivers can delete their event signups"
   on public.event_drivers for delete
   using (auth.uid() = driver_id);
 
+-- Driver documents: drivers manage own, admins can view all
+create policy "Driver documents viewable by owner and admins"
+  on public.driver_documents for select
+  using (
+    exists (
+      select 1 from public.driver_profiles dp
+      where dp.id = driver_profile_id
+        and dp.user_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('admin', 'moderator')
+    )
+  );
+
+create policy "Drivers can upload own documents"
+  on public.driver_documents for insert
+  with check (
+    exists (
+      select 1 from public.driver_profiles dp
+      where dp.id = driver_profile_id
+        and dp.user_id = auth.uid()
+    )
+  );
+
+-- Delivery negotiations: participants can view, participants can create
+create policy "Delivery negotiations viewable by participants"
+  on public.delivery_negotiations for select
+  using (
+    proposed_by = auth.uid()
+    or exists (
+      select 1 from public.delivery_requests dr
+      where dr.id = delivery_request_id
+        and (dr.requester_id = auth.uid() or dr.assigned_driver_id = auth.uid())
+    )
+  );
+
+create policy "Participants can create negotiations"
+  on public.delivery_negotiations for insert
+  with check (auth.uid() = proposed_by);
+
+create policy "Participants can update negotiations"
+  on public.delivery_negotiations for update
+  using (
+    proposed_by = auth.uid()
+    or exists (
+      select 1 from public.delivery_requests dr
+      where dr.id = delivery_request_id
+        and dr.requester_id = auth.uid()
+    )
+  );
+
 -- ==================== FUNCTIONS ====================
 
 -- Function to update updated_at timestamp
@@ -617,4 +727,9 @@ create trigger handle_sinpe_config_updated_at
 drop trigger if exists handle_event_drivers_updated_at on public.event_drivers;
 create trigger handle_event_drivers_updated_at
   before update on public.event_drivers
+  for each row execute procedure public.handle_updated_at();
+
+drop trigger if exists handle_delivery_negotiations_updated_at on public.delivery_negotiations;
+create trigger handle_delivery_negotiations_updated_at
+  before update on public.delivery_negotiations
   for each row execute procedure public.handle_updated_at();

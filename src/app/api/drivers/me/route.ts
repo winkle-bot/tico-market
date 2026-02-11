@@ -7,7 +7,7 @@ import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
 
 const updateDriverSchema = z.object({
-  vehicleType: z.enum(['motorcycle', 'car', 'bike', 'walker']).nullable().optional(),
+  vehicleType: z.enum(['motorcycle', 'car', 'pickup', 'bike', 'walker']).nullable().optional(),
   capacityDescription: z.string().max(200).nullable().optional(),
   specialties: z.array(z.string().min(1).max(32)).max(20).optional(),
   serviceRadiusKm: z.number().int().min(1).max(200).optional(),
@@ -19,6 +19,51 @@ const updateDriverSchema = z.object({
 });
 
 type DriverProfileRow = Database['public']['Tables']['driver_profiles']['Row'];
+
+export async function GET() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+
+    const { data, error } = await (supabase
+      .from('driver_profiles') as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !data) {
+      return ApiResponse.notFound('Driver profile not found');
+    }
+
+    const typedData = data as DriverProfileRow;
+    return ApiResponse.success({
+      id: typedData.id,
+      userId: typedData.user_id,
+      vehicleType: typedData.vehicle_type,
+      capacityDescription: typedData.capacity_description,
+      specialties: typedData.specialties || [],
+      serviceRadiusKm: typedData.service_radius_km ?? 10,
+      baseLocationLat: typedData.base_location_lat,
+      baseLocationLng: typedData.base_location_lng,
+      currentLat: typedData.current_lat,
+      currentLng: typedData.current_lng,
+      isOnline: Boolean(typedData.is_online),
+      isVerified: Boolean(typedData.is_verified),
+      verificationStatus: typedData.verification_status,
+      totalDeliveries: typedData.total_deliveries ?? 0,
+      rating: typedData.rating ?? 5,
+      baseRate: typedData.base_rate,
+      faceImageUrl: typedData.face_image_url,
+      createdAt: typedData.created_at,
+      updatedAt: typedData.updated_at,
+    });
+  } catch (error) {
+    return ApiResponse.serverError(error, { route: '/api/drivers/me', method: 'GET' });
+  }
+}
 
 export async function PATCH(request: Request) {
   try {

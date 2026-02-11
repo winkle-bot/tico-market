@@ -18,6 +18,7 @@ interface DriverProfileCardProps {
 const VEHICLE_LABELS: Record<VehicleType, string> = {
   motorcycle: 'Motorcycle',
   car: 'Car',
+  pickup: 'Pickup',
   bike: 'Bike',
   walker: 'Walker',
 };

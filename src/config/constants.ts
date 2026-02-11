@@ -22,9 +22,16 @@ export const API_ROUTES = {
   ORDERS: '/api/orders',
   CHECKOUT: '/api/checkout',
   DRIVERS: '/api/drivers',
+  DRIVERS_APPLY: '/api/drivers/apply',
+  DRIVERS_VERIFY: '/api/drivers/verify',
+  DRIVERS_LIVE_NOW: '/api/drivers/live-now',
   DELIVERY_REQUESTS: '/api/delivery-requests',
   DELIVERY_BIDS: '/api/delivery-bids',
+  ADMIN_VERIFICATIONS: '/api/admin/verifications',
 } as const;
+
+// Driver request expiry (3 minutes for auto/manual)
+export const DRIVER_REQUEST_EXPIRY_MS = 3 * 60 * 1000;
 
 // Animation variants for Framer Motion
 export const MODAL_BACKDROP_VARIANTS = {

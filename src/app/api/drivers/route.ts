@@ -5,7 +5,7 @@ import { z } from 'zod';
 type DriverRow = {
   id: string;
   user_id: string;
-  vehicle_type: 'motorcycle' | 'car' | 'bike' | 'walker' | null;
+  vehicle_type: 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker' | null;
   capacity_description: string | null;
   specialties: string[] | null;
   service_radius_km: number | null;
@@ -16,6 +16,10 @@ type DriverRow = {
   is_online: boolean | null;
   total_deliveries: number | null;
   rating: number | null;
+  face_image_url: string | null;
+  is_verified: boolean | null;
+  verification_status: string | null;
+  base_rate: number | null;
   created_at: string;
   updated_at: string;
   profiles: {
@@ -26,7 +30,7 @@ type DriverRow = {
   } | null;
 };
 
-const vehicleTypeSchema = z.enum(['motorcycle', 'car', 'bike', 'walker']);
+const vehicleTypeSchema = z.enum(['motorcycle', 'car', 'pickup', 'bike', 'walker']);
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
@@ -67,7 +71,11 @@ function toDriverResponse(driver: DriverRow, viewerLat?: number, viewerLng?: num
     currentLat: driver.current_lat ?? undefined,
     currentLng: driver.current_lng ?? undefined,
     isOnline: Boolean(driver.is_online),
+    isVerified: Boolean(driver.is_verified),
+    verificationStatus: driver.verification_status ?? 'none',
     totalDeliveries: driver.total_deliveries ?? 0,
+    baseRate: driver.base_rate ?? undefined,
+    faceImageUrl: driver.face_image_url ?? undefined,
     distanceKm,
     createdAt: driver.created_at,
     updatedAt: driver.updated_at,

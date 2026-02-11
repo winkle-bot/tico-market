@@ -243,7 +243,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          vehicle_type: 'motorcycle' | 'car' | 'bike' | 'walker' | null;
+          vehicle_type: 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker' | null;
           capacity_description: string | null;
           specialties: string[] | null;
           service_radius_km: number | null;
@@ -254,13 +254,19 @@ export interface Database {
           is_online: boolean | null;
           total_deliveries: number | null;
           rating: number | null;
+          face_image_url: string | null;
+          is_verified: boolean | null;
+          verification_status: 'none' | 'pending' | 'approved' | 'rejected';
+          license_image_key: string | null;
+          base_rate: number | null;
+          live_now: boolean | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          vehicle_type?: 'motorcycle' | 'car' | 'bike' | 'walker' | null;
+          vehicle_type?: 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker' | null;
           capacity_description?: string | null;
           specialties?: string[] | null;
           service_radius_km?: number | null;
@@ -271,13 +277,19 @@ export interface Database {
           is_online?: boolean | null;
           total_deliveries?: number | null;
           rating?: number | null;
+          face_image_url?: string | null;
+          is_verified?: boolean | null;
+          verification_status?: 'none' | 'pending' | 'approved' | 'rejected';
+          license_image_key?: string | null;
+          base_rate?: number | null;
+          live_now?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
-          vehicle_type?: 'motorcycle' | 'car' | 'bike' | 'walker' | null;
+          vehicle_type?: 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker' | null;
           capacity_description?: string | null;
           specialties?: string[] | null;
           service_radius_km?: number | null;
@@ -288,6 +300,12 @@ export interface Database {
           is_online?: boolean | null;
           total_deliveries?: number | null;
           rating?: number | null;
+          face_image_url?: string | null;
+          is_verified?: boolean | null;
+          verification_status?: 'none' | 'pending' | 'approved' | 'rejected';
+          license_image_key?: string | null;
+          base_rate?: number | null;
+          live_now?: boolean | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -297,6 +315,10 @@ export interface Database {
           id: string;
           requester_id: string;
           status: 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled' | null;
+          request_type: 'auto' | 'manual' | 'broadcast';
+          target_driver_id: string | null;
+          expires_at: string | null;
+          offered_price: number | null;
           pickup_address: string;
           pickup_lat: number | null;
           pickup_lng: number | null;
@@ -326,6 +348,10 @@ export interface Database {
           id?: string;
           requester_id: string;
           status?: 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled' | null;
+          request_type?: 'auto' | 'manual' | 'broadcast';
+          target_driver_id?: string | null;
+          expires_at?: string | null;
+          offered_price?: number | null;
           pickup_address: string;
           pickup_lat?: number | null;
           pickup_lng?: number | null;
@@ -355,6 +381,10 @@ export interface Database {
           id?: string;
           requester_id?: string;
           status?: 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled' | null;
+          request_type?: 'auto' | 'manual' | 'broadcast';
+          target_driver_id?: string | null;
+          expires_at?: string | null;
+          offered_price?: number | null;
           pickup_address?: string;
           pickup_lat?: number | null;
           pickup_lng?: number | null;
@@ -414,6 +444,58 @@ export interface Database {
           status?: 'pending' | 'accepted' | 'rejected' | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      driver_documents: {
+        Row: {
+          id: string;
+          driver_profile_id: string;
+          document_type: 'license';
+          storage_key: string;
+          uploaded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          driver_profile_id: string;
+          document_type?: 'license';
+          storage_key: string;
+          uploaded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          driver_profile_id?: string;
+          document_type?: 'license';
+          storage_key?: string;
+          uploaded_at?: string | null;
+        };
+      };
+      delivery_negotiations: {
+        Row: {
+          id: string;
+          delivery_request_id: string;
+          proposed_by: string;
+          amount: number;
+          status: 'proposed' | 'accepted' | 'rejected' | 'countered';
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          delivery_request_id: string;
+          proposed_by: string;
+          amount: number;
+          status?: 'proposed' | 'accepted' | 'rejected' | 'countered';
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          delivery_request_id?: string;
+          proposed_by?: string;
+          amount?: number;
+          status?: 'proposed' | 'accepted' | 'rejected' | 'countered';
+          created_at?: string | null;
+          updated_at?: string | null;
         };
       };
       sinpe_config: {
