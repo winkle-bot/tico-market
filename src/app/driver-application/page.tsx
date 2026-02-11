@@ -27,7 +27,35 @@ export default function DriverApplicationPage() {
   const [fullName, setFullName] = useState('');
   const [vehicleType, setVehicleType] = useState<DriverVehicleType | ''>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isCameraStarting, setIsCameraStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraReady(false);
+  }, []);
+
+  const attachStreamToVideo = useCallback(async () => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) {
+      return;
+    }
+
+    video.srcObject = stream;
+    try {
+      await video.play();
+    } catch {
+      // Some browsers block autoplay; user can still start playback by interacting with controls.
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -42,25 +70,44 @@ export default function DriverApplicationPage() {
   }, [user, isLoading]);
 
   const startCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Camera is not supported in this browser.');
+      return;
+    }
+
+    stopCamera();
+    setIsCameraStarting(true);
+    setStep('capturing');
+
     try {
       setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setStep('capturing');
+
+      await attachStreamToVideo();
     } catch {
+      stopCamera();
+      setStep('form');
       setError('Camera access denied. Please allow camera permissions to take your profile photo.');
+    } finally {
+      setIsCameraStarting(false);
     }
-  }, []);
+  }, [attachStreamToVideo, stopCamera]);
 
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas || !isCameraReady) {
+      setError('Camera is not ready yet. Please wait a moment and try again.');
+      return;
+    }
+
+    if (!video.videoWidth || !video.videoHeight) {
+      setError('Camera feed is unavailable. Please retake your photo.');
+      return;
+    }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -70,18 +117,22 @@ export default function DriverApplicationPage() {
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     setCapturedImage(dataUrl);
+    setStep('form');
 
-    // Stop camera
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
+    stopCamera();
+  }, [isCameraReady, stopCamera]);
 
   const retakePhoto = useCallback(() => {
     setCapturedImage(null);
-    startCamera();
+    void startCamera();
   }, [startCamera]);
+
+  useEffect(() => {
+    if (step !== 'capturing' || !streamRef.current) {
+      return;
+    }
+    void attachStreamToVideo();
+  }, [attachStreamToVideo, step]);
 
   const handleSubmit = async () => {
     if (!fullName.trim() || !vehicleType || !capturedImage) {
@@ -92,10 +143,14 @@ export default function DriverApplicationPage() {
     setStep('submitting');
     setError(null);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/drivers/apply', {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        signal: controller.signal,
         body: JSON.stringify({
           fullName: fullName.trim(),
           vehicleType,
@@ -103,26 +158,30 @@ export default function DriverApplicationPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({} as { error?: string }));
       if (!res.ok) {
         throw new Error(data.error || 'Application failed');
       }
 
       setStep('success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Submission timed out. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      }
       setStep('form');
+    } finally {
+      clearTimeout(timeout);
     }
   };
 
   // Cleanup camera on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
+      stopCamera();
     };
-  }, []);
+  }, [stopCamera]);
 
   if (isLoading || !user) {
     return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>;
@@ -237,14 +296,29 @@ export default function DriverApplicationPage() {
                 autoPlay
                 playsInline
                 muted
+                onLoadedMetadata={() => setIsCameraReady(true)}
                 className="w-full rounded-xl border border-[#dce5f7]"
               />
+              <p className="text-xs text-[#6780b3]">
+                {isCameraStarting ? 'Starting camera...' : isCameraReady ? 'Camera ready.' : 'Initializing camera...'}
+              </p>
               <button
                 type="button"
                 onClick={capturePhoto}
+                disabled={!isCameraReady}
                 className="tm-btn tm-btn-primary w-full justify-center"
               >
                 <Camera className="w-4 h-4" /> Take Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  setStep('form');
+                }}
+                className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]"
+              >
+                Cancel
               </button>
             </div>
           )}

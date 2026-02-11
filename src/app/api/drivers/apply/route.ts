@@ -7,7 +7,7 @@ import { z } from 'zod';
 type AnySupabase = any;
 
 const applySchema = z.object({
-  fullName: z.string().min(2).max(100),
+  fullName: z.string().trim().min(2).max(100),
   vehicleType: z.enum(['motorcycle', 'car', 'pickup']),
   faceImageBase64: z.string().min(100), // base64-encoded JPEG from live capture
 });
@@ -44,14 +44,32 @@ export async function POST(request: Request) {
     }
 
     // Decode and upload face image to Supabase Storage
-    const base64Data = faceImageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    const dataUrlMatch = faceImageBase64.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+    const mimeType = dataUrlMatch?.[1] || 'image/jpeg';
+    const base64Data = dataUrlMatch?.[2] || faceImageBase64;
 
-    const imagePath = `drivers/${user.id}/face-${Date.now()}.jpg`;
+    if (!base64Data || base64Data.length < 100) {
+      return ApiResponse.badRequest('Profile photo is required');
+    }
+
+    let imageBuffer: Uint8Array;
+    try {
+      imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    } catch {
+      return ApiResponse.badRequest('Invalid profile photo format');
+    }
+
+    if (imageBuffer.byteLength < 512) {
+      return ApiResponse.badRequest('Profile photo is too small. Please retake it.');
+    }
+
+    const imageExtension =
+      mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+    const imagePath = `drivers/${user.id}/face-${Date.now()}.${imageExtension}`;
     const { error: uploadError } = await supabase.storage
       .from('listings')
       .upload(imagePath, imageBuffer, {
-        contentType: 'image/jpeg',
+        contentType: mimeType,
         cacheControl: '3600',
         upsert: false,
       });

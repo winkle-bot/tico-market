@@ -19,17 +19,25 @@ export default function DriverVerificationPage() {
   const [error, setError] = useState<string | null>(null);
 
   const checkDriverStatus = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
     try {
-      const res = await fetch('/api/drivers/me');
+      const res = await fetch('/api/drivers/me', { signal: controller.signal });
       if (res.status === 404) {
         setState('not-driver');
         return;
       }
       if (!res.ok) {
+        const payload = await res.json().catch(() => ({} as { error?: string }));
+        if (payload.error) {
+          setError(payload.error);
+        }
         setState('not-driver');
         return;
       }
-      const myDriver = await res.json();
+      const payload = await res.json().catch(() => ({} as { data?: { verificationStatus?: string }; verificationStatus?: string }));
+      const myDriver = payload.data ?? payload;
 
       switch (myDriver.verificationStatus) {
         case 'pending':
@@ -44,8 +52,13 @@ export default function DriverVerificationPage() {
         default:
           setState('upload');
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Unable to load verification status right now. Please try again.');
+      }
       setState('not-driver');
+    } finally {
+      clearTimeout(timeout);
     }
   }, []);
 
@@ -68,6 +81,9 @@ export default function DriverVerificationPage() {
       return;
     }
 
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
     setLicenseFile(file);
     setPreview(URL.createObjectURL(file));
     setError(null);
@@ -81,6 +97,8 @@ export default function DriverVerificationPage() {
 
     setSubmitting(true);
     setError(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     try {
       const formData = new FormData();
@@ -89,21 +107,40 @@ export default function DriverVerificationPage() {
       const res = await fetch('/api/drivers/verify', {
         method: 'POST',
         headers: withCsrfHeaders(),
+        signal: controller.signal,
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({} as { error?: string }));
       if (!res.ok) {
         throw new Error(data.error || 'Verification submission failed');
       }
 
       setState('pending');
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+      setPreview(null);
+      setLicenseFile(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Submission timed out. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      }
     } finally {
+      clearTimeout(timeout);
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   if (isLoading || !user) {
     return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>;
@@ -133,6 +170,17 @@ export default function DriverVerificationPage() {
             <ShieldCheck className="w-12 h-12 text-[#6780b3] mx-auto" />
             <h2 className="text-lg font-black text-[#18284a]">Become a Driver First</h2>
             <p className="text-sm text-[#6780b3]">You need to register as a driver before getting verified.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setState('loading');
+                void checkDriverStatus();
+              }}
+              className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]"
+            >
+              Retry Status Check
+            </button>
             <Link href="/driver-application" className="tm-btn tm-btn-primary inline-flex">
               Become a Driver
             </Link>
@@ -162,7 +210,13 @@ export default function DriverVerificationPage() {
                   <img src={preview} alt="License preview" className="w-full rounded-xl border border-[#dce5f7]" />
                   <button
                     type="button"
-                    onClick={() => { setLicenseFile(null); setPreview(null); }}
+                    onClick={() => {
+                      if (preview) {
+                        URL.revokeObjectURL(preview);
+                      }
+                      setLicenseFile(null);
+                      setPreview(null);
+                    }}
                     className="text-sm font-bold text-[#1f4fbf] hover:underline"
                   >
                     Choose Different Photo
