@@ -16,6 +16,7 @@ type DriverRow = {
   current_lat: number | null;
   current_lng: number | null;
   is_online: boolean | null;
+  live_now: boolean | null;
   total_deliveries: number | null;
   rating: number | null;
   face_image_url: string | null;
@@ -75,7 +76,8 @@ export async function GET(
       baseLocationLng: driver.base_location_lng ?? undefined,
       currentLat: driver.current_lat ?? undefined,
       currentLng: driver.current_lng ?? undefined,
-      isOnline: Boolean(driver.is_online),
+      isOnline: Boolean(driver.is_online || driver.live_now),
+      liveNow: Boolean(driver.live_now),
       isVerified: Boolean(driver.is_verified),
       verificationStatus: driver.verification_status ?? 'none',
       totalDeliveries: driver.total_deliveries ?? 0,

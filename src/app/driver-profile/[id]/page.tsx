@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronLeft, ShieldCheck, Star, Truck, MapPin, DollarSign } from 'lucide-react';
+import { withCsrfHeaders } from '@/lib/csrf';
 
 type DriverData = {
   id: string;
@@ -15,7 +16,10 @@ type DriverData = {
   capacityDescription?: string;
   specialties: string[];
   serviceRadiusKm: number;
+  currentLat?: number;
+  currentLng?: number;
   isOnline: boolean;
+  liveNow?: boolean;
   isVerified: boolean;
   verificationStatus: string;
   totalDeliveries: number;
@@ -37,15 +41,72 @@ export default function DriverProfilePage() {
   const [driver, setDriver] = useState<DriverData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
+  const updateLiveStatus = async (liveNow: boolean, lat?: number, lng?: number) => {
+    const payload: {
+      liveNow: boolean;
+      isOnline: boolean;
+      currentLat?: number;
+      currentLng?: number;
+    } = {
+      liveNow,
+      isOnline: liveNow,
+    };
+
+    if (lat !== undefined && lng !== undefined) {
+      payload.currentLat = lat;
+      payload.currentLng = lng;
+    }
+
+    const res = await fetch('/api/drivers/me', {
+      method: 'PATCH',
+      headers: withCsrfHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({} as { error?: string }));
+      throw new Error(data.error || 'Failed to update live status');
+    }
+  };
+
+  const getCurrentPosition = () => new Promise<GeolocationPosition>((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported on this device'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position),
+      () => reject(new Error('Unable to get your location')),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
+  });
 
   useEffect(() => {
     const fetchDriver = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/drivers/${id}`);
+        const [res, meRes] = await Promise.all([
+          fetch(`/api/drivers/${id}`),
+          fetch('/api/drivers/me'),
+        ]);
+
         if (!res.ok) throw new Error('Driver not found');
+
         const payload = await res.json();
         setDriver(payload.data || payload);
+
+        if (meRes.ok) {
+          const mePayload = await meRes.json().catch(() => ({} as { data?: { id?: string }; id?: string }));
+          const myDriver = mePayload.data ?? mePayload;
+          setIsOwner(Boolean(myDriver.id && myDriver.id === id));
+        } else {
+          setIsOwner(false);
+        }
       } catch {
         setError('Could not load driver profile');
       } finally {
@@ -55,6 +116,62 @@ export default function DriverProfilePage() {
 
     if (id) fetchDriver();
   }, [id]);
+
+  const handleToggleLive = async () => {
+    if (!driver || !isOwner || liveLoading) return;
+
+    setLiveLoading(true);
+    setLiveError(null);
+
+    try {
+      if (driver.liveNow) {
+        await updateLiveStatus(false);
+        setDriver((prev) => (prev ? { ...prev, liveNow: false, isOnline: false } : prev));
+        return;
+      }
+
+      const position = await getCurrentPosition();
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      await updateLiveStatus(true, lat, lng);
+      setDriver((prev) => (prev ? { ...prev, liveNow: true, isOnline: true, currentLat: lat, currentLng: lng } : prev));
+    } catch (err) {
+      setLiveError(err instanceof Error ? err.message : 'Unable to update live status');
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOwner || !driver?.liveNow) return;
+
+    let cancelled = false;
+    const pollLocation = async () => {
+      try {
+        const position = await getCurrentPosition();
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        await updateLiveStatus(true, lat, lng);
+        if (!cancelled) {
+          setDriver((prev) => (prev ? { ...prev, currentLat: lat, currentLng: lng, isOnline: true, liveNow: true } : prev));
+        }
+      } catch {
+        if (!cancelled) {
+          setLiveError('Location update failed. Check location permissions.');
+        }
+      }
+    };
+
+    void pollLocation();
+    const timer = setInterval(() => {
+      void pollLocation();
+    }, 60000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [driver?.liveNow, isOwner]);
 
   if (loading) {
     return (
@@ -135,6 +252,19 @@ export default function DriverProfilePage() {
               </p>
               {driver.capacityDescription && (
                 <p className="text-xs text-[#5d739f] mt-2">{driver.capacityDescription}</p>
+              )}
+              {isOwner && (
+                <div className="mt-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleLive}
+                    disabled={liveLoading}
+                    className={`tm-btn ${driver.liveNow ? 'border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'tm-btn-primary'} disabled:opacity-60`}
+                  >
+                    {liveLoading ? 'Updating...' : driver.liveNow ? 'Go Offline' : 'Go Live'}
+                  </button>
+                  {liveError && <p className="text-xs text-red-600">{liveError}</p>}
+                </div>
               )}
             </div>
           </div>

@@ -123,6 +123,7 @@ export interface DriverProfile {
   currentLat?: number;
   currentLng?: number;
   isOnline: boolean;
+  liveNow?: boolean;
   isVerified: boolean;
   verificationStatus: VerificationStatus;
   totalDeliveries: number;

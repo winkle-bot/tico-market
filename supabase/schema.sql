@@ -219,10 +219,14 @@ alter table public.driver_profiles add column if not exists is_verified boolean 
 alter table public.driver_profiles add column if not exists verification_status text not null default 'none';
 alter table public.driver_profiles add column if not exists license_image_key text;
 alter table public.driver_profiles add column if not exists base_rate integer;
+alter table public.driver_profiles add column if not exists current_lat double precision;
+alter table public.driver_profiles add column if not exists current_lng double precision;
+alter table public.driver_profiles add column if not exists is_online boolean default false;
 alter table public.driver_profiles add column if not exists live_now boolean default false;
 
 create index if not exists idx_driver_profiles_user_id on public.driver_profiles(user_id);
 create index if not exists idx_driver_profiles_online on public.driver_profiles(is_online);
+create index if not exists idx_driver_profiles_live_now on public.driver_profiles(live_now);
 create index if not exists idx_driver_profiles_vehicle_type on public.driver_profiles(vehicle_type);
 alter table public.driver_profiles enable row level security;
 

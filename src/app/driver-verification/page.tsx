@@ -36,7 +36,7 @@ export default function DriverVerificationPage() {
         setState('not-driver');
         return;
       }
-      const payload = await res.json().catch(() => ({} as { data?: { verificationStatus?: string }; verificationStatus?: string }));
+      const payload = await res.json().catch(() => ({} as { data?: { id?: string; verificationStatus?: string }; id?: string; verificationStatus?: string }));
       const myDriver = payload.data ?? payload;
 
       switch (myDriver.verificationStatus) {
@@ -44,6 +44,10 @@ export default function DriverVerificationPage() {
           setState('pending');
           break;
         case 'approved':
+          if (myDriver.id) {
+            router.replace(`/driver-profile/${myDriver.id}`);
+            return;
+          }
           setState('approved');
           break;
         case 'rejected':
@@ -60,7 +64,7 @@ export default function DriverVerificationPage() {
     } finally {
       clearTimeout(timeout);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!isLoading && !user) {

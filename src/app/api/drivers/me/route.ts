@@ -16,6 +16,7 @@ const updateDriverSchema = z.object({
   currentLat: z.number().min(-90).max(90).nullable().optional(),
   currentLng: z.number().min(-180).max(180).nullable().optional(),
   isOnline: z.boolean().optional(),
+  liveNow: z.boolean().optional(),
 });
 
 type DriverProfileRow = Database['public']['Tables']['driver_profiles']['Row'];
@@ -50,7 +51,8 @@ export async function GET() {
       baseLocationLng: typedData.base_location_lng,
       currentLat: typedData.current_lat,
       currentLng: typedData.current_lng,
-      isOnline: Boolean(typedData.is_online),
+      isOnline: Boolean(typedData.is_online || typedData.live_now),
+      liveNow: Boolean(typedData.live_now),
       isVerified: Boolean(typedData.is_verified),
       verificationStatus: typedData.verification_status,
       totalDeliveries: typedData.total_deliveries ?? 0,
@@ -99,6 +101,14 @@ export async function PATCH(request: Request) {
     if (payload.currentLat !== undefined) updateData.current_lat = payload.currentLat;
     if (payload.currentLng !== undefined) updateData.current_lng = payload.currentLng;
     if (payload.isOnline !== undefined) updateData.is_online = payload.isOnline;
+    if (payload.liveNow !== undefined) updateData.live_now = payload.liveNow;
+
+    if (payload.liveNow !== undefined && payload.isOnline === undefined) {
+      updateData.is_online = payload.liveNow;
+    }
+    if (payload.isOnline !== undefined && payload.liveNow === undefined) {
+      updateData.live_now = payload.isOnline;
+    }
 
     const { data: existing } = await (supabase
       .from('driver_profiles') as any)
