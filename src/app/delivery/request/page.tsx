@@ -5,21 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Radio, User, Megaphone, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import type { DeliveryRequestType, DriverProfile } from '@/types';
 
 type RequestMode = DeliveryRequestType;
 
-const MODE_CONFIG: Array<{ id: RequestMode; label: string; icon: typeof Radio; description: string }> = [
-  { id: 'auto', label: 'Auto-Assign', icon: Radio, description: 'System picks the best available verified driver' },
-  { id: 'manual', label: 'Select Driver', icon: User, description: 'Choose a specific driver for your delivery' },
-  { id: 'broadcast', label: 'Broadcast', icon: Megaphone, description: 'All nearby drivers can bid on your request' },
+const MODE_CONFIG: Array<{ id: RequestMode; labelKey: string; labelFallback: string; icon: typeof Radio; description: string }> = [
+  { id: 'auto', labelKey: 'delivery.autoAssign', labelFallback: 'Auto-Assign', icon: Radio, description: 'System picks the best available verified driver' },
+  { id: 'manual', labelKey: 'delivery.selectDriver', labelFallback: 'Select Driver', icon: User, description: 'Choose a specific driver for your delivery' },
+  { id: 'broadcast', labelKey: 'delivery.broadcast', labelFallback: 'Broadcast', icon: Megaphone, description: 'All nearby drivers can bid on your request' },
 ];
 
 function DeliveryRequestContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading } = useAuth();
+  const { t } = useI18n();
 
   const preselectedDriverId = searchParams.get('driverId');
   const preselectedMode = searchParams.get('mode') as RequestMode | null;
@@ -70,12 +72,12 @@ function DeliveryRequestContent() {
 
   const handleSubmit = useCallback(async () => {
     if (!pickupAddress.trim() || !dropoffAddress.trim() || !itemDescription.trim()) {
-      setError('Please fill in pickup address, dropoff address, and item description.');
+      setError(t('delivery.fillRequired', 'Please fill in pickup address, dropoff address, and item description.'));
       return;
     }
 
     if (mode === 'manual' && !selectedDriverId) {
-      setError('Please select a driver for manual request.');
+      setError(t('delivery.selectDriverRequired', 'Please select a driver for manual request.'));
       return;
     }
 
@@ -117,7 +119,7 @@ function DeliveryRequestContent() {
   }, [mode, pickupAddress, dropoffAddress, itemDescription, offeredPrice, selectedDriverId, router]);
 
   if (isLoading || !user) {
-    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>;
+    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;
   }
 
   return (
@@ -155,7 +157,7 @@ function DeliveryRequestContent() {
                 >
                   <Icon className={`w-5 h-5 ${mode === m.id ? 'text-[#1f4fbf]' : 'text-[#6780b3]'}`} />
                   <span className={`font-bold text-sm ${mode === m.id ? 'text-[#1f4fbf]' : 'text-[#18284a]'}`}>
-                    {m.label}
+                    {t(m.labelKey, m.labelFallback)}
                   </span>
                   <span className="text-[11px] text-[#6780b3]">{m.description}</span>
                 </button>
@@ -167,7 +169,7 @@ function DeliveryRequestContent() {
         {/* Driver Selection (manual mode) */}
         {mode === 'manual' && (
           <section className="bg-white rounded-2xl border border-[#dce5f7] p-5 space-y-3">
-            <h2 className="text-sm font-black uppercase tracking-wider text-[#335186]">Select Driver</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider text-[#335186]">{t('delivery.selectDriver', 'Select Driver')}</h2>
             <select
               className="tm-input"
               value={vehicleFilter}
@@ -199,11 +201,11 @@ function DeliveryRequestContent() {
                         <span className="font-bold text-sm text-[#18284a] truncate">{d.name}</span>
                         {d.isVerified && <span className="text-[10px] font-black text-emerald-600">VERIFIED</span>}
                         <span className={`text-[10px] font-black ${d.isOnline ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {d.isOnline ? 'ONLINE' : 'OFFLINE'}
+                          {d.isOnline ? t('common.online', 'Online') : t('common.offline', 'Offline')}
                         </span>
                       </div>
                       <p className="text-xs text-[#6780b3]">
-                        {d.vehicleType || 'No vehicle'} &bull; {d.rating.toFixed(1)} rating &bull; {d.baseRate ? `₡${d.baseRate.toLocaleString()}` : 'Negotiable'}
+                        {d.vehicleType || t('delivery.noVehicle', 'No vehicle')} &bull; {d.rating.toFixed(1)} rating &bull; {d.baseRate ? `₡${d.baseRate.toLocaleString()}` : t('delivery.negotiable', 'Negotiable')}
                       </p>
                     </div>
                   </button>
@@ -257,7 +259,7 @@ function DeliveryRequestContent() {
 
           <div>
             <label className="text-sm text-[#334d80] font-semibold">
-              {mode === 'broadcast' ? 'Your Budget (₡)' : 'Offered Price (₡)'}
+              {mode === 'broadcast' ? t('delivery.budgetAmount', 'Your Budget (₡)') : t('delivery.offeredPrice', 'Offered Price (₡)')}
             </label>
             <input
               type="number"
@@ -280,7 +282,7 @@ function DeliveryRequestContent() {
           className="tm-btn tm-btn-primary w-full justify-center disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
-          {submitting ? 'Sending Request...' : 'Send Delivery Request'}
+          {submitting ? t('delivery.sendingRequest', 'Sending Request...') : t('delivery.sendRequest', 'Send Delivery Request')}
         </button>
       </main>
     </>
@@ -290,7 +292,7 @@ function DeliveryRequestContent() {
 export default function DeliveryRequestPage() {
   return (
     <div className="min-h-screen bg-[#f5f8ff] pb-8">
-      <Suspense fallback={<div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>}>
+      <Suspense fallback={<div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading&hellip;</div>}>
         <DeliveryRequestContent />
       </Suspense>
     </div>

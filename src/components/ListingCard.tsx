@@ -84,7 +84,7 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
 
         <div className="flex items-center gap-1.5 text-xs font-semibold text-[#748ab5] mb-2 uppercase tracking-wider">
           <MapPin className="w-3.5 h-3.5" />
-          <span>San Jose, CR</span>
+          <span>GAM, Costa Rica</span>
         </div>
 
         {/* Condition badge */}

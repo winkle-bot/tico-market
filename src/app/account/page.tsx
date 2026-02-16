@@ -14,6 +14,7 @@ import ChatModal from '@/components/ChatModal';
 import { OrdersTab } from '@/components/account/OrdersTab';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import { useToast } from '@/context/ToastContext';
+import { useI18n } from '@/context/I18nContext';
 import type {
   MarketEvent,
   ListingPickupConfig,
@@ -36,6 +37,8 @@ interface EditFormState {
 
 export default function AccountPage() {
   const toast = useToast();
+  const { t, locale } = useI18n();
+  const dateLocale = locale === 'es' ? 'es-CR' : 'en-US';
   const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
   const { listings, updateListing, deleteListing } = useListings();
   const router = useRouter();
@@ -216,7 +219,7 @@ export default function AccountPage() {
     const lastAttempt = pendingDeleteRef.current[listingId] || 0;
     if (now - lastAttempt > 5000) {
       pendingDeleteRef.current[listingId] = now;
-      toast.info('Tap delete again to confirm.', {
+      toast.info(t('account.deleteConfirm', 'Tap delete again to confirm'), {
         description: 'This confirmation expires in 5 seconds.',
       });
       return;
@@ -332,7 +335,7 @@ export default function AccountPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center">
-        <div className="animate-pulse text-gray-400 font-medium">Loading...</div>
+        <div className="animate-pulse text-gray-400 font-medium">{t('common.loading', 'Loading...')}</div>
       </div>
     );
   }
@@ -371,10 +374,10 @@ export default function AccountPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8"
             >
-              <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">Edit Listing</h2>
+              <h2 className="text-2xl font-black text-gray-900 uppercase mb-6">{t('account.editListing', 'Edit Listing')}</h2>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Title</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('account.title', 'Title')}</label>
                   <input
                     type="text"
                     value={editForm.title}
@@ -383,7 +386,7 @@ export default function AccountPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Price (₡)</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('account.price', 'Price')} (₡)</label>
                   <input
                     type="text"
                     value={editForm.price}
@@ -403,7 +406,7 @@ export default function AccountPage() {
 
                 {/* Logistics Section */}
                 <div className="pt-4 border-t border-gray-100 space-y-4">
-                    <h3 className="text-sm font-black text-gray-900 uppercase">Availability & Logistics</h3>
+                    <h3 className="text-sm font-black text-gray-900 uppercase">{t('account.availabilityLogistics', 'Availability & Logistics')}</h3>
                     
                     <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-200">
                       <input 
@@ -476,7 +479,7 @@ export default function AccountPage() {
                               />
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={handleAddEvent} className="flex-1 bg-black text-white text-xs font-bold py-2 rounded-lg">Add Event</button>
+                              <button onClick={handleAddEvent} className="flex-1 bg-black text-white text-xs font-bold py-2 rounded-lg">{t('sell.addEvent', 'Add Event')}</button>
                               <button onClick={() => setShowEventForm(false)} className="px-3 bg-gray-200 text-gray-600 text-xs font-bold rounded-lg">Cancel</button>
                             </div>
                           </div>
@@ -485,7 +488,7 @@ export default function AccountPage() {
                             onClick={() => setShowEventForm(true)}
                             className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline"
                           >
-                            <PlusCircle className="w-3 h-3" /> Add Market/Event
+                            <PlusCircle className="w-3 h-3" /> {t('sell.addEvent', 'Add Market/Event')}
                           </button>
                         )}
                       </div>
@@ -518,7 +521,7 @@ export default function AccountPage() {
             <Link href="/" className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors">
               <ChevronLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-2xl font-black text-[#18284a] uppercase tracking-tight">My Account</h1>
+            <h1 className="text-2xl font-black text-[#18284a] uppercase tracking-tight">{t('account.myAccount', 'My Account')}</h1>
           </div>
           
           <div className="flex items-center gap-4">
@@ -557,11 +560,11 @@ export default function AccountPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex overflow-x-auto no-scrollbar">
             {[
-              { id: 'listings', label: 'Listings', icon: Package, count: myListings.length },
-              { id: 'orders', label: 'Orders', icon: ShoppingBag, count: orders.length },
-              { id: 'favorites', label: 'Saved', icon: Heart, count: favorites.length },
-              { id: 'messages', label: 'Chats', icon: MessageCircle, count: conversations.length },
-              { id: 'deliveries', label: 'Deliveries', icon: Truck, count: deliveryRequests.length + deliveryTasks.length }
+              { id: 'listings', label: t('account.myListings', 'Listings'), icon: Package, count: myListings.length },
+              { id: 'orders', label: t('account.orders', 'Orders'), icon: ShoppingBag, count: orders.length },
+              { id: 'favorites', label: t('account.favorites', 'Saved'), icon: Heart, count: favorites.length },
+              { id: 'messages', label: t('account.messages', 'Chats'), icon: MessageCircle, count: conversations.length },
+              { id: 'deliveries', label: t('account.deliveries', 'Deliveries'), icon: Truck, count: deliveryRequests.length + deliveryTasks.length }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -591,7 +594,7 @@ export default function AccountPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-pulse text-gray-400 font-medium">Loading...</div>
+            <div className="animate-pulse text-gray-400 font-medium">{t('common.loading', 'Loading...')}</div>
           </div>
         ) : (
           <>
@@ -603,8 +606,8 @@ export default function AccountPage() {
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Package className="w-10 h-10 text-gray-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No listings yet</h3>
-                    <p className="text-gray-500 mb-6">Start selling by creating your first listing</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{t('account.noListings', 'No listings yet')}</h3>
+                    <p className="text-gray-500 mb-6">{t('account.startSelling', 'Start selling by creating your first listing')}</p>
                     <Link
                       href="/"
                       className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold px-6 py-3 rounded-full hover:bg-blue-700 transition-colors"
@@ -669,8 +672,8 @@ export default function AccountPage() {
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Heart className="w-10 h-10 text-gray-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No favorites yet</h3>
-                    <p className="text-gray-500">Save listings you like by tapping the heart icon</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{t('account.noFavorites', 'No favorites yet')}</h3>
+                    <p className="text-gray-500">{t('account.saveFavorites', 'Save listings you like to find them later')}</p>
                   </div>
                 ) : (
                   favorites.map(listing => (
@@ -711,8 +714,8 @@ export default function AccountPage() {
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <MessageCircle className="w-10 h-10 text-gray-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No messages yet</h3>
-                    <p className="text-gray-500">Start a conversation by messaging a seller</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{t('account.noMessages', 'No messages yet')}</h3>
+                    <p className="text-gray-500">{t('account.startConversation', 'Start a conversation by messaging a seller')}</p>
                   </div>
                 ) : (
                   conversations.map((conv, idx) => {
@@ -745,7 +748,7 @@ export default function AccountPage() {
                           <div className="flex justify-between items-start mb-1">
                             <h3 className="font-bold text-gray-900 truncate">{conv.listingTitle}</h3>
                             <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                              {new Date(conv.lastMessageAt).toLocaleDateString('es-CR')}
+                              {new Date(conv.lastMessageAt).toLocaleDateString(dateLocale)}
                             </span>
                           </div>
                           <p className="text-sm text-gray-500 mb-1">with {conv.otherPartyName}</p>

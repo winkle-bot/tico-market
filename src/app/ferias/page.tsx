@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Calendar, Users, ChevronLeft, Heart } from 'lucide-react';
 import { SimpleNav } from '@/components/SimpleNav';
+import { useI18n } from '@/context/I18nContext';
 
 interface Feria {
   id: string;
@@ -24,6 +25,7 @@ interface Feria {
 }
 
 export default function FeriasPage() {
+  const { t } = useI18n();
   const [ferias, setFerias] = useState<Feria[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,8 +49,8 @@ export default function FeriasPage() {
               <ChevronLeft className="w-6 h-6" />
             </Link>
             <div>
-              <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Ferias</h1>
-              <p className="text-sm text-gray-500 font-medium">Farmer's markets and local events across Costa Rica</p>
+              <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{t('ferias.title', 'Ferias')}</h1>
+              <p className="text-sm text-gray-500 font-medium">{t('ferias.subtitle', "Farmer's markets and local events across Costa Rica")}</p>
             </div>
           </div>
 
@@ -69,7 +71,7 @@ export default function FeriasPage() {
               <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-10 h-10 text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No ferias listed yet</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{t('ferias.noFerias', 'No ferias listed yet')}</h3>
               <p className="text-gray-500 mb-6">Be the first to add your local feria!</p>
             </div>
           ) : (
@@ -114,7 +116,7 @@ export default function FeriasPage() {
                     )}
                     <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
                       <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" /> {feria.vendor_count} vendors
+                        <Users className="w-3.5 h-3.5" /> {feria.vendor_count} {t('ferias.vendors', 'vendors')}
                       </span>
                       <span className="flex items-center gap-1">
                         <Heart className="w-3.5 h-3.5" /> {feria.follower_count} followers

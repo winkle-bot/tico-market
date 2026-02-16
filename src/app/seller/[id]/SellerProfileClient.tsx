@@ -8,6 +8,7 @@ import { categoryEmojis } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { useListings } from '@/context/ListingsContext';
 import { useToast } from '@/context/ToastContext';
 import ChatModal from '@/components/ChatModal';
@@ -17,6 +18,7 @@ import type { Review, Listing, User } from '@/types';
 
 export default function SellerProfileClient({ sellerId }: { sellerId: string }) {
   const toast = useToast();
+  const { locale } = useI18n();
   const { user } = useAuth();
   const { listings } = useListings();
   const [seller, setSeller] = useState<User | 'not_found' | null>(null);
@@ -230,7 +232,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                     <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-blue-600" />
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-black text-gray-900">{review.buyerName}</span>
-                      <span className="text-xs font-bold text-gray-400 uppercase">{new Date(review.createdAt).toLocaleDateString('es-CR')}</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase">{new Date(review.createdAt).toLocaleDateString(locale === 'es' ? 'es-CR' : 'en-US')}</span>
                     </div>
                     <div className="flex items-center gap-1 text-orange-400 mb-3">
                       {[...Array(5)].map((_, i) => (

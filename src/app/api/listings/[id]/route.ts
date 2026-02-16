@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import type { Listing, FrontendListing } from '@/lib/supabase-types';
+import type { Listing } from '@/lib/supabase-types';
+import { toFrontendListing } from '@/lib/listing-utils';
 import { sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
@@ -44,40 +45,7 @@ export async function GET(
       return ApiResponse.error(error.message, 500);
     }
 
-    // Transform to match frontend format
-    const typedListing = listing as unknown as Listing;
-    let imageUrls: string[] = [];
-    if ((typedListing as any).image_urls && Array.isArray((typedListing as any).image_urls)) {
-      imageUrls = (typedListing as any).image_urls as string[];
-    } else if (typedListing.image_url) {
-      imageUrls = [typedListing.image_url];
-    }
-    const transformed: FrontendListing = {
-      id: typedListing.id,
-      sellerId: typedListing.seller_id,
-      title: typedListing.title,
-      description: typedListing.description,
-      price: typedListing.price,
-      priceCents: (typedListing as any).price_cents ?? null,
-      currency: (typedListing as any).currency ?? 'CRC',
-      category: typedListing.category,
-      location: [typedListing.location_lat, typedListing.location_lng],
-      rating: typedListing.rating,
-      type: typedListing.type,
-      owner: typedListing.owner,
-      imageUrl: typedListing.image_url,
-      imageUrls,
-      condition: (typedListing as any).condition ?? 'good',
-      itemType: (typedListing as any).item_type ?? 'physical',
-      fulfillmentOptions: (typedListing as any).fulfillment_options ?? null,
-      verified: typedListing.verified,
-      moderationStatus: typedListing.moderation_status,
-      privateKey: typedListing.private_key,
-      pickupConfig: typedListing.pickup_config,
-      landmarkDirections: (typedListing as any).landmark_directions ?? null,
-      expiresAt: (typedListing as any).expires_at ?? null,
-      createdAt: typedListing.created_at,
-    };
+    const transformed = toFrontendListing(listing as unknown as Listing);
 
     return ApiResponse.cached(transformed, 30);
   } catch (error) {
@@ -227,39 +195,7 @@ export async function PUT(
       return ApiResponse.error(error.message, 500);
     }
 
-    const typedListing = listing as unknown as Listing;
-    let updatedImageUrls: string[] = [];
-    if ((typedListing as any).image_urls && Array.isArray((typedListing as any).image_urls)) {
-      updatedImageUrls = (typedListing as any).image_urls as string[];
-    } else if (typedListing.image_url) {
-      updatedImageUrls = [typedListing.image_url];
-    }
-    const transformed: FrontendListing = {
-      id: typedListing.id,
-      sellerId: typedListing.seller_id,
-      title: typedListing.title,
-      description: typedListing.description,
-      price: typedListing.price,
-      priceCents: (typedListing as any).price_cents ?? null,
-      currency: (typedListing as any).currency ?? 'CRC',
-      category: typedListing.category,
-      location: [typedListing.location_lat, typedListing.location_lng],
-      rating: typedListing.rating,
-      type: typedListing.type,
-      owner: typedListing.owner,
-      imageUrl: typedListing.image_url,
-      imageUrls: updatedImageUrls,
-      condition: (typedListing as any).condition ?? 'good',
-      itemType: (typedListing as any).item_type ?? 'physical',
-      fulfillmentOptions: (typedListing as any).fulfillment_options ?? null,
-      verified: typedListing.verified,
-      moderationStatus: typedListing.moderation_status,
-      privateKey: typedListing.private_key,
-      pickupConfig: typedListing.pickup_config,
-      landmarkDirections: (typedListing as any).landmark_directions ?? null,
-      expiresAt: (typedListing as any).expires_at ?? null,
-      createdAt: typedListing.created_at,
-    };
+    const transformed = toFrontendListing(listing as unknown as Listing);
 
     return ApiResponse.success(transformed);
   } catch (error) {

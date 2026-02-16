@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, CheckCircle, Clock, Eye } from 'lucide-react';
+import { useI18n } from '@/context/I18nContext';
 import type { DisputeStatus } from '@/types';
 
 interface DisputeCardProps {
@@ -32,6 +33,7 @@ const reasonLabels: Record<string, string> = {
 };
 
 export function DisputeCard({ id, orderId, reason, description, status, createdAt, onView }: DisputeCardProps) {
+  const { locale } = useI18n();
   const config = statusConfig[status] || statusConfig.open;
 
   return (
@@ -51,7 +53,7 @@ export function DisputeCard({ id, orderId, reason, description, status, createdA
       <p className="text-sm text-gray-600 line-clamp-2 mb-2">{description}</p>
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
-          Order: {orderId.slice(0, 8)}... • {new Date(createdAt).toLocaleDateString('es-CR')}
+          Order: {orderId.slice(0, 8)}... • {new Date(createdAt).toLocaleDateString(locale === 'es' ? 'es-CR' : 'en-US')}
         </p>
         {onView && (
           <button

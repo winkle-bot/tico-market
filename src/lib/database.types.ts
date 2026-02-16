@@ -797,6 +797,141 @@ export interface Database {
           updated_at?: string;
         };
       };
+      ferias: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          location_name: string;
+          location_lat: number | null;
+          location_lng: number | null;
+          waze_link: string | null;
+          schedule_text: string | null;
+          schedule_days: string[];
+          start_time: string | null;
+          end_time: string | null;
+          next_date: string | null;
+          organizer_id: string | null;
+          organizer_name: string | null;
+          contact_phone: string | null;
+          contact_email: string | null;
+          cover_image_url: string | null;
+          photos: Json;
+          is_active: boolean;
+          vendor_count: number;
+          follower_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          location_name: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          waze_link?: string | null;
+          schedule_text?: string | null;
+          schedule_days?: string[];
+          start_time?: string | null;
+          end_time?: string | null;
+          next_date?: string | null;
+          organizer_id?: string | null;
+          organizer_name?: string | null;
+          contact_phone?: string | null;
+          contact_email?: string | null;
+          cover_image_url?: string | null;
+          photos?: Json;
+          is_active?: boolean;
+          vendor_count?: number;
+          follower_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
+          waze_link?: string | null;
+          schedule_text?: string | null;
+          schedule_days?: string[];
+          start_time?: string | null;
+          end_time?: string | null;
+          next_date?: string | null;
+          organizer_id?: string | null;
+          organizer_name?: string | null;
+          contact_phone?: string | null;
+          contact_email?: string | null;
+          cover_image_url?: string | null;
+          photos?: Json;
+          is_active?: boolean;
+          vendor_count?: number;
+          follower_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      feria_vendors: {
+        Row: {
+          id: string;
+          feria_id: string;
+          vendor_id: string;
+          display_name: string | null;
+          description: string | null;
+          products_summary: string | null;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          feria_id: string;
+          vendor_id: string;
+          display_name?: string | null;
+          description?: string | null;
+          products_summary?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          feria_id?: string;
+          vendor_id?: string;
+          display_name?: string | null;
+          description?: string | null;
+          products_summary?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      feria_followers: {
+        Row: {
+          id: string;
+          feria_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feria_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          feria_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+      };
       dispute_messages: {
         Row: {
           id: string;

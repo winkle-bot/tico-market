@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Camera, ChevronLeft, CheckCircle2, Truck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import type { DriverVehicleType } from '@/types';
 
@@ -19,6 +20,7 @@ type Step = 'form' | 'capturing' | 'submitting' | 'success';
 export default function DriverApplicationPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -71,7 +73,7 @@ export default function DriverApplicationPage() {
 
   const startCamera = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Camera is not supported in this browser.');
+      setError(t('driverApp.cameraNotSupported', 'Camera is not supported in this browser.'));
       return;
     }
 
@@ -90,7 +92,7 @@ export default function DriverApplicationPage() {
     } catch {
       stopCamera();
       setStep('form');
-      setError('Camera access denied. Please allow camera permissions to take your profile photo.');
+      setError(t('driverApp.cameraAccessDenied', 'Camera access denied. Please allow camera permissions.'));
     } finally {
       setIsCameraStarting(false);
     }
@@ -100,12 +102,12 @@ export default function DriverApplicationPage() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || !isCameraReady) {
-      setError('Camera is not ready yet. Please wait a moment and try again.');
+      setError(t('driverApp.cameraNotReady', 'Camera is not ready yet. Please wait.'));
       return;
     }
 
     if (!video.videoWidth || !video.videoHeight) {
-      setError('Camera feed is unavailable. Please retake your photo.');
+      setError(t('driverApp.cameraUnavailable', 'Camera feed is unavailable. Please retake your photo.'));
       return;
     }
 
@@ -136,7 +138,7 @@ export default function DriverApplicationPage() {
 
   const handleSubmit = async () => {
     if (!fullName.trim() || !vehicleType || !capturedImage) {
-      setError('Please fill all fields and take your profile photo.');
+      setError(t('driverApp.fillAllFields', 'Please fill all fields and take your profile photo.'));
       return;
     }
 
@@ -166,7 +168,7 @@ export default function DriverApplicationPage() {
       setStep('success');
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        setError('Submission timed out. Please try again.');
+        setError(t('driverApp.timeout', 'Submission timed out. Please try again.'));
       } else {
         setError(err instanceof Error ? err.message : 'Something went wrong');
       }
@@ -184,7 +186,7 @@ export default function DriverApplicationPage() {
   }, [stopCamera]);
 
   if (isLoading || !user) {
-    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>;
+    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;
   }
 
   if (step === 'success') {
@@ -194,16 +196,16 @@ export default function DriverApplicationPage() {
           <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h1 className="text-2xl font-black text-[#18284a]">You are now a driver with us!</h1>
+          <h1 className="text-2xl font-black text-[#18284a]">{t('driverApp.success', 'You are now a driver with us!')}</h1>
           <p className="text-[#6780b3]">
-            Start accepting deliveries right away, or get verified for more opportunities.
+            {t('driverApp.successDescription', 'Start accepting deliveries right away, or get verified for more opportunities.')}
           </p>
           <div className="flex flex-col gap-2 pt-2">
             <Link href="/driver-verification" className="tm-btn tm-btn-primary w-full justify-center">
-              Get Verified for More Deliveries
+              {t('driverApp.getVerified', 'Get Verified for More Deliveries')}
             </Link>
             <Link href="/drivers" className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]">
-              Browse Driver Marketplace
+              {t('driverApp.browseMarketplace', 'Browse Driver Marketplace')}
             </Link>
           </div>
         </div>
@@ -219,8 +221,8 @@ export default function DriverApplicationPage() {
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">Driver Onboarding</p>
-            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">Become a Driver</h1>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">{t('driverApp.onboarding', 'Driver Onboarding')}</p>
+            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">{t('driverApp.title', 'Become a Driver')}</h1>
           </div>
         </div>
       </header>
@@ -232,19 +234,19 @@ export default function DriverApplicationPage() {
 
         <section className="bg-white rounded-2xl border border-[#dce5f7] p-5 space-y-4">
           <div>
-            <label className="text-sm text-[#334d80] font-semibold">Full Name</label>
+            <label className="text-sm text-[#334d80] font-semibold">{t('driverApp.fullName', 'Full Name')}</label>
             <input
               type="text"
               className="tm-input mt-1"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your full name"
+              placeholder={t('driverApp.fullNamePlaceholder', 'Your full name')}
               maxLength={100}
             />
           </div>
 
           <div>
-            <label className="text-sm text-[#334d80] font-semibold block mb-2">Vehicle Type</label>
+            <label className="text-sm text-[#334d80] font-semibold block mb-2">{t('driverApp.vehicleType', 'Vehicle Type')}</label>
             <div className="space-y-2">
               {VEHICLE_OPTIONS.map((option) => (
                 <button
@@ -272,9 +274,9 @@ export default function DriverApplicationPage() {
 
         <section className="bg-white rounded-2xl border border-[#dce5f7] p-5 space-y-4">
           <div>
-            <h2 className="text-sm text-[#334d80] font-semibold">Profile Photo (Live Capture)</h2>
+            <h2 className="text-sm text-[#334d80] font-semibold">{t('driverApp.profilePhoto', 'Profile Photo (Live Capture)')}</h2>
             <p className="text-xs text-[#6780b3] mt-1">
-              This becomes your public profile picture and cannot be changed.
+              {t('driverApp.photoNotice', 'This becomes your public profile picture and cannot be changed.')}
             </p>
           </div>
 
@@ -285,7 +287,7 @@ export default function DriverApplicationPage() {
               className="w-full flex items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed border-[#c5d3ef] hover:border-[#1f4fbf] hover:bg-[#f5f8ff] transition-colors text-[#6780b3] hover:text-[#1f4fbf]"
             >
               <Camera className="w-6 h-6" />
-              <span className="font-bold text-sm">Open Camera</span>
+              <span className="font-bold text-sm">{t('driverApp.openCamera', 'Open Camera')}</span>
             </button>
           )}
 
@@ -300,7 +302,7 @@ export default function DriverApplicationPage() {
                 className="w-full rounded-xl border border-[#dce5f7]"
               />
               <p className="text-xs text-[#6780b3]">
-                {isCameraStarting ? 'Starting camera...' : isCameraReady ? 'Camera ready.' : 'Initializing camera...'}
+                {isCameraStarting ? t('driverApp.startingCamera', 'Starting camera...') : isCameraReady ? t('driverApp.cameraReady', 'Camera ready.') : t('driverApp.initCamera', 'Initializing camera...')}
               </p>
               <button
                 type="button"
@@ -308,7 +310,7 @@ export default function DriverApplicationPage() {
                 disabled={!isCameraReady}
                 className="tm-btn tm-btn-primary w-full justify-center"
               >
-                <Camera className="w-4 h-4" /> Take Photo
+                <Camera className="w-4 h-4" /> {t('driverApp.takePhoto', 'Take Photo')}
               </button>
               <button
                 type="button"
@@ -318,7 +320,7 @@ export default function DriverApplicationPage() {
                 }}
                 className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
             </div>
           )}
@@ -335,7 +337,7 @@ export default function DriverApplicationPage() {
                 onClick={retakePhoto}
                 className="text-sm font-bold text-[#1f4fbf] hover:underline"
               >
-                Retake Photo
+                {t('driverApp.retakePhoto', 'Retake Photo')}
               </button>
             </div>
           )}
@@ -349,7 +351,7 @@ export default function DriverApplicationPage() {
           disabled={step === 'submitting' || !fullName.trim() || !vehicleType || !capturedImage}
           className="tm-btn tm-btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {step === 'submitting' ? 'Submitting...' : 'Become a Driver'}
+          {step === 'submitting' ? t('driverApp.submitting', 'Submitting...') : t('driverApp.submit', 'Become a Driver')}
         </button>
       </main>
     </div>

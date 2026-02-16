@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { MapPin, Calendar, Users, ChevronLeft, Heart, ExternalLink, Clock, ShieldCheck, Star } from 'lucide-react';
 import { SimpleNav } from '@/components/SimpleNav';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 
@@ -45,6 +46,7 @@ interface FeriaDetail {
 export default function FeriaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useAuth();
+  const { locale } = useI18n();
   const toast = useToast();
   const [feria, setFeria] = useState<FeriaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -255,7 +257,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
                     <div className="flex justify-between">
                       <span className="text-gray-500">Next Date</span>
                       <span className="font-bold text-gray-900">
-                        {new Date(feria.next_date).toLocaleDateString('es-CR')}
+                        {new Date(feria.next_date).toLocaleDateString(locale === 'es' ? 'es-CR' : 'en-US')}
                       </span>
                     </div>
                   )}

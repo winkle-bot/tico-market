@@ -8,20 +8,20 @@ interface SellBasicFieldsProps {
   setForm: (next: NewListingForm) => void;
 }
 
-const CONDITIONS: { value: ListingCondition; label: string }[] = [
-  { value: 'new', label: 'New' },
-  { value: 'like_new', label: 'Like New' },
-  { value: 'good', label: 'Good' },
-  { value: 'fair', label: 'Fair' },
-  { value: 'for_parts', label: 'For Parts' },
+const CONDITION_KEYS: { value: ListingCondition; key: string }[] = [
+  { value: 'new', key: 'condition.new' },
+  { value: 'like_new', key: 'condition.like_new' },
+  { value: 'good', key: 'condition.good' },
+  { value: 'fair', key: 'condition.fair' },
+  { value: 'for_parts', key: 'condition.for_parts' },
 ];
 
-const ITEM_TYPES: { value: ListingItemType; label: string; emoji: string }[] = [
-  { value: 'physical', label: 'Physical Good', emoji: '📦' },
-  { value: 'food', label: 'Food / Produce', emoji: '🍎' },
-  { value: 'service', label: 'Service', emoji: '🔧' },
-  { value: 'rental', label: 'Rental', emoji: '🔑' },
-  { value: 'free', label: 'Free / Giveaway', emoji: '🎁' },
+const ITEM_TYPE_KEYS: { value: ListingItemType; key: string; emoji: string }[] = [
+  { value: 'physical', key: 'itemType.physical', emoji: '📦' },
+  { value: 'food', key: 'itemType.food', emoji: '🍎' },
+  { value: 'service', key: 'itemType.service', emoji: '🔧' },
+  { value: 'rental', key: 'itemType.rental', emoji: '🔑' },
+  { value: 'free', key: 'itemType.free', emoji: '🎁' },
 ];
 
 export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps) {
@@ -35,7 +35,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
         </label>
         <input
           type="text"
-          placeholder="What are you selling?"
+          placeholder={t('sell.titlePlaceholder', 'What are you selling?')}
           className="tm-input"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -46,10 +46,10 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
       {/* Item Type chips */}
       <div>
         <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-          Item Type
+          {t('sell.itemType', 'Item Type')}
         </label>
         <div className="flex flex-wrap gap-2">
-          {ITEM_TYPES.map((it) => (
+          {ITEM_TYPE_KEYS.map((it) => (
             <button
               key={it.value}
               type="button"
@@ -60,7 +60,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
                   : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
               }`}
             >
-              {it.emoji} {it.label}
+              {it.emoji} {t(it.key)}
             </button>
           ))}
         </div>
@@ -89,7 +89,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
             />
           </div>
           {form.itemType === 'free' && (
-            <p className="text-[10px] text-green-600 font-bold mt-1">Free item - price will show as "Free"</p>
+            <p className="text-[10px] text-green-600 font-bold mt-1">{t('sell.freeItem', 'Free item - price will show as "Free"')}</p>
           )}
           {errors.price && <p className="text-xs text-red-500 font-bold mt-1">{errors.price}</p>}
         </div>
@@ -115,10 +115,10 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
       {form.itemType !== 'service' && form.itemType !== 'food' && (
         <div>
           <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-            Condition
+            {t('sell.condition', 'Condition')}
           </label>
           <div className="flex flex-wrap gap-2">
-            {CONDITIONS.map((c) => (
+            {CONDITION_KEYS.map((c) => (
               <button
                 key={c.value}
                 type="button"
@@ -129,7 +129,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
                     : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
                 }`}
               >
-                {c.label}
+                {t(c.key)}
               </button>
             ))}
           </div>
@@ -141,7 +141,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
           {t('sell.description')}
         </label>
         <textarea
-          placeholder="Describe your item... (Condition, details, etc.)"
+          placeholder={t('sell.descriptionPlaceholder', 'Describe your item... (Condition, details, etc.)')}
           className="tm-input min-h-[100px]"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}

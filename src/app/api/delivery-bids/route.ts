@@ -18,6 +18,13 @@ function toBidResponse(row: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+
+    // Require authentication to view bids
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return ApiResponse.unauthorized('Must be logged in to view bids');
+    }
+
     const { searchParams } = new URL(request.url);
     const driverId = searchParams.get('driverId');
     const deliveryRequestId = searchParams.get('deliveryRequestId');

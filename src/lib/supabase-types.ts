@@ -12,6 +12,9 @@ export type DeliveryRequest = Database['public']['Tables']['delivery_requests'][
 export type DeliveryBid = Database['public']['Tables']['delivery_bids']['Row'];
 export type SinpeConfig = Database['public']['Tables']['sinpe_config']['Row'];
 export type EventDriver = Database['public']['Tables']['event_drivers']['Row'];
+export type Feria = Database['public']['Tables']['ferias']['Row'];
+export type FeriaVendor = Database['public']['Tables']['feria_vendors']['Row'];
+export type FeriaFollower = Database['public']['Tables']['feria_followers']['Row'];
 
 // Joined types
 export type ProfileWithFavorites = Profile & {
@@ -47,6 +50,7 @@ export interface FrontendListing {
   pickupConfig: Database['public']['Tables']['listings']['Row']['pickup_config'];
   landmarkDirections: string | null;
   expiresAt: string | null;
+  lastBumpedAt: string | null;
   createdAt: string;
 }
 

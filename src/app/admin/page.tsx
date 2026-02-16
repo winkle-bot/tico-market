@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { DisputesTab } from '@/components/admin/DisputesTab';
 import type { Report, Dispute } from '@/types';
@@ -27,6 +28,7 @@ type AdminUser = {
 export default function AdminPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { t } = useI18n();
   const [listings, setListings] = useState<AdminListing[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -101,15 +103,15 @@ export default function AdminPage() {
   };
 
   if (isLoading || !user) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">{t('common.loading', 'Loading...')}</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-black text-gray-900 uppercase">Admin Dashboard</h1>
-          <Link href="/account" className="text-blue-600 font-bold hover:underline">Back to account</Link>
+          <h1 className="text-2xl font-black text-gray-900 uppercase">{t('admin.dashboard', 'Admin Dashboard')}</h1>
+          <Link href="/account" className="text-blue-600 font-bold hover:underline">{t('admin.backToAccount', 'Back to account')}</Link>
         </div>
 
         {error && (
@@ -119,13 +121,13 @@ export default function AdminPage() {
         )}
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">Listings Moderation</h2>
+          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">{t('admin.listingsModeration', 'Listings Moderation')}</h2>
           <div className="space-y-2">
             {listings.map((listing) => (
               <div key={listing.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-gray-900 truncate">{listing.title}</p>
-                  <p className="text-xs text-gray-500">Seller: {listing.owner} • {listing.price}</p>
+                  <p className="text-xs text-gray-500">{t('admin.seller', 'Seller')}: {listing.owner} • {listing.price}</p>
                 </div>
                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                   listing.moderationStatus === 'active'
@@ -138,7 +140,7 @@ export default function AdminPage() {
                   onClick={() => updateListingStatus(listing.id, listing.moderationStatus === 'active' ? 'hidden' : 'active')}
                   className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700"
                 >
-                  {listing.moderationStatus === 'active' ? 'Hide' : 'Restore'}
+                  {listing.moderationStatus === 'active' ? t('admin.hide', 'Hide') : t('admin.restore', 'Restore')}
                 </button>
               </div>
             ))}
@@ -146,7 +148,7 @@ export default function AdminPage() {
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">User Roles</h2>
+          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">{t('admin.userRoles', 'User Roles')}</h2>
           <div className="space-y-2">
             {users.map((adminUser) => (
               <div key={adminUser.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
@@ -169,7 +171,7 @@ export default function AdminPage() {
                     adminUser.verified ? 'bg-gray-200 text-gray-700' : 'bg-green-600 text-white'
                   }`}
                 >
-                  {adminUser.verified ? 'Unverify' : 'Verify'}
+                  {adminUser.verified ? t('admin.unverify', 'Unverify') : t('admin.verify', 'Verify')}
                 </button>
               </div>
             ))}
@@ -177,12 +179,12 @@ export default function AdminPage() {
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">Disputes</h2>
+          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">{t('disputes.title', 'Disputes')}</h2>
           <DisputesTab disputes={disputes} onUpdate={loadData} />
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">Reports</h2>
+          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">{t('admin.reports', 'Reports')}</h2>
           <div className="space-y-2">
             {reports.map((report) => (
               <div key={report.id} className="p-3 rounded-xl bg-gray-50">
@@ -199,19 +201,19 @@ export default function AdminPage() {
                     onClick={() => updateReportStatus(report.id, 'resolved')}
                     className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold"
                   >
-                    Resolve
+                    {t('admin.resolve', 'Resolve')}
                   </button>
                   <button
                     onClick={() => updateReportStatus(report.id, 'dismissed')}
                     className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-xs font-bold"
                   >
-                    Dismiss
+                    {t('admin.dismiss', 'Dismiss')}
                   </button>
                   <button
                     onClick={() => updateReportStatus(report.id, 'open')}
                     className="px-3 py-1.5 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold"
                   >
-                    Reopen
+                    {t('admin.reopen', 'Reopen')}
                   </button>
                 </div>
               </div>

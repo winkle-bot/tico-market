@@ -27,6 +27,27 @@ export async function GET(
 
     if (error || !dispute) return ApiResponse.error('Dispute not found', 404);
 
+    // Verify user is a participant (buyer, seller, or admin)
+    const { data: orderCheck } = await (supabase
+      .from('orders') as any)
+      .select('buyer_id, seller_id')
+      .eq('id', dispute.order_id)
+      .single();
+
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+    const isParticipant = orderCheck &&
+      (orderCheck.buyer_id === user.id || orderCheck.seller_id === user.id);
+
+    if (!isAdmin && !isParticipant) {
+      return ApiResponse.forbidden('Not authorized to view this dispute');
+    }
+
     // Fetch messages
     const { data: messages } = await (supabase
       .from('dispute_messages') as any)

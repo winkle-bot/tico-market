@@ -8,6 +8,7 @@ import { QuickDeliveryForm } from '@/components/delivery/QuickDeliveryForm';
 import { ScheduledDeliveryForm } from '@/components/delivery/ScheduledDeliveryForm';
 import { DeliveryHero } from '@/components/delivery/DeliveryHero';
 import { EmptyDeliveryState } from '@/components/delivery/EmptyDeliveryState';
+import { useI18n } from '@/context/I18nContext';
 import type { DriverProfile } from '@/types';
 
 type DeliveryTab = 'quick' | 'schedule' | 'tasks';
@@ -69,6 +70,7 @@ function AnimatedDriverCard({ driver, index }: { driver: DriverProfile; index: n
 }
 
 export default function DeliveryPage() {
+  const { t } = useI18n();
   const [tab, setTab] = useState<DeliveryTab>('quick');
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(true);
@@ -92,9 +94,9 @@ export default function DeliveryPage() {
   }, []);
 
   const tabs: Array<{ id: DeliveryTab; label: string; icon: typeof Truck }> = [
-    { id: 'quick', label: 'Quick Delivery', icon: Truck },
-    { id: 'schedule', label: 'Schedule', icon: Clock3 },
-    { id: 'tasks', label: 'Browse Tasks', icon: Truck },
+    { id: 'quick', label: t('delivery.quickDelivery', 'Quick Delivery'), icon: Truck },
+    { id: 'schedule', label: t('delivery.schedule', 'Schedule'), icon: Clock3 },
+    { id: 'tasks', label: t('delivery.browseTasks', 'Browse Tasks'), icon: Truck },
   ];
 
   const onlineDrivers = useMemo(() => drivers.filter((driver) => driver.isOnline), [drivers]);
@@ -107,8 +109,8 @@ export default function DeliveryPage() {
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">Operations</p>
-            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">Delivery Desk</h1>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">{t('delivery.operations', 'Operations')}</p>
+            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">{t('delivery.desk', 'Delivery Desk')}</h1>
           </div>
         </div>
       </header>
@@ -150,8 +152,8 @@ export default function DeliveryPage() {
                   </div>
                 ) : onlineDrivers.length === 0 ? (
                   <EmptyDeliveryState
-                    title="No drivers online right now"
-                    description="You can still create a task and drivers will bid as they come online."
+                    title={t('delivery.noDriversOnline', 'No drivers online right now')}
+                    description={t('delivery.canStillCreate', 'You can still create a task and drivers will bid as they come online.')}
                   />
                 ) : (
                   <QuickDeliveryForm drivers={onlineDrivers} />
@@ -167,7 +169,7 @@ export default function DeliveryPage() {
                   Open delivery tasks are listed on the marketplace page where drivers can submit bids.
                 </p>
                 <Link href="/delivery/tasks" className="tm-btn tm-btn-primary inline-flex">
-                  Open Task Marketplace
+                  {t('delivery.openTaskMarketplace', 'Open Task Marketplace')}
                 </Link>
               </div>
             )}
@@ -175,9 +177,9 @@ export default function DeliveryPage() {
 
           <aside className="space-y-3 rounded-2xl border border-[#dce5f7] bg-white p-4 sm:p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black uppercase tracking-wider text-[#335186]">Available Drivers</h2>
+              <h2 className="text-sm font-black uppercase tracking-wider text-[#335186]">{t('delivery.availableDrivers', 'Available Drivers')}</h2>
               <span className="rounded-full bg-[#edf2ff] px-2 py-1 text-[11px] font-bold text-[#355a9a]">
-                {loadingDrivers ? 'Loading...' : `${onlineDrivers.length} online`}
+                {loadingDrivers ? t('common.loading', 'Loading...') : `${onlineDrivers.length} online`}
               </span>
             </div>
 
@@ -188,8 +190,8 @@ export default function DeliveryPage() {
               </div>
             ) : onlineDrivers.length === 0 ? (
               <EmptyDeliveryState
-                title="No active drivers"
-                description="Try again in a few minutes or switch to scheduled delivery to set a window."
+                title={t('delivery.noActiveDrivers', 'No active drivers')}
+                description={t('delivery.tryAgainLater', 'Try again in a few minutes or switch to scheduled delivery to set a window.')}
                 actionHref="/delivery"
                 actionLabel="Refresh Delivery"
               />
@@ -210,7 +212,7 @@ export default function DeliveryPage() {
                 <UserCheck className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-base font-black uppercase tracking-wide">Become a Driver</h2>
+                <h2 className="text-base font-black uppercase tracking-wide">{t('delivery.becomeDriver', 'Become a Driver')}</h2>
                 <p className="mt-1 text-sm text-white/80">Join our delivery network and earn money on your schedule.</p>
               </div>
             </div>

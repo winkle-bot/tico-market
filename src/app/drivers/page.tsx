@@ -6,16 +6,10 @@ import { ChevronLeft, Truck, UserPlus } from 'lucide-react';
 import { DriverProfileCard } from '@/components/drivers/DriverProfileCard';
 import { DriversMap } from '@/components/drivers/DriversMap';
 import type { DriverProfile, VehicleType } from '@/types';
-
-const VEHICLE_OPTIONS: Array<{ label: string; value: VehicleType | 'all' }> = [
-  { label: 'All Vehicles', value: 'all' },
-  { label: 'Motorcycle', value: 'motorcycle' },
-  { label: 'Car', value: 'car' },
-  { label: 'Bike', value: 'bike' },
-  { label: 'Walker', value: 'walker' },
-];
+import { useI18n } from '@/context/I18nContext';
 
 export default function DriversPage() {
+  const { t } = useI18n();
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [vehicleFilter, setVehicleFilter] = useState<VehicleType | 'all'>('all');
@@ -62,8 +56,8 @@ export default function DriversPage() {
               <ChevronLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-black text-[#18284a] uppercase tracking-tight">Delivery Drivers</h1>
-              <p className="text-sm text-[#6780b3]">Discover nearby drivers and request delivery.</p>
+              <h1 className="text-2xl font-black text-[#18284a] uppercase tracking-tight">{t('drivers.title', 'Delivery Drivers')}</h1>
+              <p className="text-sm text-[#6780b3]">{t('drivers.subtitle', 'Discover nearby drivers and request delivery')}</p>
             </div>
           </div>
 
@@ -79,22 +73,22 @@ export default function DriversPage() {
         <section className="bg-white rounded-2xl border border-[#dce5f7] p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="text-sm text-[#334d80] font-semibold">
-              Vehicle Type
+              {t('drivers.vehicleType', 'Vehicle Type')}
               <select
                 className="tm-input mt-1"
                 value={vehicleFilter}
                 onChange={(e) => setVehicleFilter(e.target.value as VehicleType | 'all')}
               >
-                {VEHICLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <option value="all">{t('drivers.allVehicles', 'All Vehicles')}</option>
+                <option value="motorcycle">Motorcycle</option>
+                <option value="car">Car</option>
+                <option value="bike">Bike</option>
+                <option value="walker">Walker</option>
               </select>
             </label>
 
             <label className="text-sm text-[#334d80] font-semibold">
-              Specialty
+              {t('drivers.specialty', 'Specialty')}
               <select
                 className="tm-input mt-1"
                 value={specialtyFilter}
@@ -102,7 +96,7 @@ export default function DriversPage() {
               >
                 {allSpecialties.map((specialty) => (
                   <option key={specialty} value={specialty}>
-                    {specialty === 'all' ? 'All Specialties' : specialty}
+                    {specialty === 'all' ? t('drivers.allSpecialties', 'All Specialties') : specialty}
                   </option>
                 ))}
               </select>
@@ -116,7 +110,7 @@ export default function DriversPage() {
           ) : filteredDrivers.length === 0 ? (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-[#dce5f7] p-8 text-center text-[#6780b3]">
-                No drivers match your filters right now.
+                {t('drivers.noDrivers', 'No drivers match your filters right now')}
               </div>
               <div className="rounded-2xl border border-[#dce5f7] bg-gradient-to-br from-[#1f4fbf] to-[#1a3d9e] p-5 text-white">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

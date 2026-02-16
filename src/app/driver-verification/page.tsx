@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, ShieldCheck, Upload, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 
 type VerificationState = 'loading' | 'not-driver' | 'upload' | 'pending' | 'approved' | 'rejected';
@@ -12,6 +13,7 @@ type VerificationState = 'loading' | 'not-driver' | 'upload' | 'pending' | 'appr
 export default function DriverVerificationPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { t } = useI18n();
   const [state, setState] = useState<VerificationState>('loading');
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -147,7 +149,7 @@ export default function DriverVerificationPage() {
   }, [preview]);
 
   if (isLoading || !user) {
-    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading...</div>;
+    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;
   }
 
   return (
@@ -158,8 +160,8 @@ export default function DriverVerificationPage() {
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">Driver Verification</p>
-            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">Get Verified</h1>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#7690bd]">{t('driverVerify.title', 'Driver Verification')}</p>
+            <h1 className="text-xl font-black text-[#18284a] sm:text-2xl">{t('driverVerify.heading', 'Get Verified')}</h1>
           </div>
         </div>
       </header>
@@ -172,8 +174,8 @@ export default function DriverVerificationPage() {
         {state === 'not-driver' && (
           <div className="bg-white rounded-2xl border border-[#dce5f7] p-6 text-center space-y-4">
             <ShieldCheck className="w-12 h-12 text-[#6780b3] mx-auto" />
-            <h2 className="text-lg font-black text-[#18284a]">Become a Driver First</h2>
-            <p className="text-sm text-[#6780b3]">You need to register as a driver before getting verified.</p>
+            <h2 className="text-lg font-black text-[#18284a]">{t('driverVerify.becomeFirst', 'Become a Driver First')}</h2>
+            <p className="text-sm text-[#6780b3]">{t('driverVerify.needRegister', 'You need to register as a driver before you can get verified.')}</p>
             <button
               type="button"
               onClick={() => {
@@ -183,10 +185,10 @@ export default function DriverVerificationPage() {
               }}
               className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]"
             >
-              Retry Status Check
+              {t('driverVerify.retryStatus', 'Retry Status Check')}
             </button>
             <Link href="/driver-application" className="tm-btn tm-btn-primary inline-flex">
-              Become a Driver
+              {t('driverVerify.becomeDriver', 'Become a Driver')}
             </Link>
           </div>
         )}
@@ -198,7 +200,7 @@ export default function DriverVerificationPage() {
                 <ShieldCheck className="w-5 h-5 text-[#1f4fbf]" />
               </div>
               <div>
-                <h2 className="font-bold text-[#18284a]">Get Verified for More Deliveries</h2>
+                <h2 className="font-bold text-[#18284a]">{t('driverVerify.moreDeliveries', 'Get Verified for More Deliveries')}</h2>
                 <p className="text-xs text-[#6780b3]">Verified drivers are prioritized for auto-assigned deliveries.</p>
               </div>
             </div>

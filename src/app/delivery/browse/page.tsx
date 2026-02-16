@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, LocateFixed, Navigation, RefreshCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { wazeLink } from '@/lib/format';
 
@@ -73,6 +74,7 @@ function isCompatibleVehicle(
 
 export default function DeliveryBrowsePage() {
   const { user, isLoading } = useAuth();
+  const { t } = useI18n();
 
   const [driver, setDriver] = useState<DriverMe | null>(null);
   const [requests, setRequests] = useState<DeliveryRequestItem[]>([]);
@@ -189,7 +191,7 @@ export default function DeliveryBrowsePage() {
   }, []);
 
   if (isLoading || (user && loading)) {
-    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">Loading deliveries...</div>;
+    return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;
   }
 
   if (!user) {
@@ -213,7 +215,7 @@ export default function DeliveryBrowsePage() {
         <main className="tm-shell py-8">
           <div className="rounded-2xl border border-[#dce5f7] bg-white p-6 text-center space-y-3">
             <p className="text-[#334d80] font-semibold">You need a driver profile to claim deliveries.</p>
-            <Link href="/driver-application" className="tm-btn tm-btn-primary">Become a Driver</Link>
+            <Link href="/driver-application" className="tm-btn tm-btn-primary">{t('delivery.becomeDriver', 'Become a Driver')}</Link>
           </div>
         </main>
       </div>

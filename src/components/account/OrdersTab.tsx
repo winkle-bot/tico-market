@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, XCircle, Zap } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { useI18n } from '@/context/I18nContext';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
 import type { DeliveryMeta, Order, Review } from '@/types';
 
@@ -22,6 +23,8 @@ export function OrdersTab({
   onStatusChange: () => void;
 }) {
   const toast = useToast();
+  const { locale } = useI18n();
+  const dateLocale = locale === 'es' ? 'es-CR' : 'en-US';
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
@@ -168,7 +171,7 @@ export function OrdersTab({
                 <div className="flex items-center gap-2 mb-1">
                   {getStatusBadge(order.status)}
                   <span className="text-xs text-gray-400">
-                    {new Date(order.createdAt).toLocaleDateString('es-CR')}
+                    {new Date(order.createdAt).toLocaleDateString(dateLocale)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
