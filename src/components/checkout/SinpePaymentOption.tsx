@@ -1,4 +1,5 @@
 import { Banknote } from 'lucide-react';
+import { useI18n } from '@/context/I18nContext';
 import type { CheckoutPaymentMethod, SinpeConfig } from '@/types';
 
 interface SinpePaymentOptionProps {
@@ -22,13 +23,14 @@ export function SinpePaymentOption({
   onSenderPhoneChange,
   orderType,
 }: SinpePaymentOptionProps) {
+  const { t } = useI18n();
   const sinpeAvailable = Boolean(sinpeConfig?.isEnabled);
   // Cash on delivery is available for pickup and delivery orders
   const cashAvailable = true;
 
   return (
     <div className="space-y-3 rounded-2xl border border-[#dce5f7] bg-white p-4">
-      <h4 className="text-xs font-black uppercase tracking-wider text-[#7d91b8]">Payment Method</h4>
+      <h4 className="text-xs font-black uppercase tracking-wider text-[#7d91b8]">{t('checkout.paymentMethod', 'Payment Method')}</h4>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
@@ -38,8 +40,8 @@ export function SinpePaymentOption({
             paymentMethod === 'card' ? 'border-blue-500 bg-blue-50' : 'border-[#dce5f7] bg-white'
           }`}
         >
-          <p className="text-sm font-black text-[#1f3561]">Card (Stripe)</p>
-          <p className="text-xs text-[#6881b1]">Instant confirmation</p>
+          <p className="text-sm font-black text-[#1f3561]">{t('checkout.cardStripe', 'Card (Stripe)')}</p>
+          <p className="text-xs text-[#6881b1]">{t('checkout.instantConfirmation', 'Instant confirmation')}</p>
         </button>
 
         <button
@@ -52,8 +54,8 @@ export function SinpePaymentOption({
               : 'border-[#dce5f7] bg-white'
           } ${!sinpeAvailable ? 'cursor-not-allowed opacity-60' : ''}`}
         >
-          <p className="text-sm font-black text-[#1f3561]">SINPE Movil</p>
-          <p className="text-xs text-[#6881b1]">Bank transfer</p>
+          <p className="text-sm font-black text-[#1f3561]">{t('checkout.sinpeMovil', 'SINPE Movil')}</p>
+          <p className="text-xs text-[#6881b1]">{t('checkout.bankTransfer', 'Bank transfer')}</p>
         </button>
 
         <button
@@ -67,10 +69,10 @@ export function SinpePaymentOption({
           }`}
         >
           <p className="text-sm font-black text-[#1f3561] flex items-center gap-1">
-            <Banknote className="w-4 h-4" /> Cash
+            <Banknote className="w-4 h-4" /> {t('checkout.cash', 'Cash')}
           </p>
           <p className="text-xs text-[#6881b1]">
-            {orderType === 'delivery' ? 'Pay on delivery' : 'Pay at pickup'}
+            {orderType === 'delivery' ? t('checkout.payOnDelivery', 'Pay on delivery') : t('checkout.payAtPickup', 'Pay at pickup')}
           </p>
         </button>
       </div>
@@ -79,23 +81,23 @@ export function SinpePaymentOption({
         <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
           <div className="text-sm">
             <p className="font-black text-[#1f3561]">{sinpeConfig.label}</p>
-            <p className="text-[#3e5c8f]">Phone: {sinpeConfig.phoneNumber}</p>
-            <p className="text-[#3e5c8f]">Account: {sinpeConfig.accountHolder}</p>
+            <p className="text-[#3e5c8f]">{t('checkout.phone', 'Phone')}: {sinpeConfig.phoneNumber}</p>
+            <p className="text-[#3e5c8f]">{t('checkout.account', 'Account')}: {sinpeConfig.accountHolder}</p>
             {sinpeConfig.instructions && <p className="mt-1 text-xs text-[#4a6798]">{sinpeConfig.instructions}</p>}
           </div>
 
           <label className="block text-[11px] font-black uppercase tracking-wider text-[#56749f]">
-            SINPE Reference *
+            {t('checkout.sinpeReference', 'SINPE Reference')} *
             <input
               className="tm-input mt-1"
-              placeholder="Transfer reference / comprobante"
+              placeholder={t('checkout.sinpeReferencePlaceholder', 'Transfer reference / comprobante')}
               value={sinpeReference}
               onChange={(e) => onSinpeReferenceChange(e.target.value)}
             />
           </label>
 
           <label className="block text-[11px] font-black uppercase tracking-wider text-[#56749f]">
-            Sender Phone (optional)
+            {t('checkout.senderPhone', 'Sender Phone (optional)')}
             <input
               className="tm-input mt-1"
               placeholder="8888-8888"
@@ -110,8 +112,8 @@ export function SinpePaymentOption({
         <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
           <p className="text-sm font-bold text-amber-800">
             {orderType === 'delivery'
-              ? 'Pay the driver in cash when your order arrives. Please have exact change ready.'
-              : 'Pay the seller in cash when you pick up the item.'}
+              ? t('checkout.cashDeliveryNote', 'Pay the driver in cash when your order arrives. Please have exact change ready.')
+              : t('checkout.cashPickupNote', 'Pay the seller in cash when you pick up the item.')}
           </p>
         </div>
       )}

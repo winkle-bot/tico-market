@@ -40,9 +40,9 @@ export function CheckoutDeliveryStep({
           }`}
         >
           <p className="text-xs font-black uppercase tracking-wider text-blue-600 flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5" /> Fastest
+            <Zap className="w-3.5 h-3.5" /> {t('checkout.fastest', 'Fastest')}
           </p>
-          <p className="font-bold text-[#18284a] text-sm">Express Now</p>
+          <p className="font-bold text-[#18284a] text-sm">{t('checkout.expressNow', 'Express Now')}</p>
         </button>
         <button
           type="button"
@@ -51,8 +51,8 @@ export function CheckoutDeliveryStep({
             deliveryMode === 'scheduled' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
           }`}
         >
-          <p className="text-xs font-black uppercase tracking-wider text-[#6f83ad]">Flexible</p>
-          <p className="font-bold text-[#18284a] text-sm">Schedule Window</p>
+          <p className="text-xs font-black uppercase tracking-wider text-[#6f83ad]">{t('checkout.flexible', 'Flexible')}</p>
+          <p className="font-bold text-[#18284a] text-sm">{t('checkout.scheduleWindow', 'Schedule Window')}</p>
         </button>
       </div>
 
@@ -62,7 +62,7 @@ export function CheckoutDeliveryStep({
         </label>
         <input
           type="text"
-          placeholder="District, landmarks, house/apartment"
+          placeholder={t('checkout.addressPlaceholder', 'District, landmarks, house/apartment')}
           className="tm-input"
           value={deliveryAddress}
           onChange={(e) => setDeliveryAddress(e.target.value)}
@@ -76,7 +76,7 @@ export function CheckoutDeliveryStep({
           </label>
           <input
             type="text"
-            placeholder="e.g. Today 6:00-8:00pm"
+            placeholder={t('checkout.windowPlaceholder', 'e.g. Today 6:00-8:00pm')}
             className="tm-input"
             value={scheduledWindow}
             onChange={(e) => setScheduledWindow(e.target.value)}
@@ -87,7 +87,7 @@ export function CheckoutDeliveryStep({
       {deliveryMode === 'express' && driverOptions.length > 0 && (
         <div className="pt-2">
           <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-            Available Express Drivers
+            {t('checkout.availableExpressDrivers', 'Available Express Drivers')}
           </label>
           <div className="space-y-2">
             {driverOptions.map((driver, index) => (
@@ -108,7 +108,7 @@ export function CheckoutDeliveryStep({
                     <span>{driver.name}</span>
                     {index === 0 && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 uppercase tracking-wider">
-                        Best match
+                        {t('checkout.bestMatch', 'Best match')}
                       </span>
                     )}
                   </p>

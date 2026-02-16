@@ -214,7 +214,9 @@ export default function Home() {
         <div className="bg-white/90 backdrop-blur-lg border-b border-[#dce5f7] px-4 py-3">
           <div className="tm-shell flex items-center justify-between gap-3">
             <p className="text-sm text-[#6780b3] font-semibold">
-              {pagination.total} listing{pagination.total === 1 ? '' : 's'} found
+              {pagination.total === 1
+                ? t('home.listingsFoundSingular', '1 listing found')
+                : t('home.listingsFoundPlural', `${pagination.total} listings found`).replace('{count}', String(pagination.total))}
             </p>
             <select
               value={sort}
@@ -222,9 +224,9 @@ export default function Home() {
               className="tm-input w-auto min-h-10 text-sm"
               aria-label="Sort listings"
             >
-              <option value="newest">Newest</option>
-              <option value="price_asc">Price: Low to high</option>
-              <option value="price_desc">Price: High to low</option>
+              <option value="newest">{t('home.sortNewest', 'Newest')}</option>
+              <option value="price_asc">{t('home.sortPriceAsc', 'Price: Low to high')}</option>
+              <option value="price_desc">{t('home.sortPriceDesc', 'Price: High to low')}</option>
             </select>
           </div>
         </div>
@@ -290,17 +292,17 @@ export default function Home() {
                         disabled={!pagination.hasPrevPage}
                         className="tm-btn tm-btn-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Previous
+                        {t('home.previous', 'Previous')}
                       </button>
                       <span className="text-sm text-[#6e84b1] font-semibold px-2">
-                        Page {pagination.page} of {Math.max(1, pagination.totalPages)}
+                        {t('home.pageOf', `Page ${pagination.page} of ${Math.max(1, pagination.totalPages)}`).replace('{current}', String(pagination.page)).replace('{total}', String(Math.max(1, pagination.totalPages)))}
                       </span>
                       <button
                         onClick={() => setPage((prev) => prev + 1)}
                         disabled={!pagination.hasNextPage}
                         className="tm-btn tm-btn-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Next
+                        {t('home.next', 'Next')}
                       </button>
                     </div>
                   </>
@@ -343,27 +345,29 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ searchQuery, hasFilters, onClearFilters, error }: EmptyStateProps) {
+  const { t } = useI18n();
+
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
       <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
         <Search className="w-10 h-10 text-gray-300" />
       </div>
       <h3 className="text-xl font-bold text-gray-900 mb-2">
-        {error ? 'Unable to load listings' : 'No listings found'}
+        {error ? t('home.unableToLoad', 'Unable to load listings') : t('home.noListingsFound', 'No listings found')}
       </h3>
       <p className="text-gray-500 font-medium max-w-md">
         {error
           ? error
           : searchQuery
-          ? `No results for "${searchQuery}"`
-          : 'No listings match the selected filters'}
+          ? t('home.noResultsFor', `No results for "${searchQuery}"`).replace('{query}', searchQuery)
+          : t('home.noListingsMatchFilters', 'No listings match the selected filters')}
       </p>
       {hasFilters && !error && (
         <button
           onClick={onClearFilters}
           className="mt-4 px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition-colors"
         >
-          Clear Filters
+          {t('home.clearFilters', 'Clear Filters')}
         </button>
       )}
     </div>

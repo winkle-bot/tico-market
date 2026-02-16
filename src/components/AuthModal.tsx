@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_BACKDROP_VARIANTS } from '@/config/constants';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/I18nContext';
 import type { AuthFormState } from '@/types';
 
 interface AuthModalProps {
@@ -24,6 +25,7 @@ export function AuthModal({
   onFormChange,
 }: AuthModalProps) {
   const { login, signup, requestPasswordReset } = useAuth();
+  const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -55,9 +57,9 @@ export function AuthModal({
     setError(null);
     // Basic validation
     const newErrors: { [key: string]: string } = {};
-    if (!formState.email.includes('@')) newErrors['email'] = 'Invalid email';
-    if (formState.password.length < 6) newErrors['password'] = 'Password too short (min 6 chars)';
-    if (mode === 'signup' && !formState.name.trim()) newErrors['name'] = 'Name required';
+    if (!formState.email.includes('@')) newErrors['email'] = t('auth.invalidEmail', 'Invalid email');
+    if (formState.password.length < 6) newErrors['password'] = t('auth.passwordTooShort', 'Password too short (min 6 chars)');
+    if (mode === 'signup' && !formState.name.trim()) newErrors['name'] = t('auth.nameRequired', 'Name required');
 
     if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
@@ -86,9 +88,9 @@ export function AuthModal({
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'Request timeout') {
-        setError('Login is taking too long. Please try again.');
+        setError(t('auth.timeout', 'Login is taking too long. Please try again.'));
       } else {
-        setError('Network error. Please try again.');
+        setError(t('auth.networkError', 'Network error. Please try again.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -102,7 +104,7 @@ export function AuthModal({
 
     const email = formState.email.trim();
     if (!email || !email.includes('@')) {
-      setFieldErrors({ email: 'Enter your account email first' });
+      setFieldErrors({ email: t('auth.enterEmailFirst', 'Enter your account email first') });
       return;
     }
 
@@ -116,9 +118,9 @@ export function AuthModal({
       setPasswordResetSent(true);
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'Request timeout') {
-        setError('Request timed out. Please try again.');
+        setError(t('auth.requestTimeout', 'Request timed out. Please try again.'));
       } else {
-        setError('Network error. Please try again.');
+        setError(t('auth.networkError', 'Network error. Please try again.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -128,7 +130,7 @@ export function AuthModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? t('auth.signIn', 'Sign in') : t('auth.createAccount', 'Create account')}>
           <motion.div
             {...MODAL_BACKDROP_VARIANTS}
             onClick={onClose}
@@ -141,7 +143,7 @@ export function AuthModal({
             className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#dce5f7]"
           >
             <h2 className="text-2xl font-black text-[#18284a] uppercase mb-6">
-              {(emailSent || passwordResetSent) ? 'Check Your Email' : mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              {(emailSent || passwordResetSent) ? t('auth.checkYourEmail', 'Check Your Email') : mode === 'login' ? t('auth.welcomeBack', 'Welcome Back') : t('auth.createAccount', 'Create Account')}
             </h2>
             {(emailSent || passwordResetSent) ? (
               <div className="text-center space-y-4">
@@ -152,13 +154,13 @@ export function AuthModal({
                 </div>
                 <p className="text-[#465f91]">
                   {passwordResetSent
-                    ? <>We sent a password reset link to <span className="font-bold text-[#18284a]">{formState.email}</span></>
-                    : <>We sent a confirmation link to <span className="font-bold text-[#18284a]">{formState.email}</span></>}
+                    ? <>{t('auth.passwordResetLinkSent', 'We sent a password reset link to')} <span className="font-bold text-[#18284a]">{formState.email}</span></>
+                    : <>{t('auth.confirmationLinkSent', 'We sent a confirmation link to')} <span className="font-bold text-[#18284a]">{formState.email}</span></>}
                 </p>
                 <p className="text-sm text-[#7d91b8]">
                   {passwordResetSent
-                    ? 'Open the link in that email to choose a new password.'
-                    : 'Click the link in the email to verify your account and log in.'}
+                    ? t('auth.openResetLink', 'Open the link in that email to choose a new password.')
+                    : t('auth.clickConfirmLink', 'Click the link in the email to verify your account and log in.')}
                 </p>
                 <button
                   onClick={() => {
@@ -169,18 +171,18 @@ export function AuthModal({
                   }}
                   className="w-full tm-btn tm-btn-muted mt-4"
                 >
-                  Got it
+                  {t('auth.gotIt', 'Got it')}
                 </button>
               </div>
             ) : (
             <div className="space-y-4">
               {mode === 'signup' && (
                 <div key="name-field">
-                  <label htmlFor="auth-name" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Full Name</label>
+                  <label htmlFor="auth-name" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">{t('auth.name', 'Full Name')}</label>
                   <input
                     id="auth-name"
                     type="text"
-                    placeholder="Full Name"
+                    placeholder={t('auth.name', 'Full Name')}
                     className={`tm-input ${
                       fieldErrors.name ? 'border-red-500' : ''
                     }`}
@@ -195,11 +197,11 @@ export function AuthModal({
                 </div>
               )}
               <div>
-                <label htmlFor="auth-email" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Email Address</label>
+                <label htmlFor="auth-email" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">{t('auth.emailAddress', 'Email Address')}</label>
                 <input
                   id="auth-email"
                   type="email"
-                  placeholder="Email Address"
+                  placeholder={t('auth.emailAddress', 'Email Address')}
                   className={`tm-input ${
                     fieldErrors.email ? 'border-red-500' : ''
                   }`}
@@ -213,11 +215,11 @@ export function AuthModal({
                 )}
               </div>
               <div>
-                <label htmlFor="auth-password" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">Password</label>
+                <label htmlFor="auth-password" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">{t('auth.password', 'Password')}</label>
                 <input
                   id="auth-password"
                   type="password"
-                  placeholder="Password"
+                  placeholder={t('auth.password', 'Password')}
                   className={`tm-input ${
                     fieldErrors.password ? 'border-red-500' : ''
                   }`}
@@ -236,7 +238,7 @@ export function AuthModal({
                   disabled={isSubmitting}
                   className="text-sm text-blue-700 font-bold hover:underline disabled:text-blue-300 min-h-10"
                 >
-                  Forgot your password?
+                  {t('auth.forgotYourPassword', 'Forgot your password?')}
                 </button>
               )}
               {error && (
@@ -249,19 +251,19 @@ export function AuthModal({
                 disabled={isSubmitting}
                 className="w-full tm-btn tm-btn-primary disabled:opacity-70"
               >
-                {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Login' : 'Sign Up'}
+                {isSubmitting ? t('auth.pleaseWait', 'Please wait...') : mode === 'login' ? t('auth.login', 'Login') : t('auth.signup', 'Sign Up')}
               </button>
               <p className="text-center text-sm font-bold text-[#7d91b8]">
                 {mode === 'login'
-                  ? "Don't have an account?"
-                  : 'Already have an account?'}
+                  ? t('auth.noAccount', "Don't have an account?")
+                  : t('auth.hasAccount', 'Already have an account?')}
                 <button
                   onClick={() =>
                     onModeChange(mode === 'login' ? 'signup' : 'login')
                   }
                   className="text-blue-700 ml-1 min-h-10"
                 >
-                  {mode === 'login' ? 'Sign Up' : 'Login'}
+                  {mode === 'login' ? t('auth.signup', 'Sign Up') : t('auth.login', 'Login')}
                 </button>
               </p>
             </div>

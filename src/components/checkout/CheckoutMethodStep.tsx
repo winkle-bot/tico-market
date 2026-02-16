@@ -40,7 +40,7 @@ export function CheckoutMethodStep({
         <div className="min-w-0">
           <h3 className="font-bold text-[#18284a] truncate">{listing.title}</h3>
           <p className="text-blue-600 font-black text-lg">{listing.price}</p>
-          <p className="text-xs text-gray-500">Sold by {listing.owner}</p>
+          <p className="text-xs text-gray-500">{t('checkout.soldBy', 'Sold by')} {listing.owner}</p>
         </div>
       </div>
 
@@ -80,8 +80,8 @@ export function CheckoutMethodStep({
               <span className="text-green-600 font-black">{t('checkout.free')}</span>
             </div>
             <p className="text-sm text-[#6f83ad]">
-              {marketEventsCount > 0 ? `${marketEventsCount} event(s), ` : ''}
-              {pickupLocationsCount} location{pickupLocationsCount !== 1 ? 's' : ''} available
+              {marketEventsCount > 0 ? `${marketEventsCount} ${t('checkout.events', 'event(s)')}, ` : ''}
+              {pickupLocationsCount} {pickupLocationsCount !== 1 ? t('checkout.locationsAvailable', 'locations available') : t('checkout.locationAvailable', 'location available')}
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-green-500" />
@@ -90,13 +90,13 @@ export function CheckoutMethodStep({
 
       {!deliveryAvailable && !pickupAvailable && (
         <div className="text-center py-8 text-gray-500">
-          <p className="font-medium">Contact seller to arrange pickup or delivery</p>
+          <p className="font-medium">{t('checkout.contactSeller', 'Contact seller to arrange pickup or delivery')}</p>
         </div>
       )}
 
       {listing.pickupConfig?.pickupOnly && (
         <p className="text-xs text-center text-amber-600 font-medium mt-2">
-          This item is pickup only due to size/weight
+          {t('checkout.pickupOnly', 'This item is pickup only due to size/weight')}
         </p>
       )}
     </div>

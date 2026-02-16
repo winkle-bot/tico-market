@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { useI18n } from '@/context/I18nContext';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ interface Conversation {
 }
 
 export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired, chatWithName, chatWithId }: ChatModalProps) {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -221,7 +223,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Chat">
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={t('chat.title', 'Chat')}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -246,7 +248,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-[#18284a] truncate">{listing.title}</h3>
-              <p className="text-sm text-[#6f83ad]">Chat with {chatWithName || listing.owner}</p>
+              <p className="text-sm text-[#6f83ad]">{t('chat.chatWith', 'Chat with')} {chatWithName || listing.owner}</p>
             </div>
             <button
               onClick={onClose}
@@ -263,13 +265,13 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <MessageCircle className="w-8 h-8 text-blue-600" />
                 </div>
-                <h4 className="font-bold text-[#18284a] mb-2">Sign in to message</h4>
-                <p className="text-sm text-[#6f83ad] mb-4">Create an account to contact sellers</p>
+                <h4 className="font-bold text-[#18284a] mb-2">{t('chat.signInToMessage', 'Sign in to message')}</h4>
+                <p className="text-sm text-[#6f83ad] mb-4">{t('chat.createAccountToContact', 'Create an account to contact sellers')}</p>
                 <button
                   onClick={() => { onClose(); onAuthRequired(); }}
                   className="tm-btn tm-btn-primary rounded-full px-6"
                 >
-                  Sign In / Sign Up
+                  {t('chat.signInSignUp', 'Sign In / Sign Up')}
                 </button>
               </div>
             ) : isLoading ? (

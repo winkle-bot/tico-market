@@ -61,7 +61,7 @@ export function CheckoutConfirmStep({
     <div className="space-y-4">
       <div className="bg-[#f5f8ff] rounded-2xl p-4 space-y-3 border border-[#dce5f7]">
         <div className="flex justify-between">
-          <span className="text-sm text-gray-500">Item</span>
+          <span className="text-sm text-gray-500">{t('checkout.item', 'Item')}</span>
           <span className="font-bold text-gray-900">{listing.title}</span>
         </div>
         <div className="flex justify-between">
@@ -83,7 +83,7 @@ export function CheckoutConfirmStep({
           <span className="font-black text-gray-900">{totalDisplay}</span>
         </div>
         <div className="border-t pt-3 flex justify-between">
-          <span className="text-sm font-bold text-gray-700">Method</span>
+          <span className="text-sm font-bold text-gray-700">{t('checkout.method', 'Method')}</span>
           <span className="font-bold text-gray-900 flex items-center gap-1">
             {method === 'pickup' ? (
               <>
@@ -91,7 +91,7 @@ export function CheckoutConfirmStep({
               </>
             ) : (
               <>
-                <Truck className="w-4 h-4 text-blue-600" /> Delivery
+                <Truck className="w-4 h-4 text-blue-600" /> {t('checkout.delivery', 'Delivery')}
               </>
             )}
           </span>
@@ -111,21 +111,21 @@ export function CheckoutConfirmStep({
               <>
                 <h4 className="font-bold text-gray-900 mb-1">{selectedLocation.name}</h4>
                 <p className="text-sm text-gray-600">{selectedLocation.address}</p>
-                {scheduledWindow && <p className="text-sm text-blue-600 mt-2">Preferred: {scheduledWindow}</p>}
+                {scheduledWindow && <p className="text-sm text-blue-600 mt-2">{t('checkout.preferred', 'Preferred')}: {scheduledWindow}</p>}
               </>
             ) : null}
           </>
         )}
         {method === 'delivery' && (
           <>
-            <h4 className="font-bold text-gray-900 mb-1">Deliver to:</h4>
+            <h4 className="font-bold text-gray-900 mb-1">{t('checkout.deliverTo', 'Deliver to')}:</h4>
             <p className="text-sm text-gray-600">{deliveryAddress}</p>
             <p className="text-sm text-blue-600 mt-2">
-              {deliveryMode === 'express' ? 'Mode: Express now' : `Mode: Scheduled (${scheduledWindow})`}
+              {deliveryMode === 'express' ? t('checkout.modeExpressNow', 'Mode: Express now') : `${t('checkout.modeScheduled', 'Mode: Scheduled')} (${scheduledWindow})`}
             </p>
             {selectedDriver && (
               <p className="text-sm text-blue-600 mt-2">
-                Driver: {selectedDriver.name} • ETA ~{selectedDriver.etaMinutes} min
+                {t('checkout.driver', 'Driver')}: {selectedDriver.name} • ETA ~{selectedDriver.etaMinutes} min
               </p>
             )}
           </>
@@ -137,7 +137,7 @@ export function CheckoutConfirmStep({
           {t('checkout.noteSeller')}
         </label>
         <textarea
-          placeholder="Any special instructions..."
+          placeholder={t('checkout.specialInstructions', 'Any special instructions...')}
           rows={2}
           className="tm-input resize-none"
           value={notes}
@@ -168,13 +168,13 @@ export function CheckoutConfirmStep({
         {isSubmitting
           ? t('checkout.placingOrder')
           : paymentMethod === 'sinpe_movil'
-            ? 'Confirm SINPE Order'
+            ? t('checkout.confirmSinpe', 'Confirm SINPE Order')
             : paymentMethod === 'cash'
-              ? 'Confirm Cash Order'
+              ? t('checkout.confirmCash', 'Confirm Cash Order')
               : t('checkout.confirm')}
       </button>
 
-      <p className="text-xs text-center text-gray-400">The seller will be notified and will confirm your order</p>
+      <p className="text-xs text-center text-gray-400">{t('checkout.sellerNotified', 'The seller will be notified and will confirm your order')}</p>
     </div>
   );
 }

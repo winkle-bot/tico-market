@@ -12,11 +12,13 @@ import { ListingDetailSkeleton } from '@/components/Skeletons';
 import { API_ROUTES } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
-import { formatPrice, formatCondition, wazeLink } from '@/lib/format';
+import { useI18n } from '@/context/I18nContext';
+import { formatPrice, formatCondition, formatResponseTime, wazeLink } from '@/lib/format';
 import type { Listing, User, MarketEvent } from '@/types';
 
 export default function ListingDetailsClient({ listingId }: { listingId: string }) {
   const toast = useToast();
+  const { t } = useI18n();
   const { user, isFavorite, toggleFavorite: contextToggleFavorite } = useAuth();
   const [listing, setListing] = useState<Listing | 'not_found' | null>(null);
   const [seller, setSeller] = useState<User | null>(null);
@@ -60,7 +62,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
           if (listingRes.status === 404) {
             setListing('not_found');
           } else {
-            setLoadError('We could not load this listing right now. Please try again.');
+            setLoadError(t('listing.loadError', 'We could not load this listing right now. Please try again.'));
             setListing(null);
           }
           return;
@@ -95,7 +97,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-        setLoadError('We could not load this listing right now. Please try again.');
+        setLoadError(t('listing.loadError', 'We could not load this listing right now. Please try again.'));
         setListing(null);
       } finally {
         setIsLoading(false);
@@ -156,9 +158,9 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
 
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success('Listing link copied to clipboard.');
+      toast.success(t('listing.linkCopied', 'Listing link copied to clipboard.'));
     } catch {
-      toast.error('Could not copy the listing link.');
+      toast.error(t('listing.linkCopyError', 'Could not copy the listing link.'));
     }
   };
 
@@ -177,7 +179,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
     if (!listing || listing === 'not_found') return;
     const trimmedReason = reportReason.trim();
     if (trimmedReason.length < 5) {
-      toast.error('Please provide at least 5 characters for the report reason.');
+      toast.error(t('listing.reportMinChars', 'Please provide at least 5 characters for the report reason.'));
       return;
     }
 
@@ -198,13 +200,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         setIsReportModalOpen(false);
         setReportReason('');
         setReportDetails('');
-        toast.success('Report submitted. Thank you.');
+        toast.success(t('listing.reportSubmitted', 'Report submitted. Thank you.'));
       } else {
         const err = await res.json();
-        toast.error(err.error || 'Could not submit report');
+        toast.error(err.error || t('listing.reportSubmitError', 'Could not submit report'));
       }
     } catch {
-      toast.error('Could not submit report');
+      toast.error(t('listing.reportSubmitError', 'Could not submit report'));
     } finally {
       setIsSubmittingReport(false);
     }
@@ -218,20 +220,20 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
           <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
             <RefreshCcw className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-black text-gray-900 mb-2">Unable to load listing</h1>
+          <h1 className="text-xl font-black text-gray-900 mb-2">{t('listing.unableToLoad', 'Unable to load listing')}</h1>
           <p className="text-sm text-gray-600 mb-6">{loadError}</p>
           <div className="flex gap-3">
             <button
               onClick={() => setReloadToken((prev) => prev + 1)}
               className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-2xl hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              {t('common.tryAgain', 'Try Again')}
             </button>
             <Link
               href="/"
               className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-2xl hover:bg-gray-200 transition-colors"
             >
-              Back Home
+              {t('common.backHome', 'Back Home')}
             </Link>
           </div>
         </div>
@@ -304,22 +306,22 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-black text-gray-900 uppercase mb-2">Order Placed!</h2>
+            <h2 className="text-2xl font-black text-gray-900 uppercase mb-2">{t('listing.orderPlaced', 'Order Placed!')}</h2>
             <p className="text-gray-500 mb-6">
-              The seller has been notified and will confirm your order soon. You can track it in your account.
+              {t('listing.orderPlacedDescription', 'The seller has been notified and will confirm your order soon. You can track it in your account.')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setOrderSuccess(null)}
                 className="flex-1 bg-gray-100 text-gray-700 font-bold py-4 rounded-2xl hover:bg-gray-200 transition-colors"
               >
-                Continue Shopping
+                {t('listing.continueShopping', 'Continue Shopping')}
               </button>
               <Link
                 href="/account"
                 className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-colors text-center"
               >
-                View Orders
+                {t('listing.viewOrders', 'View Orders')}
               </Link>
             </div>
           </div>
@@ -337,10 +339,10 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 id="report-listing-title" className="text-xl font-black text-gray-900 uppercase tracking-tight">
-                  Report Listing
+                  {t('listing.reportListing', 'Report Listing')}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Help us keep the marketplace safe by describing the issue.
+                  {t('listing.reportDescription', 'Help us keep the marketplace safe by describing the issue.')}
                 </p>
               </div>
               <button
@@ -356,7 +358,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
             <div className="space-y-4">
               <div>
                 <label htmlFor="report-reason" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
-                  Reason
+                  {t('listing.reportReason', 'Reason')}
                 </label>
                 <input
                   id="report-reason"
@@ -364,7 +366,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
                   className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Spam, scam, counterfeit, abusive language..."
+                  placeholder={t('listing.reportReasonPlaceholder', 'Spam, scam, counterfeit, abusive language...')}
                   minLength={5}
                   maxLength={140}
                 />
@@ -372,14 +374,14 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
 
               <div>
                 <label htmlFor="report-details" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
-                  Additional details (optional)
+                  {t('listing.reportDetailsLabel', 'Additional details (optional)')}
                 </label>
                 <textarea
                   id="report-details"
                   value={reportDetails}
                   onChange={(e) => setReportDetails(e.target.value)}
                   className="w-full border border-gray-200 rounded-2xl px-4 py-3 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Add any context that can help moderation."
+                  placeholder={t('listing.reportDetailsPlaceholder', 'Add any context that can help moderation.')}
                   maxLength={600}
                 />
               </div>
@@ -391,7 +393,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 disabled={isSubmittingReport}
                 className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-2xl hover:bg-gray-200 transition-colors disabled:opacity-60"
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button
                 onClick={handleSubmitReport}
@@ -401,10 +403,10 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 {isSubmittingReport ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Submitting...
+                    {t('common.submitting', 'Submitting...')}
                   </>
                 ) : (
-                  'Submit Report'
+                  t('listing.submitReport', 'Submit Report')
                 )}
               </button>
             </div>
@@ -491,7 +493,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 {listing.verified && (
                   <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 shadow-xl border border-blue-50">
                     <ShieldCheck className="w-5 h-5 text-blue-600" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-900">Verified Listing</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-900">{t('listing.verifiedListing', 'Verified Listing')}</span>
                   </div>
                 )}
               </div>
@@ -514,7 +516,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
               <section className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                   <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">
-                    Listing Location
+                    {t('listing.listingLocation', 'Listing Location')}
                   </h2>
                   <div className="flex items-center gap-3">
                     {hasValidLocation && (
@@ -524,7 +526,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                         rel="noopener noreferrer"
                         className="text-xs font-bold text-purple-700 hover:text-purple-800 underline"
                       >
-                        Open in Waze
+                        {t('listing.openInWaze', 'Open in Waze')}
                       </a>
                     )}
                     {mapsLink && (
@@ -534,7 +536,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                         rel="noopener noreferrer"
                         className="text-xs font-bold text-blue-700 hover:text-blue-800 underline"
                       >
-                        Open in Maps
+                        {t('listing.openInMaps', 'Open in Maps')}
                       </a>
                     )}
                   </div>
@@ -544,8 +546,8 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 </div>
                 <div className="px-5 py-3 border-t border-gray-100 text-xs font-semibold text-gray-500">
                   {hasValidLocation
-                    ? `Coordinates: ${listing.location[0].toFixed(5)}, ${listing.location[1].toFixed(5)}`
-                    : 'Coordinates unavailable'}
+                    ? `${t('listing.coordinates', 'Coordinates')}: ${listing.location[0].toFixed(5)}, ${listing.location[1].toFixed(5)}`
+                    : t('listing.coordinatesUnavailable', 'Coordinates unavailable')}
                 </div>
               </section>
             </div>
@@ -580,7 +582,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   )}
                   {listing.itemType && listing.itemType !== 'physical' && (
                     <span className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
-                      {listing.itemType === 'food' ? 'Food / Produce' : listing.itemType === 'service' ? 'Service' : listing.itemType === 'rental' ? 'Rental' : 'Free'}
+                      {listing.itemType === 'food' ? t('listing.food', 'Food / Produce') : listing.itemType === 'service' ? t('listing.service', 'Service') : listing.itemType === 'rental' ? t('listing.rental', 'Rental') : t('listing.free', 'Free')}
                     </span>
                   )}
                 </div>
@@ -590,7 +592,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   <span>
                     {hasValidLocation
                       ? `${listing.location[0].toFixed(5)}, ${listing.location[1].toFixed(5)}`
-                      : 'Location unavailable'}
+                      : t('listing.locationUnavailable', 'Location unavailable')}
                   </span>
                 </div>
 
@@ -599,25 +601,25 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   {listing.fulfillmentOptions?.pickup && (
                     <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
                       <MapPin className="w-3 h-3" />
-                      Pickup
+                      {t('listing.pickup', 'Pickup')}
                     </span>
                   )}
                   {listing.fulfillmentOptions?.platform_delivery && (
                     <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
                       <Truck className="w-3 h-3" />
-                      Platform Delivery
+                      {t('listing.platformDelivery', 'Platform Delivery')}
                     </span>
                   )}
                   {listing.fulfillmentOptions?.seller_delivers && (
                     <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full border border-orange-100">
                       <Package className="w-3 h-3" />
-                      Seller Delivers
+                      {t('listing.sellerDelivers', 'Seller Delivers')}
                     </span>
                   )}
                   {listing.fulfillmentOptions?.shipping && (
                     <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full border border-purple-100">
                       <Send className="w-3 h-3" />
-                      Shipping
+                      {t('listing.shipping', 'Shipping')}
                     </span>
                   )}
                   {/* Fallback for old listings without fulfillmentOptions */}
@@ -626,13 +628,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                       {(seller.pickupLocations?.length ?? 0) > 0 && (
                         <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
                           <MapPin className="w-3 h-3" />
-                          Pickup available
+                          {t('listing.pickupAvailable', 'Pickup available')}
                         </span>
                       )}
                       {seller.acceptsDelivery !== false && !listing.pickupConfig?.pickupOnly && (
                         <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
                           <Truck className="w-3 h-3" />
-                          Delivery available
+                          {t('listing.deliveryAvailable', 'Delivery available')}
                         </span>
                       )}
                     </>
@@ -649,7 +651,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                     </div>
                     <div>
                       <h3 className="font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{listing.owner}</h3>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Active Seller</p>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('listing.activeSeller', 'Active Seller')}</p>
                     </div>
                   </Link>
                   <button 
@@ -670,19 +672,21 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1 bg-white p-3 rounded-2xl border border-gray-100 text-center">
-                    <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Reputation</div>
-                    <div className="font-black text-gray-900">4.9 / 5</div>
+                    <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('listing.reputation', 'Reputation')}</div>
+                    <div className="font-black text-gray-900">{seller?.rating ?? listing.rating} / 5</div>
                   </div>
-                  <div className="flex-1 bg-white p-3 rounded-2xl border border-gray-100 text-center">
-                    <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Response</div>
-                    <div className="font-black text-gray-900">&lt; 1 hr</div>
-                  </div>
+                  {(seller as any)?.avgResponseMinutes != null && (
+                    <div className="flex-1 bg-white p-3 rounded-2xl border border-gray-100 text-center">
+                      <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('listing.response', 'Response')}</div>
+                      <div className="font-black text-gray-900">{formatResponseTime((seller as any).avgResponseMinutes)}</div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Description */}
               <div className="mb-8">
-                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Description</h2>
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">{t('listing.descriptionHeading', 'Description')}</h2>
                 <p className="text-gray-600 leading-relaxed font-medium">
                   {listing.description || `Freshly listed ${listing.title} available for pickup or delivery in GAM. Reach out for details or more photos.`}
                 </p>
@@ -738,7 +742,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                     href="/account"
                     className="flex-1 bg-gray-900 hover:bg-black text-white font-black py-5 rounded-[24px] transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-3"
                   >
-                    Manage Listing
+                    {t('listing.manageListing', 'Manage Listing')}
                   </Link>
                 ) : (
                   <>
@@ -746,19 +750,19 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                       onClick={() => handleGetItem('delivery')}
                       className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-black py-5 rounded-[24px] transition-all shadow-2xl shadow-orange-200 uppercase tracking-widest text-sm flex items-center justify-center gap-3"
                     >
-                      <Truck className="w-5 h-5" /> Express Ahora
+                      <Truck className="w-5 h-5" /> {t('listing.expressDelivery', 'Express Ahora')}
                     </button>
                     <button 
                       onClick={() => handleGetItem()}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[24px] transition-all shadow-2xl shadow-blue-200 uppercase tracking-widest text-sm flex items-center justify-center gap-3"
                     >
-                      <ShoppingBag className="w-5 h-5" /> Get This Item
+                      <ShoppingBag className="w-5 h-5" /> {t('listing.getThisItem', 'Get This Item')}
                     </button>
                     <button 
                       onClick={() => setIsChatOpen(true)}
                       className="px-8 bg-gray-900 hover:bg-black text-white font-black rounded-[24px] transition-all uppercase tracking-widest text-sm flex items-center gap-2"
                     >
-                      <MessageCircle className="w-5 h-5" /> Message
+                      <MessageCircle className="w-5 h-5" /> {t('listing.message', 'Message')}
                     </button>
                   </>
                 )}
@@ -785,19 +789,19 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 onClick={() => handleGetItem('delivery')}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-orange-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
               >
-                <Truck className="w-4 h-4" /> Express
+                <Truck className="w-4 h-4" /> {t('listing.express', 'Express')}
               </button>
               <button 
                 onClick={() => handleGetItem()}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
               >
-                <ShoppingBag className="w-4 h-4" /> Get This Item
+                <ShoppingBag className="w-4 h-4" /> {t('listing.getThisItem', 'Get This Item')}
               </button>
               <button 
                 onClick={() => setIsChatOpen(true)}
                 className="px-6 bg-gray-900 hover:bg-black text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs flex items-center gap-2"
               >
-                <MessageCircle className="w-4 h-4" /> Chat
+                <MessageCircle className="w-4 h-4" /> {t('listing.chat', 'Chat')}
               </button>
             </>
           )}

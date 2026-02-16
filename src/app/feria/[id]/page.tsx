@@ -50,13 +50,28 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
   const toast = useToast();
   const [feria, setFeria] = useState<FeriaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<'not_found' | 'error' | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     fetch(`/api/ferias/${id}`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (res.status === 404) {
+          setFetchError('not_found');
+          return null;
+        }
+        if (!res.ok) {
+          setFetchError('error');
+          return null;
+        }
+        setFetchError(null);
+        return res.json();
+      })
       .then((data) => setFeria(data))
-      .catch(() => setFeria(null))
+      .catch(() => {
+        setFeria(null);
+        setFetchError('error');
+      })
       .finally(() => setIsLoading(false));
   }, [id]);
 
@@ -90,7 +105,17 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
         <SimpleNav />
         <main className="pt-20 pb-12 text-center">
           <div className="tm-shell">
-            <h1 className="text-2xl font-black text-gray-900 mb-4">Feria Not Found</h1>
+            {fetchError === 'error' ? (
+              <>
+                <h1 className="text-2xl font-black text-gray-900 mb-4">Could not load feria</h1>
+                <p className="text-gray-500 mb-4">Please check your connection and try again.</p>
+                <button onClick={() => window.location.reload()} className="tm-btn tm-btn-primary mb-4">
+                  Try Again
+                </button>
+              </>
+            ) : (
+              <h1 className="text-2xl font-black text-gray-900 mb-4">Feria Not Found</h1>
+            )}
             <Link href="/ferias" className="text-blue-600 font-bold hover:underline">
               Browse all ferias
             </Link>

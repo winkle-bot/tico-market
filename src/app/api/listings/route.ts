@@ -1,7 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import type { Listing, FrontendListing } from '@/lib/supabase-types';
+import type { Listing } from '@/lib/supabase-types';
 import type { Json } from '@/lib/database.types';
+import { toFrontendListing, parsePriceValue } from '@/lib/listing-utils';
 import { sanitizeText } from '@/lib/security';
 import { z } from 'zod';
 
@@ -28,12 +29,6 @@ const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 60;
 const DEFAULT_RADIUS_KM = 20;
 
-function parsePriceValue(price: string): number {
-  const normalized = price.replace(/[^0-9.,-]/g, '').replace(/,/g, '');
-  const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
 }
@@ -54,46 +49,6 @@ function getDistanceKm(
       Math.sin(dLng / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return earthRadiusKm * c;
-}
-
-function extractImageUrls(listing: Listing): string[] {
-  if (listing.image_urls && Array.isArray(listing.image_urls)) {
-    return listing.image_urls as string[];
-  }
-  if (listing.image_url) {
-    return [listing.image_url];
-  }
-  return [];
-}
-
-function toFrontendListing(listing: Listing): FrontendListing {
-  return {
-    id: listing.id,
-    sellerId: listing.seller_id,
-    title: listing.title,
-    description: listing.description,
-    price: listing.price,
-    priceCents: listing.price_cents ?? null,
-    currency: listing.currency ?? 'CRC',
-    category: listing.category,
-    location: [listing.location_lat, listing.location_lng],
-    rating: listing.rating,
-    type: listing.type,
-    owner: listing.owner,
-    imageUrl: listing.image_url,
-    imageUrls: extractImageUrls(listing),
-    condition: listing.condition ?? 'good',
-    itemType: listing.item_type ?? 'physical',
-    fulfillmentOptions: listing.fulfillment_options as Record<string, unknown> | null,
-    verified: listing.verified,
-    moderationStatus: listing.moderation_status ?? 'active',
-    privateKey: listing.private_key,
-    pickupConfig: listing.pickup_config,
-    landmarkDirections: listing.landmark_directions ?? null,
-    expiresAt: listing.expires_at ?? null,
-    lastBumpedAt: listing.last_bumped_at ?? null,
-    createdAt: listing.created_at,
-  };
 }
 
 // GET listings
@@ -256,7 +211,7 @@ export async function GET(request: Request) {
     }
 
     const typedListings = (listings || []) as unknown as Listing[];
-    const transformed: FrontendListing[] = typedListings.map(toFrontendListing);
+    const transformed = typedListings.map(toFrontendListing);
 
     if (!hasQueryParams) {
       return ApiResponse.cached(transformed);

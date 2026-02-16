@@ -28,14 +28,22 @@ export default function FeriasPage() {
   const { t } = useI18n();
   const [ferias, setFerias] = useState<Feria[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     fetch('/api/ferias')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('fetch failed');
+        return res.json();
+      })
       .then((data) => {
         setFerias(Array.isArray(data) ? data : []);
+        setFetchError(false);
       })
-      .catch(() => setFerias([]))
+      .catch(() => {
+        setFerias([]);
+        setFetchError(true);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -66,13 +74,24 @@ export default function FeriasPage() {
                 </div>
               ))}
             </div>
+          ) : fetchError ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-10 h-10 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{t('ferias.loadError', 'Could not load ferias')}</h3>
+              <p className="text-gray-500 mb-6">{t('ferias.loadErrorDescription', 'Please check your connection and try again.')}</p>
+              <button onClick={() => window.location.reload()} className="tm-btn tm-btn-primary">
+                {t('common.tryAgain', 'Try Again')}
+              </button>
+            </div>
           ) : ferias.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-10 h-10 text-orange-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">{t('ferias.noFerias', 'No ferias listed yet')}</h3>
-              <p className="text-gray-500 mb-6">Be the first to add your local feria!</p>
+              <p className="text-gray-500 mb-6">{t('ferias.beFirst', 'Be the first to add your local feria!')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -119,7 +138,7 @@ export default function FeriasPage() {
                         <Users className="w-3.5 h-3.5" /> {feria.vendor_count} {t('ferias.vendors', 'vendors')}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Heart className="w-3.5 h-3.5" /> {feria.follower_count} followers
+                        <Heart className="w-3.5 h-3.5" /> {feria.follower_count} {t('ferias.followers', 'followers')}
                       </span>
                     </div>
                   </div>

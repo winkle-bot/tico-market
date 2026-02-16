@@ -26,11 +26,11 @@ export function CheckoutPickupStep({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[#6f83ad] font-medium">Select where you&apos;ll pick it up:</p>
+      <p className="text-sm text-[#6f83ad] font-medium">{t('checkout.selectPickupLocation', 'Select where you\'ll pick it up:')}</p>
 
       {marketEvents.length > 0 && (
         <div className="mb-4">
-          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Special Events / Markets</h4>
+          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1">{t('checkout.specialEventsMarkets', 'Special Events / Markets')}</h4>
           <div className="space-y-2">
             {marketEvents.map((event) => (
               <button
@@ -57,7 +57,7 @@ export function CheckoutPickupStep({
       {pickupLocations.length > 0 && (
         <div>
           {marketEvents.length > 0 && (
-            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1 mt-4">Regular Locations</h4>
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 px-1 mt-4">{t('checkout.regularLocations', 'Regular Locations')}</h4>
           )}
           <div className="space-y-2">
             {pickupLocations.map((location) => (
@@ -88,11 +88,11 @@ export function CheckoutPickupStep({
 
       <div className="pt-4">
         <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-          Preferred pickup time (optional)
+          {t('checkout.preferredPickupTime', 'Preferred pickup time (optional)')}
         </label>
         <input
           type="text"
-          placeholder="e.g., Saturday morning"
+          placeholder={t('checkout.pickupTimePlaceholder', 'e.g., Saturday morning')}
           className="tm-input"
           value={scheduledWindow}
           onChange={(e) => setScheduledWindow(e.target.value)}

@@ -12,6 +12,7 @@ export default function DriversPage() {
   const { t } = useI18n();
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [vehicleFilter, setVehicleFilter] = useState<VehicleType | 'all'>('all');
   const [specialtyFilter, setSpecialtyFilter] = useState('all');
 
@@ -19,12 +20,14 @@ export default function DriversPage() {
     const fetchDrivers = async () => {
       try {
         setLoading(true);
+        setFetchError(false);
         const res = await fetch('/api/drivers?online=true');
         if (!res.ok) throw new Error('Failed to fetch drivers');
         const payload = await res.json();
         setDrivers(payload.data || []);
       } catch {
         setDrivers([]);
+        setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -62,7 +65,7 @@ export default function DriversPage() {
           </div>
 
           <Link href="/delivery" className="tm-btn tm-btn-primary">
-            <Truck className="w-4 h-4" /> Request Delivery
+            <Truck className="w-4 h-4" /> {t('drivers.requestDelivery', 'Request Delivery')}
           </Link>
         </div>
       </header>
@@ -80,10 +83,10 @@ export default function DriversPage() {
                 onChange={(e) => setVehicleFilter(e.target.value as VehicleType | 'all')}
               >
                 <option value="all">{t('drivers.allVehicles', 'All Vehicles')}</option>
-                <option value="motorcycle">Motorcycle</option>
-                <option value="car">Car</option>
-                <option value="bike">Bike</option>
-                <option value="walker">Walker</option>
+                <option value="motorcycle">{t('drivers.motorcycle', 'Motorcycle')}</option>
+                <option value="car">{t('drivers.car', 'Car')}</option>
+                <option value="bike">{t('drivers.bike', 'Bike')}</option>
+                <option value="walker">{t('drivers.walker', 'Walker')}</option>
               </select>
             </label>
 
@@ -106,7 +109,15 @@ export default function DriversPage() {
 
         <section>
           {loading ? (
-            <div className="py-16 text-center text-[#6780b3] font-medium">Loading drivers...</div>
+            <div className="py-16 text-center text-[#6780b3] font-medium">{t('drivers.loading', 'Loading drivers...')}</div>
+          ) : fetchError ? (
+            <div className="bg-white rounded-2xl border border-red-100 p-8 text-center">
+              <p className="text-red-600 font-bold mb-3">{t('drivers.loadError', 'Could not load drivers')}</p>
+              <p className="text-gray-500 text-sm mb-4">{t('drivers.loadErrorDescription', 'Please check your connection and try again.')}</p>
+              <button onClick={() => window.location.reload()} className="tm-btn tm-btn-primary">
+                {t('common.tryAgain', 'Try Again')}
+              </button>
+            </div>
           ) : filteredDrivers.length === 0 ? (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-[#dce5f7] p-8 text-center text-[#6780b3]">
@@ -119,12 +130,12 @@ export default function DriversPage() {
                       <UserPlus className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-black uppercase tracking-wide">Be the First</h3>
-                      <p className="mt-1 text-sm text-white/80">Join our delivery network and start earning today.</p>
+                      <h3 className="text-base font-black uppercase tracking-wide">{t('drivers.beTheFirst', 'Be the First')}</h3>
+                      <p className="mt-1 text-sm text-white/80">{t('drivers.joinNetwork', 'Join our delivery network and start earning today.')}</p>
                     </div>
                   </div>
                   <Link href="/driver-application" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
-                    Apply to Drive
+                    {t('drivers.applyToDrive', 'Apply to Drive')}
                   </Link>
                 </div>
               </div>

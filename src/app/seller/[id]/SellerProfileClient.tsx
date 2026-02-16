@@ -27,6 +27,10 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Derived state from context
   const sellerListings = listings.filter((l) => l.sellerId === sellerId);
@@ -67,32 +71,47 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : Number(seller.rating || 5).toFixed(1);
 
-  const reportSeller = async () => {
+  const handleOpenReport = () => {
     if (!user) {
       toast.error('Please log in to report users.');
       return;
     }
+    setIsReportModalOpen(true);
+  };
 
-    const reason = window.prompt('Report reason (required):');
-    if (!reason || reason.trim().length < 5) return;
-    const details = window.prompt('Additional details (optional):');
+  const handleSubmitReport = async () => {
+    const trimmedReason = reportReason.trim();
+    if (trimmedReason.length < 5) {
+      toast.error('Please provide at least 5 characters for the report reason.');
+      return;
+    }
 
-    const res = await fetch('/api/reports', {
-      method: 'POST',
-      headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({
-        targetType: 'user',
-        targetUserId: sellerId,
-        reason: reason.trim(),
-        details: details?.trim() || undefined,
-      }),
-    });
+    setIsSubmittingReport(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          targetType: 'user',
+          targetUserId: sellerId,
+          reason: trimmedReason,
+          details: reportDetails.trim() || undefined,
+        }),
+      });
 
-    if (res.ok) {
-      toast.success('Report submitted. Thank you.');
-    } else {
-      const err = await res.json();
-      toast.error(err.error || 'Could not submit report');
+      if (res.ok) {
+        setIsReportModalOpen(false);
+        setReportReason('');
+        setReportDetails('');
+        toast.success('Report submitted. Thank you.');
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Could not submit report');
+      }
+    } catch {
+      toast.error('Could not submit report');
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
@@ -172,7 +191,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                     Back to Feed
                   </Link>
                   <button
-                    onClick={reportSeller}
+                    onClick={handleOpenReport}
                     className="w-full tm-btn bg-red-50 hover:bg-red-100 text-red-700 border border-red-100"
                   >
                     Report Seller
@@ -252,6 +271,74 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
           </div>
         </div>
       </main>
+
+      {/* Report Modal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-lg bg-white rounded-3xl p-6 border border-gray-100 shadow-2xl"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Report Seller</h2>
+                <p className="text-sm text-gray-500 mt-1">Help us keep the marketplace safe by describing the issue.</p>
+              </div>
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                disabled={isSubmittingReport}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+                aria-label="Close report modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="seller-report-reason" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Reason</label>
+                <input
+                  id="seller-report-reason"
+                  type="text"
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Spam, scam, abusive language..."
+                  minLength={5}
+                  maxLength={140}
+                />
+              </div>
+              <div>
+                <label htmlFor="seller-report-details" className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Additional details (optional)</label>
+                <textarea
+                  id="seller-report-details"
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Add any context that can help moderation."
+                  maxLength={600}
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                disabled={isSubmittingReport}
+                className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-2xl hover:bg-gray-200 transition-colors disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={isSubmittingReport}
+                className="flex-1 bg-red-600 text-white font-bold py-3 rounded-2xl hover:bg-red-700 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+              >
+                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Listing Picker Modal */}
       <AnimatePresence>
