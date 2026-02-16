@@ -1,4 +1,4 @@
-import { MapPin, PlusCircle, Trash2, Truck } from 'lucide-react';
+import { MapPin, PlusCircle, Trash2, Truck, Package, Send } from 'lucide-react';
 import { useI18n } from '@/context/I18nContext';
 import type { MarketEvent, NewListingForm } from '@/types';
 
@@ -31,22 +31,7 @@ export function SellFulfillmentSection({
     <div className="space-y-4 pt-4 border-t border-gray-100">
       <h3 className="text-sm font-black text-[#18284a] uppercase">{t('sell.fulfillment')}</h3>
 
-      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
-        <input
-          type="checkbox"
-          className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
-          checked={form.deliveryAvailable}
-          onChange={(e) => setForm({ ...form, deliveryAvailable: e.target.checked })}
-        />
-        <div className="flex-1">
-          <div className="font-bold text-gray-900 flex items-center gap-2">
-            <Truck className="w-4 h-4 text-gray-500" />
-            {t('sell.expressAvailable')}
-          </div>
-          <p className="text-xs text-gray-400">Buyers can book a driver to pick this up.</p>
-        </div>
-      </label>
-
+      {/* Pickup */}
       <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
         <input
           type="checkbox"
@@ -60,6 +45,73 @@ export function SellFulfillmentSection({
             {t('sell.pickupAvailable')}
           </div>
           <p className="text-xs text-gray-400">Buyers can collect in person.</p>
+        </div>
+      </label>
+
+      {/* Platform Delivery (driver pool) */}
+      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
+        <input
+          type="checkbox"
+          className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
+          checked={form.platformDelivery}
+          onChange={(e) => setForm({ ...form, platformDelivery: e.target.checked })}
+        />
+        <div className="flex-1">
+          <div className="font-bold text-gray-900 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-gray-500" />
+            Platform Delivery
+          </div>
+          <p className="text-xs text-gray-400">A driver from our pool picks up and delivers.</p>
+        </div>
+      </label>
+
+      {/* Seller Delivers */}
+      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
+        <input
+          type="checkbox"
+          className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
+          checked={form.sellerDelivers}
+          onChange={(e) => setForm({ ...form, sellerDelivers: e.target.checked })}
+        />
+        <div className="flex-1">
+          <div className="font-bold text-gray-900 flex items-center gap-2">
+            <Package className="w-4 h-4 text-gray-500" />
+            I Deliver
+          </div>
+          <p className="text-xs text-gray-400">You handle delivery yourself.</p>
+        </div>
+      </label>
+
+      {/* Seller delivery fee input */}
+      {form.sellerDelivers && (
+        <div className="pl-8">
+          <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
+            Your Delivery Fee (optional)
+          </label>
+          <input
+            type="text"
+            placeholder={form.currency === 'CRC' ? '₡2.500' : '$5'}
+            className="tm-input min-h-[44px] w-40"
+            value={form.sellerDeliveryFee}
+            onChange={(e) => setForm({ ...form, sellerDeliveryFee: e.target.value })}
+          />
+        </div>
+      )}
+
+      {/* Shipping */}
+      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f8ff] cursor-pointer transition-colors border border-transparent hover:border-[#dce5f7]">
+        <input
+          type="checkbox"
+          className="w-5 h-5 rounded-md border-gray-300 text-blue-600 focus:ring-blue-500"
+          checked={form.shipping}
+          onChange={(e) => setForm({ ...form, shipping: e.target.checked })}
+        />
+        <div className="flex-1">
+          <div className="font-bold text-gray-900 flex items-center gap-2">
+            <Send className="w-4 h-4 text-gray-500" />
+            Shipping / Encomienda
+          </div>
+          <p className="text-xs text-gray-400">Bus courier or postal service for nationwide delivery.</p>
         </div>
       </label>
 
@@ -90,7 +142,7 @@ export function SellFulfillmentSection({
                 <div key={event.id} className="bg-blue-50 p-3 rounded-xl flex justify-between items-center group">
                   <div>
                     <div className="font-bold text-sm text-blue-900">{event.name}</div>
-                    <div className="text-xs text-blue-600">{event.date} • {event.timeWindow}</div>
+                    <div className="text-xs text-blue-600">{event.date} {event.timeWindow && `• ${event.timeWindow}`}</div>
                   </div>
                   <button onClick={() => onRemoveEvent(event.id)} className="p-1 hover:bg-blue-100 rounded-lg text-blue-400 hover:text-red-500">
                     <Trash2 className="w-4 h-4" />
@@ -102,7 +154,7 @@ export function SellFulfillmentSection({
             {showEventForm ? (
               <div className="bg-[#f5f8ff] p-3 rounded-xl border border-[#dce5f7] space-y-3">
                 <input
-                  placeholder="Event Name (e.g. Feria de Escazú)"
+                  placeholder="Event Name (e.g. Feria de Escazu)"
                   className="tm-input min-h-[40px] text-sm font-semibold"
                   value={newEvent.name}
                   onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}

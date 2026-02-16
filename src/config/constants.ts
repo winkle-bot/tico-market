@@ -10,8 +10,12 @@ export const DEFAULT_LISTING_COORDS = {
   lng: -84.0907,
 };
 
-// Driver delivery fee
-export const DELIVERY_FEE_DISPLAY = '₡2,500';
+// Driver delivery fee calculation
+export const DELIVERY_FEE_BASE = 1500; // Base fee in colones
+export const DELIVERY_FEE_PER_KM = 200; // Per-km rate in colones
+export const DELIVERY_FEE_MIN = 1500; // Minimum delivery fee
+export const DELIVERY_FEE_MAX = 8000; // Maximum delivery fee cap
+export const DELIVERY_FEE_DISPLAY = '₡1,500+'; // Shown when distance unknown
 
 // API endpoints
 export const API_ROUTES = {

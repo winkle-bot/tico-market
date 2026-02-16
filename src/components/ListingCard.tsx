@@ -3,9 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Star, ShieldCheck } from 'lucide-react';
+import { MapPin, Star, ShieldCheck, ImageIcon, Clock } from 'lucide-react';
 import { categoryEmojis } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
+import { formatPrice, formatCondition } from '@/lib/format';
 import type { Listing } from '@/types';
 
 interface ListingCardProps {
@@ -16,6 +17,17 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
   const { user } = useAuth();
   const isOwner = user?.id === item.sellerId;
 
+  const displayPrice = item.itemType === 'free'
+    ? 'Free'
+    : formatPrice(item.priceCents, item.currency, item.price);
+
+  const imageCount = item.imageUrls?.length || (item.imageUrl ? 1 : 0);
+
+  // Check if expiring within 5 days (show to owner only)
+  const isExpiringSoon = isOwner && item.expiresAt
+    ? new Date(item.expiresAt).getTime() - Date.now() < 5 * 24 * 60 * 60 * 1000
+    : false;
+
   return (
     <Link
       href={`/listing/${item.id}`}
@@ -24,6 +36,11 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
       {isOwner && (
         <div className="absolute top-3 left-3 z-10 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
           My Listing
+        </div>
+      )}
+      {isExpiringSoon && (
+        <div className="absolute top-3 left-3 z-10 mt-7 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+          <Clock className="w-3 h-3" /> Expiring Soon
         </div>
       )}
       <div className="aspect-square bg-[#f1f5ff] relative overflow-hidden">
@@ -44,8 +61,14 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
         )}
 
         <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-black shadow-sm text-blue-700 border border-white/70">
-          {item.price}
+          {displayPrice}
         </div>
+
+        {imageCount > 1 && (
+          <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+            <ImageIcon className="w-3 h-3" /> {imageCount}
+          </div>
+        )}
 
         {item.type === 'driver' && (
           <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
@@ -59,12 +82,21 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
           {item.title}
         </h3>
 
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#748ab5] mb-4 uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#748ab5] mb-2 uppercase tracking-wider">
           <MapPin className="w-3.5 h-3.5" />
-          <span>San José, CR</span>
+          <span>San Jose, CR</span>
         </div>
 
-        <div className="pt-4 border-t border-[#edf2ff] flex items-center justify-between">
+        {/* Condition badge */}
+        {item.condition && item.condition !== 'good' && (
+          <div className="flex gap-1.5 mb-3">
+            <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              {formatCondition(item.condition)}
+            </span>
+          </div>
+        )}
+
+        <div className="pt-3 border-t border-[#edf2ff] flex items-center justify-between">
           <div
             onClick={(e) => {
               e.preventDefault();

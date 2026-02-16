@@ -20,6 +20,12 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "TicoMarket - P2P Marketplace Costa Rica",
   description: "P2P selling with reputation and express delivery in Costa Rica",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Tico Market",
+  },
 };
 
 export const viewport: Viewport = {
@@ -41,6 +47,14 @@ export default function RootLayout({
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossOrigin=""
+        />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}`
+          }}
         />
       </head>
       <body className="antialiased bg-gray-50 text-gray-900">

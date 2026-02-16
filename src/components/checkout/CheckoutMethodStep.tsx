@@ -3,6 +3,7 @@ import { ChevronRight, MapPin, Package, Truck } from 'lucide-react';
 import { DELIVERY_FEE_DISPLAY } from '@/config/constants';
 import { useI18n } from '@/context/I18nContext';
 import type { Listing, OrderType } from '@/types';
+import { calculateDeliveryFee, formatDeliveryFee } from './checkout-utils';
 
 interface CheckoutMethodStepProps {
   listing: Listing;
@@ -22,6 +23,7 @@ export function CheckoutMethodStep({
   onMethodSelect,
 }: CheckoutMethodStepProps) {
   const { t } = useI18n();
+  const estimatedFee = formatDeliveryFee(calculateDeliveryFee(null, null));
 
   return (
     <div className="space-y-4">
@@ -56,6 +58,7 @@ export function CheckoutMethodStep({
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-[#18284a]">{t('checkout.expressDelivery')}</h3>
               <span className="text-blue-600 font-black">{DELIVERY_FEE_DISPLAY}</span>
+
             </div>
             <p className="text-sm text-[#6f83ad]">{t('checkout.sameDayGam')}</p>
           </div>

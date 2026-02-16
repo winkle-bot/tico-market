@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, MapPin, Truck, Share2, Heart, ChevronLeft, ShieldCheck, MessageCircle, ShoppingBag, CheckCircle, Flag, X, Loader2, RefreshCcw } from 'lucide-react';
+import { Star, MapPin, Truck, Share2, Heart, ChevronLeft, ShieldCheck, MessageCircle, ShoppingBag, CheckCircle, Flag, X, Loader2, RefreshCcw, ChevronRight, Package, Send } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { categoryEmojis } from '@/lib/data';
@@ -12,6 +12,7 @@ import { ListingDetailSkeleton } from '@/components/Skeletons';
 import { API_ROUTES } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
+import { formatPrice, formatCondition, wazeLink } from '@/lib/format';
 import type { Listing, User, MarketEvent } from '@/types';
 
 export default function ListingDetailsClient({ listingId }: { listingId: string }) {
@@ -240,8 +241,13 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   if (listing === 'not_found') return notFound();
   if (!listing) return null;
 
+  // Image gallery state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const allImages = listing.imageUrls?.length ? listing.imageUrls : (listing.imageUrl ? [listing.imageUrl] : []);
+
   // Check if this is the user's own listing
   const isOwnListing = user?.id === listing.sellerId;
+  const displayPrice = listing.itemType === 'free' ? 'Free' : formatPrice(listing.priceCents, listing.currency, listing.price);
   const hasValidLocation =
     Array.isArray(listing.location) &&
     listing.location.length === 2 &&
@@ -438,15 +444,45 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
             {/* Left: Image Section */}
             <div className="space-y-4">
               <div className="aspect-square bg-gray-50 rounded-[40px] overflow-hidden border border-gray-100 relative shadow-inner">
-                {listing.imageUrl ? (
-                  <Image
-                    src={listing.imageUrl}
-                    alt={listing.title}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
-                    priority
-                  />
+                {allImages.length > 0 ? (
+                  <>
+                    <Image
+                      src={allImages[currentImageIndex]}
+                      alt={`${listing.title} - Photo ${currentImageIndex + 1}`}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className="object-cover"
+                      priority
+                    />
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev + 1) % allImages.length)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {allImages.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setCurrentImageIndex(i)}
+                              className={`w-2 h-2 rounded-full transition-all ${i === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+                              aria-label={`View image ${i + 1}`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
                     <span className="text-9xl filter drop-shadow-xl">{categoryEmojis[listing.category] || '✨'}</span>
@@ -460,21 +496,48 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 )}
               </div>
 
+              {/* Thumbnail strip */}
+              {allImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {allImages.map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentImageIndex(i)}
+                      className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${i === currentImageIndex ? 'border-blue-600 ring-2 ring-blue-200' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                    >
+                      <Image src={url} alt={`Thumbnail ${i + 1}`} fill sizes="64px" className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <section className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-sm">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
                   <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">
                     Listing Location
                   </h2>
-                  {mapsLink && (
-                    <a
-                      href={mapsLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-bold text-blue-700 hover:text-blue-800 underline"
-                    >
-                      Open in Maps
-                    </a>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {hasValidLocation && (
+                      <a
+                        href={wazeLink(listing.location[0], listing.location[1])}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-purple-700 hover:text-purple-800 underline"
+                      >
+                        Open in Waze
+                      </a>
+                    )}
+                    {mapsLink && (
+                      <a
+                        href={mapsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-blue-700 hover:text-blue-800 underline"
+                      >
+                        Open in Maps
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="h-72">
                   <ListingLocationMap listing={listing} />
@@ -503,12 +566,26 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                 <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
                   {listing.title}
                 </h1>
-                
-                <div className="text-3xl font-black text-blue-600 mb-6">
-                  {listing.price}
+
+                <div className="text-3xl font-black text-blue-600 mb-4">
+                  {displayPrice}
                 </div>
 
-                <div className="flex items-center gap-2 text-gray-500 font-bold mb-8">
+                {/* Condition + Item Type badges */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {listing.condition && listing.condition !== 'good' && (
+                    <span className="text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                      {formatCondition(listing.condition)}
+                    </span>
+                  )}
+                  {listing.itemType && listing.itemType !== 'physical' && (
+                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
+                      {listing.itemType === 'food' ? 'Food / Produce' : listing.itemType === 'service' ? 'Service' : listing.itemType === 'rental' ? 'Rental' : 'Free'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-gray-500 font-bold mb-6">
                   <MapPin className="w-5 h-5" />
                   <span>
                     {hasValidLocation
@@ -517,23 +594,50 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   </span>
                 </div>
 
-                {/* Pickup/Delivery badges */}
-                {seller && (
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {(seller.pickupLocations?.length ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
-                        <MapPin className="w-3 h-3" />
-                        Pickup available
-                      </span>
-                    )}
-                    {seller.acceptsDelivery !== false && !listing.pickupConfig?.pickupOnly && (
-                      <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
-                        <Truck className="w-3 h-3" />
-                        Delivery available
-                      </span>
-                    )}
-                  </div>
-                )}
+                {/* Fulfillment badges */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {listing.fulfillmentOptions?.pickup && (
+                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
+                      <MapPin className="w-3 h-3" />
+                      Pickup
+                    </span>
+                  )}
+                  {listing.fulfillmentOptions?.platform_delivery && (
+                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
+                      <Truck className="w-3 h-3" />
+                      Platform Delivery
+                    </span>
+                  )}
+                  {listing.fulfillmentOptions?.seller_delivers && (
+                    <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full border border-orange-100">
+                      <Package className="w-3 h-3" />
+                      Seller Delivers
+                    </span>
+                  )}
+                  {listing.fulfillmentOptions?.shipping && (
+                    <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full border border-purple-100">
+                      <Send className="w-3 h-3" />
+                      Shipping
+                    </span>
+                  )}
+                  {/* Fallback for old listings without fulfillmentOptions */}
+                  {!listing.fulfillmentOptions && seller && (
+                    <>
+                      {(seller.pickupLocations?.length ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
+                          <MapPin className="w-3 h-3" />
+                          Pickup available
+                        </span>
+                      )}
+                      {seller.acceptsDelivery !== false && !listing.pickupConfig?.pickupOnly && (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
+                          <Truck className="w-3 h-3" />
+                          Delivery available
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Seller Card */}

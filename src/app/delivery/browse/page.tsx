@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, LocateFixed, Navigation, RefreshCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { wazeLink } from '@/lib/format';
 
 type DriverVehicleType = 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker';
 
@@ -277,7 +278,14 @@ export default function DeliveryBrowsePage() {
             visibleRequests.map(({ request, offer, distance }) => (
               <article key={request.id} className="rounded-2xl border border-[#dce5f7] bg-white p-4 space-y-2">
                 <p className="text-xs uppercase tracking-wider text-[#7890bd] font-black">Request #{request.id.slice(0, 8)}</p>
-                <p className="text-sm text-[#4d689b]"><span className="font-semibold text-[#223d6b]">Pickup:</span> {request.pickupAddress}</p>
+                <p className="text-sm text-[#4d689b]">
+                  <span className="font-semibold text-[#223d6b]">Pickup:</span> {request.pickupAddress}
+                  {request.pickupLat != null && request.pickupLng != null && (
+                    <a href={wazeLink(request.pickupLat, request.pickupLng)} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs font-bold text-purple-600 hover:underline">
+                      Navigate
+                    </a>
+                  )}
+                </p>
                 <p className="text-sm text-[#4d689b]"><span className="font-semibold text-[#223d6b]">Dropoff:</span> {request.dropoffAddress}</p>
                 <p className="text-sm text-[#4d689b] line-clamp-2"><span className="font-semibold text-[#223d6b]">Item:</span> {request.itemDescription}</p>
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">

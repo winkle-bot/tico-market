@@ -9,8 +9,12 @@ const LISTINGS_BUCKET = 'listings';
 const createListingSchema = z.object({
   title: z.string().min(3).max(120),
   price: z.string().min(1).max(50),
+  priceCents: z.number().int().min(0).optional(),
+  currency: z.enum(['CRC', 'USD']).default('CRC'),
   category: z.string().min(1).max(60),
   description: z.string().max(3000).default(''),
+  condition: z.enum(['new', 'like_new', 'good', 'fair', 'for_parts']).default('good'),
+  itemType: z.enum(['physical', 'food', 'service', 'rental', 'free']).default('physical'),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   type: z.enum(['seller', 'driver']).default('seller'),
@@ -53,22 +57,38 @@ function getDistanceKm(
 }
 
 function toFrontendListing(listing: Listing): FrontendListing {
+  // Parse image_urls from JSONB
+  let imageUrls: string[] = [];
+  if (listing.image_urls && Array.isArray(listing.image_urls)) {
+    imageUrls = listing.image_urls as string[];
+  } else if (listing.image_url) {
+    imageUrls = [listing.image_url];
+  }
+
   return {
     id: listing.id,
     sellerId: listing.seller_id,
     title: listing.title,
     description: listing.description,
     price: listing.price,
+    priceCents: (listing as any).price_cents ?? null,
+    currency: (listing as any).currency ?? 'CRC',
     category: listing.category,
     location: [listing.location_lat, listing.location_lng],
     rating: listing.rating,
     type: listing.type,
     owner: listing.owner,
     imageUrl: listing.image_url,
+    imageUrls,
+    condition: (listing as any).condition ?? 'good',
+    itemType: (listing as any).item_type ?? 'physical',
+    fulfillmentOptions: (listing as any).fulfillment_options ?? null,
     verified: listing.verified,
     moderationStatus: listing.moderation_status ?? 'active',
     privateKey: listing.private_key,
     pickupConfig: listing.pickup_config,
+    landmarkDirections: (listing as any).landmark_directions ?? null,
+    expiresAt: (listing as any).expires_at ?? null,
     createdAt: listing.created_at,
   };
 }
@@ -146,6 +166,11 @@ export async function GET(request: Request) {
       query = query.eq('type', type);
     }
 
+    // Filter out expired listings (unless ?includeExpired=true)
+    if (url.searchParams.get('includeExpired') !== 'true') {
+      query = query.or('expires_at.is.null,expires_at.gte.' + new Date().toISOString());
+    }
+
     if (useInMemoryFiltering) {
       const { data: listings, error } = await query.order('created_at', { ascending: false });
       if (error) {
@@ -156,10 +181,16 @@ export async function GET(request: Request) {
       let filtered = typedListings;
 
       if (hasMinPrice) {
-        filtered = filtered.filter((listing) => parsePriceValue(listing.price) >= minPrice);
+        filtered = filtered.filter((listing) => {
+          const cents = (listing as any).price_cents ?? parsePriceValue(listing.price);
+          return cents >= minPrice;
+        });
       }
       if (hasMaxPrice) {
-        filtered = filtered.filter((listing) => parsePriceValue(listing.price) <= maxPrice);
+        filtered = filtered.filter((listing) => {
+          const cents = (listing as any).price_cents ?? parsePriceValue(listing.price);
+          return cents <= maxPrice;
+        });
       }
       if (hasLocationFilter) {
         filtered = filtered.filter((listing) => {
@@ -175,11 +206,11 @@ export async function GET(request: Request) {
 
       if (sort === 'price_asc') {
         filtered = [...filtered].sort(
-          (a, b) => parsePriceValue(a.price) - parsePriceValue(b.price)
+          (a, b) => ((a as any).price_cents ?? parsePriceValue(a.price)) - ((b as any).price_cents ?? parsePriceValue(b.price))
         );
       } else if (sort === 'price_desc') {
         filtered = [...filtered].sort(
-          (a, b) => parsePriceValue(b.price) - parsePriceValue(a.price)
+          (a, b) => ((b as any).price_cents ?? parsePriceValue(b.price)) - ((a as any).price_cents ?? parsePriceValue(a.price))
         );
       } else if (sort === 'distance' && Number.isFinite(lat) && Number.isFinite(lng)) {
         filtered = [...filtered].sort((a, b) => {
@@ -300,18 +331,30 @@ export async function POST(request: Request) {
 
     const rawTitle = String(formData.get('title') ?? '');
     const rawPrice = String(formData.get('price') ?? '');
+    const rawCurrency = String(formData.get('currency') ?? 'CRC');
     const rawCategory = String(formData.get('category') ?? '');
     const rawDescription = String(formData.get('description') ?? '');
+    const rawCondition = String(formData.get('condition') ?? 'good');
+    const rawItemType = String(formData.get('itemType') ?? 'physical');
     const rawLat = Number(formData.get('lat') ?? 9.9281);
     const rawLng = Number(formData.get('lng') ?? -84.0907);
     const rawType = String(formData.get('type') ?? 'seller');
     const pickupConfigStr = formData.get('pickupConfig') as string;
+    const fulfillmentStr = formData.get('fulfillmentOptions') as string;
+
+    // Parse numeric price from the display price
+    const priceNumeric = Number.parseInt(rawPrice.replace(/[^0-9]/g, ''), 10) || 0;
+    const priceCents = rawCurrency === 'USD' ? priceNumeric * 100 : priceNumeric;
 
     const parsed = createListingSchema.safeParse({
       title: sanitizeText(rawTitle, 120),
       price: sanitizeText(rawPrice, 50),
+      priceCents,
+      currency: rawCurrency,
       category: sanitizeText(rawCategory, 60),
       description: sanitizeText(rawDescription, 3000),
+      condition: rawCondition,
+      itemType: rawItemType,
       lat: rawLat,
       lng: rawLng,
       type: rawType,
@@ -322,7 +365,7 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Invalid listing payload', parsed.error.flatten());
     }
 
-    const { title, price, category, description, lat, lng, type } = parsed.data;
+    const { title, price, currency, category, description, condition, itemType, lat, lng, type } = parsed.data;
 
     let pickupConfig: Record<string, unknown> = {};
     if (pickupConfigStr) {
@@ -336,6 +379,39 @@ export async function POST(request: Request) {
       }
     }
 
+    let fulfillmentOptions: Record<string, unknown> = { pickup: true, platform_delivery: true };
+    if (fulfillmentStr) {
+      try {
+        const parsedFulfillment = JSON.parse(fulfillmentStr);
+        if (parsedFulfillment && typeof parsedFulfillment === 'object') {
+          fulfillmentOptions = parsedFulfillment as Record<string, unknown>;
+        }
+      } catch {
+        // Use defaults
+      }
+    }
+
+    // Handle multiple images
+    const imageUrlsArr: string[] = [];
+    if (imageUrl) imageUrlsArr.push(imageUrl);
+
+    // Check for additional images (image_1, image_2, etc.)
+    for (let i = 1; i <= 7; i++) {
+      const extraImage = formData.get(`image_${i}`) as File | null;
+      if (extraImage && extraImage.size > 0) {
+        if (extraImage.size > 2 * 1024 * 1024) continue;
+        const ext = extraImage.name.split('.').pop();
+        const name = `${user.id}/${Date.now()}_${i}.${ext}`;
+        const { data: upData, error: upErr } = await supabase.storage
+          .from(LISTINGS_BUCKET)
+          .upload(name, extraImage);
+        if (!upErr && upData?.path) {
+          const { data: { publicUrl } } = supabase.storage.from(LISTINGS_BUCKET).getPublicUrl(upData.path);
+          imageUrlsArr.push(publicUrl);
+        }
+      }
+    }
+
     const { data: listing, error } = await (supabase
       .from('listings') as any)
       .insert({
@@ -343,12 +419,18 @@ export async function POST(request: Request) {
         title,
         description,
         price,
+        price_cents: priceCents,
+        currency,
         category,
+        condition,
+        item_type: itemType,
         location_lat: lat,
         location_lng: lng,
         type,
         owner: sanitizeText(profile?.name || user.email?.split('@')[0] || 'Unknown', 100),
         image_url: imageUrl,
+        image_urls: imageUrlsArr,
+        fulfillment_options: fulfillmentOptions as Json,
         verified: profile?.verified || false,
         pickup_config: pickupConfig as Json,
       })
@@ -360,23 +442,7 @@ export async function POST(request: Request) {
     }
 
     const typedListing = listing as unknown as Listing;
-    return ApiResponse.success({
-      id: typedListing.id,
-      sellerId: typedListing.seller_id,
-      title: typedListing.title,
-      description: typedListing.description,
-      price: typedListing.price,
-      category: typedListing.category,
-      location: [typedListing.location_lat, typedListing.location_lng],
-      rating: typedListing.rating,
-      type: typedListing.type,
-      owner: typedListing.owner,
-      imageUrl: typedListing.image_url,
-      verified: typedListing.verified,
-      moderationStatus: typedListing.moderation_status,
-      privateKey: typedListing.private_key,
-      pickupConfig: typedListing.pickup_config,
-    }, 201);
+    return ApiResponse.success(toFrontendListing(typedListing), 201);
   } catch (error) {
     return ApiResponse.serverError(error, { route: '/api/listings', method: 'POST' });
   }

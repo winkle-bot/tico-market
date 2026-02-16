@@ -40,11 +40,17 @@ interface Coords {
 const INITIAL_FORM_STATE: NewListingForm = {
   title: '',
   price: '',
+  currency: 'CRC',
   category: 'Electronics',
   description: '',
-  image: null,
+  images: [],
+  condition: 'good',
+  itemType: 'physical',
   pickupAvailable: true,
-  deliveryAvailable: true,
+  platformDelivery: true,
+  sellerDelivers: false,
+  sellerDeliveryFee: '',
+  shipping: false,
   pickupLocationIds: [],
   leadTime: '',
   marketEvents: [],
@@ -87,8 +93,8 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
       nextErrors.description = 'Description is required';
     }
 
-    if (!newItem.pickupAvailable && !newItem.deliveryAvailable) {
-      nextErrors.fulfillment = 'Select at least one option';
+    if (!newItem.pickupAvailable && !newItem.platformDelivery && !newItem.sellerDelivers && !newItem.shipping) {
+      nextErrors.fulfillment = 'Select at least one fulfillment option';
     }
 
     setErrors(nextErrors);
@@ -175,19 +181,35 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const currencySymbol = newItem.currency === 'USD' ? '$' : '₡';
     const formData = new FormData();
     formData.append('title', newItem.title);
-    formData.append('price', `₡${newItem.price}`);
+    formData.append('price', `${currencySymbol}${newItem.price}`);
+    formData.append('currency', newItem.currency);
     formData.append('category', newItem.category);
     formData.append('description', newItem.description);
+    formData.append('condition', newItem.condition);
+    formData.append('itemType', newItem.itemType);
     formData.append(
       'pickupConfig',
       JSON.stringify({
-        deliveryAvailable: newItem.deliveryAvailable,
+        deliveryAvailable: newItem.platformDelivery,
         pickupAvailable: newItem.pickupAvailable,
         leadTime: newItem.leadTime,
         marketEvents: newItem.marketEvents,
         availableLocationIds: newItem.pickupLocationIds,
+      })
+    );
+    formData.append(
+      'fulfillmentOptions',
+      JSON.stringify({
+        pickup: newItem.pickupAvailable,
+        platform_delivery: newItem.platformDelivery,
+        seller_delivers: newItem.sellerDelivers,
+        delivery_fee: newItem.sellerDelivers && newItem.sellerDeliveryFee
+          ? Number.parseInt(newItem.sellerDeliveryFee.replace(/[^0-9]/g, ''), 10) || null
+          : null,
+        shipping: newItem.shipping,
       })
     );
 
@@ -199,9 +221,14 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
     formData.append('lat', String(coords?.lat || DEFAULT_LISTING_COORDS.lat));
     formData.append('lng', String(coords?.lng || DEFAULT_LISTING_COORDS.lng));
 
-    if (newItem.image) {
-      formData.append('image', newItem.image);
+    // Upload primary image
+    if (newItem.images[0]) {
+      formData.append('image', newItem.images[0]);
     }
+    // Upload additional images
+    newItem.images.slice(1).forEach((img, i) => {
+      formData.append(`image_${i + 1}`, img);
+    });
 
     try {
       const res = await fetch(API_ROUTES.LISTINGS, {

@@ -6,7 +6,6 @@ import { AlertCircle, ChevronLeft, X } from 'lucide-react';
 import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_CONTENT_VARIANTS,
-  DELIVERY_FEE_DISPLAY,
   API_ROUTES,
 } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
@@ -24,7 +23,7 @@ import { CheckoutConfirmStep } from './checkout/CheckoutConfirmStep';
 import { CheckoutDeliveryStep } from './checkout/CheckoutDeliveryStep';
 import { CheckoutMethodStep } from './checkout/CheckoutMethodStep';
 import { CheckoutPickupStep } from './checkout/CheckoutPickupStep';
-import { estimateEtaMinutes, getDistanceKm, parseDeliveryFee, type DriverOption } from './checkout/checkout-utils';
+import { calculateDeliveryFee, estimateEtaMinutes, formatDeliveryFee, getDistanceKm, parseDeliveryFee, type DriverOption } from './checkout/checkout-utils';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -154,7 +153,23 @@ export function CheckoutModal({
     }
   }, [deliveryMode, driverOptions, isOpen, method, selectedDriverId]);
 
-  const deliveryFeeValue = method === 'delivery' ? parseDeliveryFee(DELIVERY_FEE_DISPLAY) : 0;
+  const deliveryFeeValue = useMemo(() => {
+    if (method !== 'delivery') return 0;
+    if (selectedDriver) {
+      return calculateDeliveryFee(
+        listing?.location as [number, number] | undefined,
+        // Approximate: use driver distance to compute fee
+        listing?.location
+          ? [listing.location[0] + (selectedDriver.distanceKm / 111), listing.location[1]]
+          : undefined,
+      );
+    }
+    // No driver selected yet — use base fee
+    return calculateDeliveryFee(null, null);
+  }, [method, selectedDriver, listing?.location]);
+
+  const deliveryFeeDisplay = formatDeliveryFee(deliveryFeeValue);
+
   const subtotalCents = useMemo(() => {
     if (!listing) return 0;
     const listingAmount = parseColonPriceToCents(listing.price);
@@ -221,7 +236,7 @@ export function CheckoutModal({
     setError(null);
 
     try {
-      const deliveryFee = parseDeliveryFee(DELIVERY_FEE_DISPLAY);
+      const deliveryFee = deliveryFeeValue;
       const expressEta = selectedDriver?.etaMinutes ?? 35;
       const orderData: Record<string, unknown> = {
         listingId: listing.id,
@@ -300,7 +315,7 @@ export function CheckoutModal({
 
       if (paymentMethod === 'sinpe_movil') {
         if (!sinpeConfig?.isEnabled) {
-          throw new Error('SINPE Móvil is currently unavailable');
+          throw new Error('SINPE Movil is currently unavailable');
         }
         if (!sinpeReference.trim()) {
           throw new Error('Please enter a SINPE transfer reference');
@@ -322,6 +337,18 @@ export function CheckoutModal({
         ].filter(Boolean).join(' | ');
       }
 
+      if (paymentMethod === 'cash') {
+        listingSnapshot.paymentMeta = {
+          method: 'cash',
+          status: 'pending_cash_payment',
+        };
+
+        orderData.notes = [
+          notes.trim(),
+          'Payment: Cash on ' + (method === 'delivery' ? 'delivery' : 'pickup'),
+        ].filter(Boolean).join(' | ');
+      }
+
       const res = await fetch(API_ROUTES.ORDERS, {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -335,7 +362,8 @@ export function CheckoutModal({
 
       const order = await res.json();
 
-      if (paymentMethod === 'sinpe_movil') {
+      // Cash and SINPE orders don't need Stripe checkout
+      if (paymentMethod === 'sinpe_movil' || paymentMethod === 'cash') {
         onSuccess(order.id);
         return;
       }
@@ -464,7 +492,7 @@ export function CheckoutModal({
                   notes={notes}
                   isSubmitting={isSubmitting}
                   subtotalDisplay={formatColonFromCents(subtotalCents)}
-                  deliveryFeeDisplay={formatColonFromCents(deliveryFeeValue * 100)}
+                  deliveryFeeDisplay={deliveryFeeDisplay}
                   ivaDisplay={formatColonFromCents(ivaCents)}
                   totalDisplay={formatColonFromCents(totalCents)}
                   paymentMethod={paymentMethod}

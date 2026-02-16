@@ -29,16 +29,24 @@ export interface FrontendListing {
   title: string;
   description: string | null;
   price: string;
+  priceCents: number | null;
+  currency: 'CRC' | 'USD';
   category: string;
   location: [number, number];
   rating: number;
   type: 'seller' | 'driver';
   owner: string;
   imageUrl: string | null;
+  imageUrls: string[];
+  condition: string;
+  itemType: string;
+  fulfillmentOptions: Record<string, unknown> | null;
   verified: boolean;
   moderationStatus?: 'active' | 'hidden';
   privateKey: string | null;
   pickupConfig: Database['public']['Tables']['listings']['Row']['pickup_config'];
+  landmarkDirections: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -54,6 +62,10 @@ export interface FrontendProfile {
   joined: string;
   pickupLocations: Database['public']['Tables']['profiles']['Row']['pickup_locations'];
   acceptsDelivery: boolean;
+  avgResponseMinutes: number | null;
+  totalTransactions: number;
+  landmarkDirections: string | null;
+  verificationBadges: Array<{ type: string; verified_at: string }>;
   createdAt: string;
   updatedAt: string;
   favorites: number[];

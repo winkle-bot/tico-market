@@ -153,6 +153,7 @@ export function CheckoutConfirmStep({
         senderPhone={senderPhone}
         onSinpeReferenceChange={onSinpeReferenceChange}
         onSenderPhoneChange={onSenderPhoneChange}
+        orderType={method}
       />
 
       <button
@@ -164,7 +165,13 @@ export function CheckoutConfirmStep({
             : 'tm-btn-primary disabled:opacity-70'
         } text-white`}
       >
-        {isSubmitting ? t('checkout.placingOrder') : paymentMethod === 'sinpe_movil' ? 'Confirm SINPE Order' : t('checkout.confirm')}
+        {isSubmitting
+          ? t('checkout.placingOrder')
+          : paymentMethod === 'sinpe_movil'
+            ? 'Confirm SINPE Order'
+            : paymentMethod === 'cash'
+              ? 'Confirm Cash Order'
+              : t('checkout.confirm')}
       </button>
 
       <p className="text-xs text-center text-gray-400">The seller will be notified and will confirm your order</p>

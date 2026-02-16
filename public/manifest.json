@@ -1,0 +1,29 @@
+{
+  "name": "Tico Market",
+  "short_name": "TicoMarket",
+  "description": "P2P marketplace for Costa Rica - buy, sell, and deliver locally",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8ff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

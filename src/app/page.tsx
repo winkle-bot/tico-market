@@ -15,6 +15,7 @@ import {
   MobileMenu,
   ListingGridSkeleton,
 } from '@/components';
+import { BottomNav } from '@/components/BottomNav';
 import { API_ROUTES } from '@/config/constants';
 import { useI18n } from '@/context/I18nContext';
 import type { Listing, Category, AuthFormState } from '@/types';
@@ -201,7 +202,7 @@ export default function Home() {
         onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
       />
 
-      <main id="main-content" className="flex-1 flex flex-col">
+      <main id="main-content" className="flex-1 flex flex-col pb-16 md:pb-0">
         <FilterBar
           view={view}
           onViewChange={setView}
@@ -325,6 +326,11 @@ export default function Home() {
           </AnimatePresence>
         </div>
       </main>
+
+      <BottomNav
+        onSell={() => setIsSellModalOpen(true)}
+        onAuth={() => setIsAuthModalOpen(true)}
+      />
     </div>
   );
 }

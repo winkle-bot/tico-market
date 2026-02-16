@@ -51,23 +51,44 @@ export interface ListingPickupConfig {
   marketEvents?: MarketEvent[];  // Specific events this item is available at
 }
 
+export type ListingCondition = 'new' | 'like_new' | 'good' | 'fair' | 'for_parts';
+export type ListingItemType = 'physical' | 'food' | 'service' | 'rental' | 'free';
+export type ListingCurrency = 'CRC' | 'USD';
+
+export interface FulfillmentOptions {
+  pickup?: boolean;
+  platform_delivery?: boolean;
+  seller_delivers?: boolean;
+  shipping?: boolean;
+  delivery_fee?: number | null;
+}
+
 export interface Listing {
   id: number;
   sellerId: string;
   title: string;
   description?: string;
   price: string;
+  priceCents?: number | null;
+  currency?: ListingCurrency;
   category: Category;
   location: [number, number]; // [lat, lng]
   rating: number;
   type: 'seller' | 'driver';
   owner: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  condition?: ListingCondition;
+  itemType?: ListingItemType;
+  fulfillmentOptions?: FulfillmentOptions;
   verified?: boolean;
   moderationStatus?: 'active' | 'hidden';
   privateKey?: string;
   // Pickup configuration
   pickupConfig?: ListingPickupConfig;
+  landmarkDirections?: string | null;
+  expiresAt?: string | null;
+  createdAt?: string;
 }
 
 // Category type - matches the categories array
@@ -205,7 +226,7 @@ export interface DeliveryBid {
 export type OrderType = 'delivery' | 'pickup';
 export type OrderStatus = 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'requires_payment' | 'paid' | 'failed' | 'refunded';
-export type CheckoutPaymentMethod = 'card' | 'sinpe_movil';
+export type CheckoutPaymentMethod = 'card' | 'sinpe_movil' | 'cash';
 
 export interface SinpeConfig {
   id: string;
@@ -375,12 +396,18 @@ export interface AuthFormState {
 export interface NewListingForm {
   title: string;
   price: string;
+  currency: ListingCurrency;
   category: Category;
   description: string;
-  image: File | null;
-  // Pickup config
+  images: File[];
+  condition: ListingCondition;
+  itemType: ListingItemType;
+  // Fulfillment
   pickupAvailable: boolean;
-  deliveryAvailable: boolean;
+  platformDelivery: boolean;
+  sellerDelivers: boolean;
+  sellerDeliveryFee: string;
+  shipping: boolean;
   pickupLocationIds: string[];
   leadTime: string;
   marketEvents: MarketEvent[];

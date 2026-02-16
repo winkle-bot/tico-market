@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X } from 'lucide-react';
+import { Star, MapPin, Calendar, CheckCircle, ShieldCheck, MessageCircle, X, Clock, Award } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { categoryEmojis } from '@/lib/data';
@@ -12,6 +12,7 @@ import { useListings } from '@/context/ListingsContext';
 import { useToast } from '@/context/ToastContext';
 import ChatModal from '@/components/ChatModal';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { formatResponseTime } from '@/lib/format';
 import type { Review, Listing, User } from '@/types';
 
 export default function SellerProfileClient({ sellerId }: { sellerId: string }) {
@@ -129,6 +130,18 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                     <Calendar className="w-5 h-5 text-gray-400" />
                     <span className="font-semibold">Member since {seller.joined}</span>
                   </div>
+                  {(seller as any).avgResponseMinutes != null && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Clock className="w-5 h-5 text-gray-400" />
+                      <span className="font-semibold">{formatResponseTime((seller as any).avgResponseMinutes)}</span>
+                    </div>
+                  )}
+                  {(seller as any).totalTransactions > 0 && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <Award className="w-5 h-5 text-gray-400" />
+                      <span className="font-semibold">{(seller as any).totalTransactions} completed transactions</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="w-full h-px bg-gray-100 my-8" />

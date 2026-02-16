@@ -315,10 +315,36 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
             )}
           </div>
 
-          {/* Input Area */}
+          {/* Quick Replies + Input Area */}
           {currentUser && (
-            <div className="p-4 border-t border-[#dce5f7] bg-white">
-              <div className="flex gap-2">
+            <div className="border-t border-[#dce5f7] bg-white">
+              {/* Quick reply buttons */}
+              <div className="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto scrollbar-hide">
+                {(currentUser.id === listing.sellerId
+                  ? [
+                      { label: 'Still available', text: 'Yes, this is still available!' },
+                      { label: 'Sold', text: 'Sorry, this item has been sold.' },
+                      { label: 'Price is firm', text: 'The price is firm, thank you.' },
+                      { label: 'Send offer', text: 'Feel free to make an offer!' },
+                    ]
+                  : [
+                      { label: 'Available?', text: 'Hi! Is this still available?' },
+                      { label: 'Lowest price?', text: 'What is the lowest price you can do?' },
+                      { label: 'Can deliver?', text: 'Can you deliver this item?' },
+                      { label: 'When pickup?', text: 'When can I pick this up?' },
+                    ]
+                ).map((qr) => (
+                  <button
+                    key={qr.label}
+                    type="button"
+                    onClick={() => setNewMessage(qr.text)}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-full bg-[#f0f4ff] text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100"
+                  >
+                    {qr.label}
+                  </button>
+                ))}
+              </div>
+              <div className="p-4 pt-2 flex gap-2">
                 <input
                   type="text"
                   value={newMessage}

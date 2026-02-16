@@ -1,4 +1,10 @@
 import type { PickupLocation } from '@/types';
+import {
+  DELIVERY_FEE_BASE,
+  DELIVERY_FEE_PER_KM,
+  DELIVERY_FEE_MIN,
+  DELIVERY_FEE_MAX,
+} from '@/config/constants';
 
 export interface DriverOption {
   id: string;
@@ -48,6 +54,27 @@ export function estimateEtaMinutes(distanceKm: number): number {
 export function parseDeliveryFee(display: string): number {
   const value = Number.parseInt(display.replace(/[^\d]/g, ''), 10);
   return Number.isFinite(value) ? value : 2500;
+}
+
+/**
+ * Calculate dynamic delivery fee based on distance between two points.
+ * Uses base + per-km rate, clamped between min and max.
+ */
+export function calculateDeliveryFee(
+  fromCoords: [number, number] | null | undefined,
+  toCoords: [number, number] | null | undefined,
+): number {
+  if (!fromCoords || !toCoords) {
+    return DELIVERY_FEE_BASE;
+  }
+
+  const distanceKm = getDistanceKm(fromCoords, toCoords);
+  const fee = Math.round(DELIVERY_FEE_BASE + distanceKm * DELIVERY_FEE_PER_KM);
+  return Math.max(DELIVERY_FEE_MIN, Math.min(DELIVERY_FEE_MAX, fee));
+}
+
+export function formatDeliveryFee(feeColones: number): string {
+  return `₡${feeColones.toLocaleString('es-CR')}`;
 }
 
 export function parseColonDisplayToNumber(value: string): number {

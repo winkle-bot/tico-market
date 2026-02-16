@@ -108,7 +108,7 @@ export function OrdersTab({
       cancelled: <XCircle className="w-3 h-3" />,
     };
     const labels: Record<string, string> = {
-      pending: 'Pending',
+      pending: 'Awaiting Confirmation',
       confirmed: 'Confirmed',
       in_transit: 'In Transit',
       completed: 'Completed',

@@ -44,6 +44,10 @@ export async function GET() {
       joined: typedProfile.joined,
       pickupLocations: typedProfile.pickup_locations,
       acceptsDelivery: typedProfile.accepts_delivery,
+      avgResponseMinutes: (typedProfile as any).avg_response_minutes ?? null,
+      totalTransactions: (typedProfile as any).total_transactions ?? 0,
+      landmarkDirections: (typedProfile as any).landmark_directions ?? null,
+      verificationBadges: Array.isArray((typedProfile as any).verification_badges) ? (typedProfile as any).verification_badges : [],
       createdAt: typedProfile.created_at,
       updatedAt: typedProfile.updated_at,
       favorites

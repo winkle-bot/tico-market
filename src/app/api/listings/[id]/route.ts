@@ -46,22 +46,36 @@ export async function GET(
 
     // Transform to match frontend format
     const typedListing = listing as unknown as Listing;
+    let imageUrls: string[] = [];
+    if ((typedListing as any).image_urls && Array.isArray((typedListing as any).image_urls)) {
+      imageUrls = (typedListing as any).image_urls as string[];
+    } else if (typedListing.image_url) {
+      imageUrls = [typedListing.image_url];
+    }
     const transformed: FrontendListing = {
       id: typedListing.id,
       sellerId: typedListing.seller_id,
       title: typedListing.title,
       description: typedListing.description,
       price: typedListing.price,
+      priceCents: (typedListing as any).price_cents ?? null,
+      currency: (typedListing as any).currency ?? 'CRC',
       category: typedListing.category,
       location: [typedListing.location_lat, typedListing.location_lng],
       rating: typedListing.rating,
       type: typedListing.type,
       owner: typedListing.owner,
       imageUrl: typedListing.image_url,
+      imageUrls,
+      condition: (typedListing as any).condition ?? 'good',
+      itemType: (typedListing as any).item_type ?? 'physical',
+      fulfillmentOptions: (typedListing as any).fulfillment_options ?? null,
       verified: typedListing.verified,
       moderationStatus: typedListing.moderation_status,
       privateKey: typedListing.private_key,
       pickupConfig: typedListing.pickup_config,
+      landmarkDirections: (typedListing as any).landmark_directions ?? null,
+      expiresAt: (typedListing as any).expires_at ?? null,
       createdAt: typedListing.created_at,
     };
 
@@ -214,22 +228,36 @@ export async function PUT(
     }
 
     const typedListing = listing as unknown as Listing;
+    let updatedImageUrls: string[] = [];
+    if ((typedListing as any).image_urls && Array.isArray((typedListing as any).image_urls)) {
+      updatedImageUrls = (typedListing as any).image_urls as string[];
+    } else if (typedListing.image_url) {
+      updatedImageUrls = [typedListing.image_url];
+    }
     const transformed: FrontendListing = {
       id: typedListing.id,
       sellerId: typedListing.seller_id,
       title: typedListing.title,
       description: typedListing.description,
       price: typedListing.price,
+      priceCents: (typedListing as any).price_cents ?? null,
+      currency: (typedListing as any).currency ?? 'CRC',
       category: typedListing.category,
       location: [typedListing.location_lat, typedListing.location_lng],
       rating: typedListing.rating,
       type: typedListing.type,
       owner: typedListing.owner,
       imageUrl: typedListing.image_url,
+      imageUrls: updatedImageUrls,
+      condition: (typedListing as any).condition ?? 'good',
+      itemType: (typedListing as any).item_type ?? 'physical',
+      fulfillmentOptions: (typedListing as any).fulfillment_options ?? null,
       verified: typedListing.verified,
       moderationStatus: typedListing.moderation_status,
       privateKey: typedListing.private_key,
       pickupConfig: typedListing.pickup_config,
+      landmarkDirections: (typedListing as any).landmark_directions ?? null,
+      expiresAt: (typedListing as any).expires_at ?? null,
       createdAt: typedListing.created_at,
     };
 
@@ -238,6 +266,61 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');
     }
+    return ApiResponse.serverError(error);
+  }
+}
+
+// PATCH bump listing (renew expiry)
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createSupabaseServerClient();
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+
+    const parsedListingId = listingIdSchema.safeParse(id);
+    if (!parsedListingId.success) {
+      return ApiResponse.badRequest('Invalid listing id');
+    }
+    const listingId = parsedListingId.data;
+
+    const { data: existing } = await supabase
+      .from('listings')
+      .select('seller_id')
+      .eq('id', listingId)
+      .single();
+
+    if (!existing) {
+      return ApiResponse.error('Listing not found', 404);
+    }
+
+    const typedExisting = existing as { seller_id: string };
+    if (typedExisting.seller_id !== user.id) {
+      return ApiResponse.unauthorized('Not authorized to bump this listing');
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    const { error } = await (supabase.from('listings') as any)
+      .update({
+        expires_at: expiresAt.toISOString(),
+        last_bumped_at: now.toISOString(),
+      })
+      .eq('id', listingId);
+
+    if (error) {
+      return ApiResponse.error(error.message, 500);
+    }
+
+    return ApiResponse.success({ message: 'Listing bumped', expiresAt: expiresAt.toISOString() });
+  } catch (error) {
     return ApiResponse.serverError(error);
   }
 }

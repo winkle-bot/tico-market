@@ -1,3 +1,4 @@
+import { Banknote } from 'lucide-react';
 import type { CheckoutPaymentMethod, SinpeConfig } from '@/types';
 
 interface SinpePaymentOptionProps {
@@ -8,6 +9,7 @@ interface SinpePaymentOptionProps {
   senderPhone: string;
   onSinpeReferenceChange: (value: string) => void;
   onSenderPhoneChange: (value: string) => void;
+  orderType?: 'delivery' | 'pickup' | null;
 }
 
 export function SinpePaymentOption({
@@ -18,14 +20,17 @@ export function SinpePaymentOption({
   senderPhone,
   onSinpeReferenceChange,
   onSenderPhoneChange,
+  orderType,
 }: SinpePaymentOptionProps) {
   const sinpeAvailable = Boolean(sinpeConfig?.isEnabled);
+  // Cash on delivery is available for pickup and delivery orders
+  const cashAvailable = true;
 
   return (
     <div className="space-y-3 rounded-2xl border border-[#dce5f7] bg-white p-4">
       <h4 className="text-xs font-black uppercase tracking-wider text-[#7d91b8]">Payment Method</h4>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => onPaymentMethodChange('card')}
@@ -34,7 +39,7 @@ export function SinpePaymentOption({
           }`}
         >
           <p className="text-sm font-black text-[#1f3561]">Card (Stripe)</p>
-          <p className="text-xs text-[#6881b1]">Instant payment confirmation</p>
+          <p className="text-xs text-[#6881b1]">Instant confirmation</p>
         </button>
 
         <button
@@ -47,8 +52,26 @@ export function SinpePaymentOption({
               : 'border-[#dce5f7] bg-white'
           } ${!sinpeAvailable ? 'cursor-not-allowed opacity-60' : ''}`}
         >
-          <p className="text-sm font-black text-[#1f3561]">SINPE Móvil</p>
-          <p className="text-xs text-[#6881b1]">Manual confirmation by seller</p>
+          <p className="text-sm font-black text-[#1f3561]">SINPE Movil</p>
+          <p className="text-xs text-[#6881b1]">Bank transfer</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => cashAvailable && onPaymentMethodChange('cash')}
+          disabled={!cashAvailable}
+          className={`rounded-xl border-2 px-3 py-3 text-left transition-colors ${
+            paymentMethod === 'cash'
+              ? 'border-amber-500 bg-amber-50'
+              : 'border-[#dce5f7] bg-white'
+          }`}
+        >
+          <p className="text-sm font-black text-[#1f3561] flex items-center gap-1">
+            <Banknote className="w-4 h-4" /> Cash
+          </p>
+          <p className="text-xs text-[#6881b1]">
+            {orderType === 'delivery' ? 'Pay on delivery' : 'Pay at pickup'}
+          </p>
         </button>
       </div>
 
@@ -80,6 +103,16 @@ export function SinpePaymentOption({
               onChange={(e) => onSenderPhoneChange(e.target.value)}
             />
           </label>
+        </div>
+      )}
+
+      {paymentMethod === 'cash' && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+          <p className="text-sm font-bold text-amber-800">
+            {orderType === 'delivery'
+              ? 'Pay the driver in cash when your order arrives. Please have exact change ready.'
+              : 'Pay the seller in cash when you pick up the item.'}
+          </p>
         </div>
       )}
     </div>

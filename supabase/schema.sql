@@ -29,6 +29,10 @@ create table if not exists public.profiles (
   joined timestamptz default now(),
   pickup_locations jsonb default '[]'::jsonb,
   accepts_delivery boolean default true,
+  avg_response_minutes integer,
+  total_transactions integer default 0,
+  landmark_directions text,
+  verification_badges jsonb default '[]'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -73,6 +77,8 @@ create table if not exists public.listings (
   title text not null,
   description text,
   price text not null,
+  price_cents integer default 0,
+  currency text not null default 'CRC' check (currency in ('CRC', 'USD')),
   category text not null,
   location_lat decimal(10, 8) not null default 9.9281,
   location_lng decimal(11, 8) not null default -84.0907,
@@ -80,10 +86,17 @@ create table if not exists public.listings (
   type text not null check (type in ('seller', 'driver')),
   owner text not null,
   image_url text,
+  image_urls jsonb default '[]'::jsonb,
+  condition text default 'good' check (condition in ('new', 'like_new', 'good', 'fair', 'for_parts')),
+  item_type text default 'physical' check (item_type in ('physical', 'food', 'service', 'rental', 'free')),
+  fulfillment_options jsonb default '{"pickup": true, "platform_delivery": true}'::jsonb,
   verified boolean default false,
   moderation_status text not null default 'active' check (moderation_status in ('active', 'hidden')),
   private_key text,
   pickup_config jsonb default '{}'::jsonb,
+  expires_at timestamptz,
+  last_bumped_at timestamptz default now(),
+  landmark_directions text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -387,6 +400,8 @@ create table if not exists public.reviews (
   seller_id uuid references public.profiles(id) on delete cascade not null,
   buyer_id uuid references public.profiles(id) on delete cascade not null,
   buyer_name text not null,
+  driver_id uuid references public.profiles(id) on delete set null,
+  review_type text default 'seller' check (review_type in ('seller', 'driver')),
   rating integer not null check (rating between 1 and 5),
   comment text,
   created_at timestamptz default now()
@@ -395,6 +410,7 @@ create table if not exists public.reviews (
 create index if not exists idx_reviews_seller_id on public.reviews(seller_id);
 create index if not exists idx_reviews_listing_id on public.reviews(listing_id);
 create index if not exists idx_reviews_buyer_id on public.reviews(buyer_id);
+create index if not exists idx_reviews_driver_id on public.reviews(driver_id);
 create index if not exists idx_reviews_created_at on public.reviews(created_at);
 
 -- ==================== REPORTS TABLE ====================
