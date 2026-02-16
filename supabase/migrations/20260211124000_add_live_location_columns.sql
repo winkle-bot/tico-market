@@ -1,0 +1,2 @@
+-- Migration 20260211124000 already applied on remote but local file was missing.
+-- Marking it as applied to sync histories.
