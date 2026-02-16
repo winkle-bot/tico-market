@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, XCircle, Zap } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
 import type { DeliveryMeta, Order, Review } from '@/types';
 
 export function OrdersTab({ 
@@ -27,6 +28,7 @@ export function OrdersTab({
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [deliveryNoteByOrder, setDeliveryNoteByOrder] = useState<Record<string, string>>({});
+  const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null);
 
   const updateOrder = async (
     orderId: string,
@@ -488,11 +490,30 @@ export function OrdersTab({
                 Reviewed: {reviewsByOrder[order.id].rating}/5
               </div>
             )}
+            {isBuyer && ['confirmed', 'in_transit', 'completed'].includes(order.status) && (
+              <button
+                onClick={() => setDisputeOrderId(order.id)}
+                className="w-full mt-2 flex items-center justify-center gap-2 bg-orange-50 text-orange-700 border border-orange-200 font-bold py-2.5 rounded-xl hover:bg-orange-100 transition-colors text-sm"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Open Dispute
+              </button>
+            )}
           </div>
         );
       })}
 
       <AnimatePresence>
+        {disputeOrderId && (
+          <OpenDisputeModal
+            orderId={disputeOrderId}
+            onClose={() => setDisputeOrderId(null)}
+            onSuccess={() => {
+              setDisputeOrderId(null);
+              onStatusChange();
+            }}
+          />
+        )}
         {reviewingOrderId && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
             <motion.div

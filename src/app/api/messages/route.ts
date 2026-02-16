@@ -3,6 +3,7 @@ import { ApiResponse } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
 import { sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
+import { sendPushToUser, sendWhatsAppToUser } from '@/lib/push';
 import { z } from 'zod';
 
 const userIdSchema = z.string().uuid();
@@ -194,6 +195,16 @@ export async function POST(request: Request) {
     if (error) {
       return ApiResponse.error(error.message, 500);
     }
+
+    // Fire-and-forget push notification to the other party
+    const recipientId = user.id === buyerId ? sellerId : buyerId;
+    const senderName = user.id === buyerId ? (buyerName || 'Buyer') : (sellerName || 'Seller');
+    sendPushToUser(recipientId, {
+      title: `New message from ${senderName}`,
+      body: text.length > 100 ? text.slice(0, 97) + '...' : text,
+      url: '/account?tab=messages',
+    }).catch(() => {});
+    sendWhatsAppToUser(recipientId, `New message from ${senderName}: ${text.length > 100 ? text.slice(0, 97) + '...' : text}`).catch(() => {});
 
     return ApiResponse.success({
       id: message.id,

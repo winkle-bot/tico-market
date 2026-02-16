@@ -12,6 +12,7 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChatModal from '@/components/ChatModal';
 import { OrdersTab } from '@/components/account/OrdersTab';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { useToast } from '@/context/ToastContext';
 import type {
   MarketEvent,
@@ -544,6 +545,11 @@ export default function AccountPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Notification Settings */}
+      <div className="max-w-4xl mx-auto px-4 mt-4">
+        <NotificationSettings />
       </div>
 
       {/* Tabs */}

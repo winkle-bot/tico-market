@@ -29,6 +29,9 @@ export interface Database {
           total_transactions: number;
           landmark_directions: string | null;
           verification_badges: Json;
+          notification_prefs: Json;
+          phone_number: string | null;
+          whatsapp_opted_in: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -48,6 +51,9 @@ export interface Database {
           total_transactions?: number;
           landmark_directions?: string | null;
           verification_badges?: Json;
+          notification_prefs?: Json;
+          phone_number?: string | null;
+          whatsapp_opted_in?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +73,9 @@ export interface Database {
           total_transactions?: number;
           landmark_directions?: string | null;
           verification_badges?: Json;
+          notification_prefs?: Json;
+          phone_number?: string | null;
+          whatsapp_opted_in?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -715,6 +724,108 @@ export interface Database {
           created_at?: string;
         };
       };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      disputes: {
+        Row: {
+          id: string;
+          order_id: string;
+          opened_by: string;
+          reason: 'item_not_received' | 'item_not_as_described' | 'damaged' | 'wrong_item' | 'seller_unresponsive' | 'other';
+          description: string;
+          status: 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'resolved_refund' | 'closed';
+          resolution_notes: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          opened_by: string;
+          reason: 'item_not_received' | 'item_not_as_described' | 'damaged' | 'wrong_item' | 'seller_unresponsive' | 'other';
+          description: string;
+          status?: 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'resolved_refund' | 'closed';
+          resolution_notes?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          opened_by?: string;
+          reason?: 'item_not_received' | 'item_not_as_described' | 'damaged' | 'wrong_item' | 'seller_unresponsive' | 'other';
+          description?: string;
+          status?: 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'resolved_refund' | 'closed';
+          resolution_notes?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      dispute_messages: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          sender_id: string;
+          sender_role: 'buyer' | 'seller' | 'admin';
+          text: string;
+          evidence_urls: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          sender_id: string;
+          sender_role: 'buyer' | 'seller' | 'admin';
+          text: string;
+          evidence_urls?: string[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          dispute_id?: string;
+          sender_id?: string;
+          sender_role?: 'buyer' | 'seller' | 'admin';
+          text?: string;
+          evidence_urls?: string[];
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -727,3 +838,4 @@ export interface Database {
     };
   };
 }
+

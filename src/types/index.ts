@@ -385,6 +385,46 @@ export interface Report {
   createdAt: string;
 }
 
+// ============ DISPUTES ============
+
+export type DisputeReason = 'item_not_received' | 'item_not_as_described' | 'damaged' | 'wrong_item' | 'seller_unresponsive' | 'other';
+export type DisputeStatus = 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'resolved_refund' | 'closed';
+
+export interface Dispute {
+  id: string;
+  orderId: string;
+  openedBy: string;
+  reason: DisputeReason;
+  description: string;
+  status: DisputeStatus;
+  resolutionNotes?: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DisputeMessage {
+  id: string;
+  disputeId: string;
+  senderId: string;
+  senderRole: 'buyer' | 'seller' | 'admin';
+  senderName?: string;
+  text: string;
+  evidenceUrls: string[];
+  createdAt: string;
+}
+
+// ============ NOTIFICATIONS ============
+
+export interface NotificationPrefs {
+  push_messages: boolean;
+  push_orders: boolean;
+  push_delivery: boolean;
+  whatsapp_messages: boolean;
+  whatsapp_orders: boolean;
+}
+
 // ============ FORM STATES ============
 
 export interface AuthFormState {

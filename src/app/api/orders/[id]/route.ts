@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import { sanitizeOptionalText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
+import { sendPushToUser, sendWhatsAppToUser } from '@/lib/push';
 import { z } from 'zod';
 
 const orderIdSchema = z.string().min(3).max(120).regex(/^[a-zA-Z0-9-_]+$/);
@@ -53,11 +54,20 @@ export async function GET(
     }
 
     // Check if user is part of this order
-    if (order.buyer_id !== user.id && 
-        order.seller_id !== user.id && 
+    if (order.buyer_id !== user.id &&
+        order.seller_id !== user.id &&
         order.driver_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to view this order');
     }
+
+    // Check for active dispute
+    const { data: activeDispute } = await (supabase
+      .from('disputes') as any)
+      .select('id, status')
+      .eq('order_id', parsedOrderId.data)
+      .not('status', 'in', '("closed")')
+      .limit(1)
+      .maybeSingle();
 
     return ApiResponse.success({
       id: order.id,
@@ -82,6 +92,9 @@ export async function GET(
       paymentCurrency: order.payment_currency,
       createdAt: order.created_at,
       updatedAt: order.updated_at,
+      hasDispute: !!activeDispute,
+      disputeId: activeDispute?.id || null,
+      disputeStatus: activeDispute?.status || null,
     });
   } catch (error) {
     return ApiResponse.serverError(error);
@@ -211,6 +224,24 @@ export async function PATCH(
 
     if (error) {
       return ApiResponse.error(error.message, 500);
+    }
+
+    // Fire-and-forget push notifications for status changes
+    if (status) {
+      const title = (existing.listing_snapshot as any)?.title || 'Order';
+      const pushMsg = newUpdateMessage || `Order status: ${status}`;
+      const notifyIds: string[] = [];
+      if (!isBuyer) notifyIds.push(existing.buyer_id);
+      if (!isSeller) notifyIds.push(existing.seller_id);
+      if (existing.driver_id && !isDriver) notifyIds.push(existing.driver_id);
+      for (const uid of notifyIds) {
+        sendPushToUser(uid, {
+          title: `${title} — ${status.replace('_', ' ')}`,
+          body: pushMsg,
+          url: `/account?tab=orders`,
+        }).catch(() => {});
+        sendWhatsAppToUser(uid, `Tico Market: ${title} — ${pushMsg}`).catch(() => {});
+      }
     }
 
     return ApiResponse.success({

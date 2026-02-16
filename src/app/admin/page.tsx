@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { withCsrfHeaders } from '@/lib/csrf';
-import type { Report } from '@/types';
+import { DisputesTab } from '@/components/admin/DisputesTab';
+import type { Report, Dispute } from '@/types';
 
 type AdminListing = {
   id: number;
@@ -29,15 +30,17 @@ export default function AdminPage() {
   const [listings, setListings] = useState<AdminListing[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
       setError(null);
-      const [listingsRes, usersRes, reportsRes] = await Promise.all([
+      const [listingsRes, usersRes, reportsRes, disputesRes] = await Promise.all([
         fetch('/api/admin/listings'),
         fetch('/api/admin/users'),
         fetch('/api/admin/reports'),
+        fetch('/api/admin/disputes'),
       ]);
 
       if (!listingsRes.ok || !usersRes.ok || !reportsRes.ok) {
@@ -47,6 +50,10 @@ export default function AdminPage() {
       setListings(await listingsRes.json());
       setUsers(await usersRes.json());
       setReports(await reportsRes.json());
+      if (disputesRes.ok) {
+        const disputeData = await disputesRes.json();
+        setDisputes(disputeData.data || []);
+      }
     } catch (loadError) {
       const message = loadError instanceof Error ? loadError.message : 'Could not load admin data';
       setError(message);
@@ -167,6 +174,11 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 p-4">
+          <h2 className="font-black text-gray-900 mb-3 uppercase text-sm">Disputes</h2>
+          <DisputesTab disputes={disputes} onUpdate={loadData} />
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-4">
