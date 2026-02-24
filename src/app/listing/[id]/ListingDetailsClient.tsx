@@ -41,6 +41,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   const [reportReason, setReportReason] = useState('');
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (!listingId) return;
@@ -244,7 +245,6 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   if (!listing) return null;
 
   // Image gallery state
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const allImages = listing.imageUrls?.length ? listing.imageUrls : (listing.imageUrl ? [listing.imageUrl] : []);
 
   // Check if this is the user's own listing
