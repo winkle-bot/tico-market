@@ -1,0 +1,242 @@
+
+TICO MARKET
+The P2P Marketplace for Costa Rica
+
+Comprehensive Product Requirements Document
+
+Buy. Sell. Deliver. Connect.
+
+Version 1.0  |  February 2026
+Based in Uvita, Costa Ballena
+1. Executive Summary
+Tico Market is a peer-to-peer marketplace platform designed specifically for the Costa Rican market. It unifies three fragmented ecosystems into a single mobile-first application: secondhand goods trading (currently scattered across Facebook groups, WhatsApp chats, and Encuentra24), feria and artisan commerce (currently limited to physical attendance at weekly markets), and last-mile delivery by independent motorcycle couriers (currently coordinated ad-hoc through WhatsApp contacts and word of mouth).
+The platform serves locals, expats, digital nomads, and tourists alike. It solves the core problem that in Costa Rica today, you need to already know where to buy, who to buy from, and how to get things delivered. There is no single platform that answers all three questions. Tico Market does.
+
+
+
+2. Market Context: Why Costa Rica, Why Now
+2.1 The Address Problem
+Costa Rica does not use conventional street addresses. Outside the metropolitan San José area, roughly 90% of the country gives directions using landmarks and estimated distances (for example, "200 meters south of the church, next to the mango tree"). This makes delivery coordination fundamentally harder than in other markets. Waze has become the de facto navigation tool, with businesses listing Waze locations instead of addresses. Our platform must be built around pin-drop locations and shared GPS coordinates, not typed addresses.
+2.2 The WhatsApp Economy
+WhatsApp is the universal communication tool in Costa Rica. Businesses operate through it, tour guides send photos through it, and most commerce coordination happens inside WhatsApp groups. However, WhatsApp has no structure: no listings, no search, no ratings, no payment integration, no delivery coordination. The entire buying experience relies on being in the right group, knowing the right person, and texting back and forth to arrange everything manually. This is the friction we eliminate.
+2.3 Payment Infrastructure
+SINPE Móvil, operated by the Central Bank of Costa Rica since 2015, enables instant peer-to-peer bank transfers using only a phone number. By mid-2024, nearly 3 million users and 4 million accounts were active, with over 76% of Costa Ricans aged 15 and older using the system. Transfers are free or very low cost, available 24/7, and settle instantly. Costa Rica ranks fourth globally in fast-payment transactions per capita. This gives us an enormous advantage: we do not need to build a payment system. We can integrate with or facilitate SINPE Móvil transfers and layer our platform on top of a payment rail that people already trust and use daily.
+2.4 The Delivery Landscape
+Delivery in Costa Rica is called "express" or "domicilio." Because many Costa Ricans do not have cars, home delivery for everything from fast food to hardware is extremely common. Thousands of independent motorcycle couriers operate throughout the country, found in every town and along most major roads. The major food delivery apps (PedidosYa, Uber Eats, Rappi) operate mainly in the Greater Metropolitan Area around San José. Outside that zone, in beach towns, rural areas, and the Southern Zone, delivery is coordinated entirely through personal contacts and WhatsApp. These express drivers are eager for work and currently have no centralized way to find it.
+2.5 The Feria Ecosystem
+Costa Rica has over 100 weekly ferias del agricultor (farmer’s fairs), created under Law 8533 and managed by the National Board of Farmer’s Markets. These are not just produce markets. They sell everything: organic fruits and vegetables, meats, cheeses, baked goods, handicrafts, clothing, household goods, natural cosmetics, and prepared food. They are a central social and economic institution, yet they are entirely offline. A farmer growing organic lettuces in Cartago who travels to Uvita’s feria every Friday has no way to take advance orders, no way to offer delivery, and no way to reach customers who cannot attend that day. We change that.
+2.6 The Expat and Tourist Gap
+Costa Rica has a large and growing expat community, particularly in the Southern Pacific zone (Uvita, Dominical, Ojochal), Guanacaste (Tamarindo, Nosara), and the Central Valley (Escazú, Santa Ana). Tourists number over 3 million annually. Both groups face the same problem: they do not know who sells what, where to find it, or how to arrange delivery. They do not have an express guy. They are not in the right WhatsApp groups. They cannot read the landmark-based directions. Tico Market is their gateway into the local economy.
+2.7 Competitive Landscape
+
+
+3. User Personas and Roles
+The platform serves five distinct but interconnected user types. A single user account can hold multiple roles simultaneously (for example, someone can be both a buyer and a seller, or a feria vendor who also takes delivery jobs).
+3.1 Buyers
+Local Residents (Ticos): Spanish-speaking Costa Ricans who currently buy through ferias, pulperías (corner stores), Facebook groups, and word of mouth. They are comfortable with SINPE Móvil and WhatsApp. They want convenience and good prices.
+Expats and Long-Term Residents: Foreign nationals living in Costa Rica, many in beach and mountain communities. They often struggle to find things, do not always speak Spanish fluently, and do not have established local networks. They are willing to pay for convenience and delivery.
+Tourists and Short-Term Visitors: People visiting for days or weeks who need things (groceries, souvenirs, equipment rentals, prepared meals) but have no local knowledge. They may not have SINPE Móvil and will need alternative payment options.
+3.2 Sellers
+Individual Sellers: People selling used goods, homemade products, or offering services. They currently post in Facebook groups or WhatsApp. They want a broader audience and less friction.
+Feria Vendors and Farmers: Producers who sell at weekly markets. They want to take advance orders, reach customers who cannot attend in person, and potentially offer delivery. They may have limited tech skills and need a simple interface.
+Small Businesses and Artisans: Bakeries, kombucha makers, soap makers, jewelers, and other small producers who currently rely on Instagram, Facebook, and WhatsApp for orders. They want a storefront with order management.
+3.3 Express Drivers (Mandaderos)
+Independent motorcycle couriers who own their own vehicles. They want a steady stream of delivery jobs, fair compensation, and the ability to set their own schedule and coverage area. Many currently wait at street corners or rely on personal referrals. The platform gives them visibility, demand, and a reputation system.
+3.4 Feria Organizers
+Community organizations and municipal bodies that manage weekly ferias. They want to promote their market, attract more vendors and visitors, and potentially offer a digital extension of their physical market.
+4. Core Platform Features
+4.1 Listings and Discovery
+4.1.1 Listing Creation
+Any user can create a listing. The listing creation flow must be fast (under 60 seconds for a basic listing) and work well on low-end Android devices with slow connections.
+Item type: Physical good, food/produce, service, rental, free/giveaway
+Photos: Up to 8 photos, compressed on-device before upload. First photo becomes the thumbnail.
+Description: Free text with optional AI-assisted translation (Spanish ↔ English).
+Price: In colones (CRC) or USD, with live conversion displayed. Support for “negotiable,” “free,” and “contact for price.”
+Condition: New, like new, good, fair, for parts (for physical goods).
+Availability: Always available, specific dates/times, or linked to a feria schedule.
+Location: Pin drop on map (primary), plus optional text description using Costa Rican landmark style. Location can be approximate for privacy until a transaction is agreed.
+4.1.2 Fulfillment Options Per Listing
+Each listing specifies how the buyer can get the item. A single listing can offer multiple fulfillment options.
+
+
+4.1.3 Discovery and Search
+Map-first browse: Default view shows listings on a map centered on the user’s location, using GPS. Users can zoom, pan, and filter.
+Feed view: Scrollable card feed sorted by proximity, recency, or relevance. Cards show photo, price, distance, and fulfillment options.
+Category filters: Produce and food, household goods, electronics, vehicles, clothing, services, rentals, handmade/artisan, free stuff.
+Delivery filter: Show only items available for delivery, or only items available for pickup near me.
+Language toggle: Listings display in original language with one-tap translation.
+Feria filter: Show items available at upcoming ferias, filterable by feria location and date.
+Saved searches and alerts: Users can save searches and receive push notifications when matching listings appear.
+4.2 The Feria Module
+This is a differentiating feature that no competitor offers. The feria module bridges the gap between physical weekly markets and digital commerce.
+4.2.1 Feria Profiles
+Each feria has a profile page: location (map pin), schedule (day/time), description, vendor list, and photos.
+Feria organizers can claim and manage their profile, update schedules, and highlight featured vendors.
+Users can follow ferias to get reminders and see new vendor listings.
+4.2.2 Vendor Storefronts Within Ferias
+Feria vendors create a storefront linked to one or more ferias. Their listings show which ferias they attend and on which days.
+Vendors can post their weekly availability: what products they will bring this week, estimated quantities, and photos.
+Buyers can browse a feria’s vendor list before attending and pre-order items for pickup at the feria or for delivery.
+4.2.3 Pre-Orders and Reservations
+Buyers can place pre-orders through the app for pickup at a specific feria. The vendor confirms availability, and the buyer receives a confirmation with a QR code. At the feria, the vendor scans the QR code to complete the handoff. This solves the problem of popular items selling out early and of customers who cannot arrive at opening time.
+4.2.4 Feria Delivery
+Buyers who cannot attend a feria can still order from feria vendors and request delivery. The platform batches delivery requests by feria location and time, allowing a single express driver to pick up multiple orders from the same feria and deliver them efficiently. This creates a new revenue channel for vendors and a new job type for drivers.
+4.3 The Delivery Network
+The delivery network is the connective tissue of the platform. It transforms the scattered, informal express driver ecosystem into a structured, reliable logistics layer.
+4.3.1 Driver Onboarding
+Basic verification: valid cédula (national ID) or passport, driver’s license, vehicle registration, and motorcycle photos.
+Background check through available public records.
+Phone number verification via SMS (linked to their SINPE Móvil for payments).
+Coverage area declaration: drivers define the zones where they are willing to operate.
+Vehicle type declaration: motorcycle, car, bicycle, on foot (for very local deliveries).
+4.3.2 Delivery Job Types
+
+
+4.3.3 Delivery Pricing
+The platform offers two pricing models for delivery, selectable per transaction.
+Flat Rate by Distance: The platform calculates a suggested delivery fee based on straight-line distance between pickup and dropoff, adjusted for road conditions and time of day. This provides predictability for buyers.
+Driver Bidding: For on-demand errands or unusual deliveries, drivers can submit bids. The buyer sees available drivers, their rating, estimated arrival time, and proposed price, then selects one. This is similar to how informal express pricing works today, but with transparency.
+4.3.4 Real-Time Tracking
+Once a delivery is accepted, both buyer and seller can track the driver’s location in real-time on the map. The driver’s app provides turn-by-turn navigation. Estimated arrival times update dynamically. This is critical in a country without reliable addresses, where the current system depends on calling the driver and giving verbal landmark-based directions.
+4.4 Messaging and Communication
+In-app chat: Buyers and sellers communicate through in-app messaging. Messages support text, photos, voice notes, and location sharing (pin drops).
+WhatsApp bridge (optional): Sellers can opt to receive message notifications via WhatsApp, with a deep link back to the app conversation. This lowers the barrier for sellers who live in WhatsApp.
+Auto-translation: Messages can be auto-translated between Spanish and English (with a toggle to see original), solving the language barrier between Ticos and expats/tourists.
+Quick responses: Sellers get template quick-reply buttons: “Still available,” “Sold,” “Price is firm,” “Available at [feria] on [day].”
+Delivery coordination chat: A three-way chat between buyer, seller, and driver opens automatically when a delivery is arranged. Location pins can be shared directly in this chat.
+4.5 Payments
+Payments are the most sensitive and nuanced part of the platform. Costa Rica has a unique payment landscape, and we must support multiple methods while keeping friction low.
+4.5.1 Supported Payment Methods
+
+
+4.5.2 Payment Flow and Escrow
+For platform-facilitated transactions (where the platform handles payment rather than cash in person), funds are held in escrow until the buyer confirms receipt. The flow works as follows:
+Buyer commits to purchase and pays through the platform.
+Funds are held in a platform escrow account.
+Seller prepares item. If delivery is involved, driver picks up.
+Buyer receives item and confirms in the app (or confirmation auto-triggers after 24 hours if no dispute is raised).
+Funds are released to the seller. Delivery fee is released to the driver.
+Platform commission is deducted.
+Important exception: For cash transactions and in-person pickups, the platform does not handle money. It only provides the listing, communication, and optional delivery coordination. Platform revenue in these cases comes from optional promoted listings or subscription fees, not transaction commissions.
+4.5.3 Currency Handling
+Listings can be priced in CRC (colones) or USD. The platform shows a live conversion rate alongside every price. SINPE Móvil operates only in colones, so USD-priced items paid via SINPE are converted at the current rate. Card payments can be processed in either currency.
+4.6 Trust and Reputation
+Star ratings: Both parties rate each other after every completed transaction (1–5 stars plus optional text review). Drivers are rated separately.
+Verification badges: Verified phone number, verified cédula, verified business (for registered businesses), verified feria vendor (confirmed by feria organizer).
+Transaction history: Public count of completed transactions visible on profiles.
+Response time indicator: Shows how quickly a seller typically responds to messages.
+Community reporting: Users can flag listings (scam, prohibited item, incorrect category) and report users. Moderation team reviews reports.
+Dispute resolution: For escrowed transactions, a dispute process allows either party to escalate. Evidence (photos, chat history) is reviewed by the platform.
+5. Edge Cases and Hidden Complexity
+Building for Costa Rica means building for a set of conditions that most marketplace playbooks do not account for. This section addresses the real-world challenges that will determine whether the platform succeeds or fails.
+5.1 The Location Challenge
+No formal addresses: The platform must never require a typed street address. All locations use GPS pin drops, with optional landmark-based text descriptions (“200 meters south of the EBAIS, white gate with blue roof”).
+Poor GPS in jungle/mountain areas: In places like Uvita, dense vegetation and mountainous terrain can degrade GPS accuracy. The app should allow users to adjust their pin after placement and save named locations (“My house,” “Mom’s farm”).
+Offline capability for pin setting: Users in areas with poor connectivity should be able to set pins on cached map tiles, with sync when reconnected.
+Driver navigation fallback: When GPS navigation fails, the driver chat allows the buyer to send voice notes with verbal directions (the Costa Rican way). The app should prompt this as a fallback.
+5.2 Connectivity and Device Constraints
+Low bandwidth: Outside metro areas, mobile data speeds can be slow and unreliable. Images must be aggressively compressed. The app should function on 2G/3G connections for core flows (browse, message, accept delivery).
+Low-end devices: Many users have budget Android phones with limited storage and RAM. The app must be lightweight (target under 30MB install size) and perform well on Android 9+.
+Intermittent connectivity: Core actions (posting a listing, sending a message, accepting a delivery) should queue locally and sync when connectivity returns. Optimistic UI updates with background sync.
+5.3 Language and Cultural Nuance
+Bilingual everything: The app interface must be fully bilingual (Spanish and English) with the language switchable at any time. Every system message, notification, and label must be translated.
+Costa Rican Spanish: Use Tico idioms and terminology, not neutral Latin American Spanish. Use “usted” (not “tú”), “pura vida,” “mae,” “feria” (not “mercado de agricultores”). The app should feel local, not translated.
+Currency display: Always show CRC with the ₡ symbol and USD with $. For large colon amounts, use the common abbreviated format (e.g., “₡5.000” for five thousand colones, using period as thousands separator per Costa Rican convention).
+Trust across cultures: Expats and Ticos often have different expectations around punctuality, pricing negotiation, and communication style. The platform should set clear expectations (estimated delivery windows, not exact times; negotiation is normal and expected).
+5.4 Perishable Goods
+A significant portion of marketplace activity involves food: fruits, vegetables, prepared meals, baked goods, dairy, and fish from ferias. Perishable goods introduce several challenges.
+Time windows: Perishable listings must specify a delivery/pickup window (e.g., “available Friday 6am–12pm at Uvita feria”). The platform must prevent orders outside these windows.
+No returns on perishables: The dispute resolution process must account for the fact that perishable food generally cannot be returned. Photo evidence at delivery becomes critical.
+Batch efficiency: Feria deliveries should be batched by pickup location and time to ensure perishables spend minimum time in transit.
+Cold chain awareness: The platform should let sellers indicate if an item requires refrigeration or has a short shelf life, so drivers and buyers can plan accordingly.
+5.5 Safety and Legal Considerations
+Prohibited items: Clear policies on what cannot be sold: weapons, controlled substances, counterfeit goods, live animals (except through verified breeders), prescription medications.
+Food safety: The platform should require feria vendors to indicate if they hold a health permit (permiso sanitario). However, enforcement must be practical — the feria system itself is regulated under Law 8533 and vendors at registered ferias are already subject to health oversight.
+Driver safety: Drivers should have an emergency button in the app. Their real-time location is tracked during deliveries. Insurance requirements should be communicated clearly.
+Consumer protection: Costa Rica’s Consumer Protection Law (Law 7472) applies to e-commerce. The platform must provide seller identification, clear transaction terms, secure payment processing, and an 8-day withdrawal right for non-perishable goods purchased outside the seller’s premises. Privacy protections under the Data Protection Law must be followed.
+Tax obligations: Sellers who exceed certain revenue thresholds may need to register for IVA (13% value-added tax). The platform should provide transaction summaries for sellers to facilitate tax compliance, but should not act as a tax collector in the initial phase.
+5.6 Multi-Sided Trust Bootstrapping
+The classic chicken-and-egg problem: buyers want selection, sellers want customers, and drivers want jobs. The launch strategy must address this.
+Start with drivers: Recruit express drivers first. They are easy to find (they wait at known spots in every town), eager for work, and they become ambassadors who tell sellers and buyers about the platform.
+Then feria vendors: Go to ferias personally, onboard vendors on the spot with a tablet. Help them create their first listings. The feria module gives them something they cannot get elsewhere: advance orders and delivery.
+Then buyers: With listings already populated from feria vendors and drivers ready to deliver, buyers have immediate value. Target expat communities first (they feel the pain most acutely).
+Then organic growth: As the platform gains traction, individual sellers (secondhand goods, homemade products) join organically because the audience is there.
+6. Revenue Model
+
+
+
+
+7. Technical Architecture Overview
+7.1 Platform
+Mobile-first: Native apps for iOS and Android (React Native or Flutter for code sharing). Web app as secondary channel for browsing.
+Progressive Web App (PWA): For users who do not want to install an app, a PWA provides core browse and messaging functionality.
+Offline-first architecture: Local SQLite database on device for listings cache, message queue, and draft listings. Sync engine for background data resolution.
+7.2 Backend
+API: RESTful API with WebSocket connections for real-time features (chat, delivery tracking, notifications).
+Database: PostgreSQL with PostGIS extension for geospatial queries (find listings within radius, calculate delivery distances).
+Search: Elasticsearch for full-text listing search with bilingual support and fuzzy matching.
+Media: Object storage (S3-compatible) with CDN for image delivery. On-device compression before upload.
+Maps: Mapbox or Google Maps SDK for in-app mapping, pin drops, and route calculation.
+Notifications: Push notifications via Firebase Cloud Messaging (Android) and APNs (iOS). SMS fallback for critical notifications (delivery arriving, payment received).
+7.3 Integrations
+SINPE Móvil: Integration through a licensed payment service provider (PSP) like TiloPay or Fygaro, or direct integration with Central Bank APIs if feasible.
+Card Payments: Stripe (if available in CR) or local PSP for credit/debit card processing.
+WhatsApp Business API: For notification bridging and optional seller communication channel.
+Translation API: Google Translate or DeepL for real-time message and listing translation.
+Waze/Google Maps deep links: Drivers can open delivery navigation directly in Waze (the dominant navigation app in CR) from within the platform.
+7.4 Security
+All data in transit encrypted via TLS 1.3.
+Personal data (cédula numbers, phone numbers) encrypted at rest.
+Compliance with Costa Rica’s Data Protection Law (Ley de Protección de la Persona frente al Tratamiento de sus Datos Personales, Law 8968).
+Rate limiting and fraud detection on payment and messaging endpoints.
+GDPR-aligned data practices for European expat users.
+8. Launch Strategy
+8.1 Phase 1: Uvita / Costa Ballena Pilot (Months 1–4)
+Launch in the Southern Pacific zone (Uvita, Dominical, Ojochal, Quepos corridor). This area has a dense expat community that acutely feels the discovery and delivery pain, active weekly ferias, and an established express driver presence.
+Recruit 20–50 express drivers through in-person outreach at known pickup spots.
+Onboard 10–20 feria vendors at the Uvita and Dominical ferias.
+Seed the marketplace with 100+ listings (team creates initial listings from existing Facebook group posts, with permission).
+Launch with core features: listings, search, messaging, feria module, driver matching, SINPE Móvil and cash payments.
+Marketing: flyers at ferias, posts in local expat Facebook groups, partnership with local businesses (surf shops, yoga studios, co-working spaces).
+8.2 Phase 2: Expansion to Beach Towns (Months 5–8)
+Expand to Tamarindo, Nosara, Santa Teresa, Jacó, Manuel Antonio.
+Launch business accounts and feria vendor subscriptions.
+Add promoted listings feature.
+Begin onboarding small businesses (bakeries, artisans, food producers) beyond feria vendors.
+8.3 Phase 3: Central Valley and Nationwide (Months 9–12+)
+Expand to San José metropolitan area, Heredia, Alajuela, Cartago.
+Launch advertising module.
+Add platform wallet for frequent users.
+Explore cross-border features (Panama border zone, Nicaraguan migrant community).
+Consider API partnerships with existing delivery services for urban zones where Uber Eats and PedidosYa already have driver density.
+9. Success Metrics
+
+
+10. Risks and Mitigations
+
+
+11. Future Vision
+Beyond the initial marketplace, Tico Market has the potential to become the operating system for informal commerce in Costa Rica and eventually Central America. Future possibilities include:
+Group buying: Neighbors in a community collectively order from a farmer, splitting the delivery cost and meeting a minimum order threshold. This already happens informally through WhatsApp groups — we formalize it.
+Subscription boxes: Weekly organic produce boxes from feria vendors, delivered to your door. Vendor packs the box, driver delivers, platform handles billing.
+Service marketplace: Beyond physical goods, people can list and book services: house cleaning, gardening, plumbing, tutoring, tours, surf lessons.
+Rental marketplace: Surfboards, camping gear, tools, vehicles — short-term rentals with delivery and return facilitated by the driver network.
+Community boards: Local notice boards for events, lost-and-found, recommendations, and community announcements. This captures the social function that WhatsApp groups currently serve.
+Financial services: Micro-lending for feria vendors (advance on expected sales), insurance products for drivers, and savings features for frequent buyers.
+Cross-border trade: Connect with marketplaces in Panama, Nicaragua, and other Central American countries, leveraging the Transfer365 CA-RD cross-border instant payment system.
+
+12. Appendix: Costa Rica Market Data
+12.1 Key Statistics
+Population: approximately 5.2 million, with an estimated 100,000–200,000 foreign residents.
+Over 100 registered ferias del agricultor nationwide, operating under Law 8533.
+SINPE Móvil: nearly 3 million users, 4 million accounts, 76%+ of adults 15+ actively using (as of mid-2024). Ranked 4th globally in fast-payment transactions per capita.
+Food delivery market dominated by PedidosYa (230K–250K weekly active users) and Uber Eats, concentrated in the Greater Metropolitan Area.
+Smartphone penetration is high; WhatsApp is near-universal for personal and business communication.
+Tourism: over 3 million annual visitors (pre-pandemic peak), with the Southern Pacific and Guanacaste as major destinations.
+E-commerce regulation exists under the Consumer Protection Law (Law 7472), with specific e-commerce provisions added in 2017. The 8-day withdrawal right applies to non-perishable goods sold outside the merchant’s premises.
+Data protection regulated under Law 8968. Prior consent required for commercial communications.
+Cost of processing cash in Costa Rica was estimated at 1% of GDP (2017). SINPE Móvil adoption has reduced this by an estimated 0.5% of GDP annually.
+12.2 Glossary
+
+
+Pura Vida. Let’s build this.
