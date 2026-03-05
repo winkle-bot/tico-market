@@ -88,8 +88,8 @@ Simplified to push-only toggle. WhatsApp preference UI removed.
 ### ✅ 1. Consolidate data access pattern — DONE
 Removed Drizzle and `db.json`. All data access via Supabase client.
 
-### ⏳ 2. Rename `type` field on listings — DEFERRED (requires DB migration)
-The `listings.type` column (`'seller' | 'driver'`) should be renamed to `listing_kind` for clarity. Requires a DB migration + updating all API routes and types. Deferred to a dedicated migration pass.
+### ✅ 2. Rename `type` field on listings — DONE
+`listings.type` → `listings.listing_kind`. Migration in `20260305100000_rename_listing_type_to_kind.sql`. Updated `database.types.ts`, `supabase-types.ts`, `listing-utils.ts`, all API routes, `ListingCard`, `ListingDetailsClient`, `SellModal`, `CheckoutModal`, and test fixtures. Query param updated from `?type=` to `?listing_kind=` (backward-compat shim kept for one cycle).
 
 ### ✅ 3. Category list — DONE
 Updated `src/lib/data.ts` and `src/types/index.ts` to match PRD §4.1.3:
@@ -97,8 +97,8 @@ Updated `src/lib/data.ts` and `src/types/index.ts` to match PRD §4.1.3:
 - **Added:** Rentals, Artisan, Free
 - **Kept:** Food, Home, Electronics, Vehicles, Fashion, Services, Other
 
-### ⏳ 4. Price storage — PARTIALLY DONE (DB migration needed to complete)
-The UI layer (`ListingCard`, `formatPrice()`) already uses `price_cents` as the canonical value with the text `price` as a fallback. Full canonicalization (making `price_cents` NOT NULL, dropping the text `price` column) requires a DB migration. Deferred.
+### ✅ 4. Price storage — DONE
+Migration in `20260305110000_price_cents_canonical.sql` makes `price_cents` NOT NULL with default 0. `toFrontendListing()` now derives the `price` display string from `formatPrice(priceCents, currency)` — the text `price` DB column is no longer written or read. API insert/update uses only `price_cents`. Account edit form, admin panel, SEO metadata, and checkout all use `priceCents` directly. Text `price` column kept nullable for legacy snapshot data.
 
 ### ✅ 5. Admin routes — ALREADY DONE
 `src/lib/admin.ts` exports `requireAdmin()` which is called at the top of every admin route handler. No duplication.
@@ -133,8 +133,4 @@ The UI layer (`ListingCard`, `formatPrice()`) already uses `price_cents` as the 
 
 The codebase is **substantially aligned** with the PRD's vision. The core marketplace loop — list, discover, message, buy, deliver — is well-built. The tech choices (Next.js 16, Supabase, Cloudflare, Leaflet) are appropriate for the target market. Security fundamentals (CSRF, rate limiting, RLS, input sanitization) are solid.
 
-**Remaining deferred items (require DB migrations):**
-- Rename `listings.type` → `listings.listing_kind`
-- Make `price_cents` NOT NULL and drop text `price` column
-
-These are non-blocking. The recommended actions are trimming, not adding.
+All cut list and refactor items from the original audit are now complete. The codebase is fully aligned with the PRD's Phase 1 scope.

@@ -1,4 +1,5 @@
 import type { Listing, FrontendListing } from '@/lib/supabase-types';
+import { formatPrice } from '@/lib/format';
 
 export function extractImageUrls(listing: Listing): string[] {
   if (listing.image_urls && Array.isArray(listing.image_urls)) {
@@ -11,18 +12,20 @@ export function extractImageUrls(listing: Listing): string[] {
 }
 
 export function toFrontendListing(listing: Listing): FrontendListing {
+  const currency = listing.currency ?? 'CRC';
+  const priceCents = listing.price_cents ?? 0;
   return {
     id: listing.id,
     sellerId: listing.seller_id,
     title: listing.title,
     description: listing.description,
-    price: listing.price,
-    priceCents: listing.price_cents ?? null,
-    currency: listing.currency ?? 'CRC',
+    price: formatPrice(priceCents, currency),
+    priceCents,
+    currency,
     category: listing.category,
     location: [listing.location_lat, listing.location_lng],
     rating: listing.rating,
-    type: listing.type,
+    listingKind: listing.listing_kind,
     owner: listing.owner,
     imageUrl: listing.image_url,
     imageUrls: extractImageUrls(listing),

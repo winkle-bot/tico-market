@@ -4,11 +4,14 @@ import ListingDetailsClient from './ListingDetailsClient';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tico-market.com';
 
+import { formatPrice } from '@/lib/format';
+
 type ListingSeoRecord = {
   id: number;
   title: string;
   description: string | null;
-  price: string;
+  price_cents: number;
+  currency: 'CRC' | 'USD';
   category: string;
   image_url: string | null;
   owner: string;
@@ -24,7 +27,7 @@ async function getListingForMetadata(id: string): Promise<ListingSeoRecord | nul
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from('listings')
-    .select('id, title, description, price, category, image_url, owner, moderation_status')
+    .select('id, title, description, price_cents, currency, category, image_url, owner, moderation_status')
     .eq('id', numericId)
     .single();
 
@@ -37,7 +40,8 @@ function buildDescription(listing: ListingSeoRecord): string {
     return clean.slice(0, 160);
   }
 
-  return `${listing.category} listing by ${listing.owner} for ${listing.price} on Tico Market.`;
+  const priceDisplay = formatPrice(listing.price_cents, listing.currency ?? 'CRC');
+  return `${listing.category} listing by ${listing.owner} for ${priceDisplay} on Tico Market.`;
 }
 
 export async function generateMetadata(

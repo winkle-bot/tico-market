@@ -13,7 +13,8 @@ type AdminListing = {
   id: number;
   title: string;
   owner: string;
-  price: string;
+  priceCents: number;
+  currency: 'CRC' | 'USD';
   moderationStatus: 'active' | 'hidden';
 };
 
@@ -127,7 +128,7 @@ export default function AdminPage() {
               <div key={listing.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-gray-900 truncate">{listing.title}</p>
-                  <p className="text-xs text-gray-500">{t('admin.seller', 'Seller')}: {listing.owner} • {listing.price}</p>
+                  <p className="text-xs text-gray-500">{t('admin.seller', 'Seller')}: {listing.owner} • {listing.currency === 'USD' ? `$${(listing.priceCents / 100).toFixed(0)}` : `₡${listing.priceCents.toLocaleString('es-CR')}`}</p>
                 </div>
                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                   listing.moderationStatus === 'active'

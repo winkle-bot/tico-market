@@ -68,13 +68,14 @@ export interface Listing {
   sellerId: string;
   title: string;
   description?: string;
+  /** Display-ready string derived from priceCents */
   price: string;
-  priceCents?: number | null;
+  priceCents: number;
   currency?: ListingCurrency;
   category: Category;
   location: [number, number]; // [lat, lng]
   rating: number;
-  type: 'seller' | 'driver';
+  listingKind: 'seller' | 'driver';
   owner: string;
   imageUrl?: string;
   imageUrls?: string[];
@@ -286,7 +287,8 @@ export interface Order {
   // Snapshot of listing at time of order
   listingSnapshot: {
     title: string;
-    price: string;
+    price?: string;
+    priceCents?: number;
     imageUrl?: string;
     deliveryMeta?: DeliveryMeta;
     [key: string]: unknown;

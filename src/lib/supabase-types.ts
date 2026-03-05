@@ -31,13 +31,14 @@ export interface FrontendListing {
   sellerId: string;
   title: string;
   description: string | null;
+  /** Display-ready price string derived from priceCents via formatPrice() */
   price: string;
-  priceCents: number | null;
+  priceCents: number;
   currency: 'CRC' | 'USD';
   category: string;
   location: [number, number];
   rating: number;
-  type: 'seller' | 'driver';
+  listingKind: 'seller' | 'driver';
   owner: string;
   imageUrl: string | null;
   imageUrls: string[];

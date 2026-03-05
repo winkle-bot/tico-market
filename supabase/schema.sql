@@ -76,14 +76,14 @@ create table if not exists public.listings (
   seller_id uuid references public.profiles(id) on delete cascade not null,
   title text not null,
   description text,
-  price text not null,
-  price_cents integer default 0,
+  price text,
+  price_cents integer not null default 0,
   currency text not null default 'CRC' check (currency in ('CRC', 'USD')),
   category text not null,
   location_lat decimal(10, 8) not null default 9.9281,
   location_lng decimal(11, 8) not null default -84.0907,
   rating decimal(3,2) default 5.0,
-  type text not null check (type in ('seller', 'driver')),
+  listing_kind text not null check (listing_kind in ('seller', 'driver')),
   owner text not null,
   image_url text,
   image_urls jsonb default '[]'::jsonb,
@@ -116,7 +116,7 @@ end $$;
 -- Create index for faster queries
 create index if not exists idx_listings_seller_id on public.listings(seller_id);
 create index if not exists idx_listings_category on public.listings(category);
-create index if not exists idx_listings_type on public.listings(type);
+create index if not exists idx_listings_listing_kind on public.listings(listing_kind);
 create index if not exists idx_listings_moderation_status on public.listings(moderation_status);
 
 -- ==================== MESSAGES TABLE ====================

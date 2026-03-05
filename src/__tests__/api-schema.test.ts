@@ -46,8 +46,8 @@ describe('API Response Schema Tests', () => {
       expect(listing).toHaveProperty('price');
       expect(listing).toHaveProperty('category');
       expect(listing).toHaveProperty('location');
-      expect(listing).toHaveProperty('type');
-      expect(['seller', 'driver']).toContain(listing.type);
+      expect(listing).toHaveProperty('listingKind');
+      expect(['seller', 'driver']).toContain(listing.listingKind);
     });
   });
 

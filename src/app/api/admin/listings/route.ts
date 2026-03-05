@@ -8,7 +8,7 @@ export async function GET() {
 
     const { data, error: queryError } = await supabase
       .from('listings')
-      .select('id, title, seller_id, owner, price, category, moderation_status, created_at')
+      .select('id, title, seller_id, owner, price_cents, currency, category, moderation_status, created_at')
       .order('created_at', { ascending: false });
 
     if (queryError) {
@@ -20,7 +20,8 @@ export async function GET() {
       title: listing.title,
       sellerId: listing.seller_id,
       owner: listing.owner,
-      price: listing.price,
+      priceCents: listing.price_cents,
+      currency: listing.currency,
       category: listing.category,
       moderationStatus: listing.moderation_status,
       createdAt: listing.created_at,

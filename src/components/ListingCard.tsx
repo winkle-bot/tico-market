@@ -70,7 +70,7 @@ export const ListingCard = React.memo(function ListingCard({ item }: ListingCard
           </div>
         )}
 
-        {item.type === 'driver' && (
+        {item.listingKind === 'driver' && (
           <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
             Certified
           </div>

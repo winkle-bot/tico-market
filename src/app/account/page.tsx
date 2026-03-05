@@ -28,7 +28,7 @@ import type {
 
 interface EditFormState {
   title: string;
-  price: string;
+  priceCents: number;
   description: string;
   leadTime: string;
   deliveryAvailable: boolean;
@@ -70,9 +70,9 @@ export default function AccountPage() {
   } | null>(null);
   
   // Edit Form State
-  const [editForm, setEditForm] = useState<EditFormState>({ 
-    title: '', 
-    price: '', 
+  const [editForm, setEditForm] = useState<EditFormState>({
+    title: '',
+    priceCents: 0,
     description: '',
     leadTime: '',
     deliveryAvailable: true,
@@ -250,7 +250,7 @@ export default function AccountPage() {
     const config = listing.pickupConfig || {};
     setEditForm({
       title: listing.title,
-      price: listing.price.replace('₡', ''),
+      priceCents: listing.priceCents,
       description: listing.description || '',
       leadTime: config.leadTime || '',
       deliveryAvailable: config.deliveryAvailable !== false, // default true
@@ -305,7 +305,7 @@ export default function AccountPage() {
         body: JSON.stringify({
           sellerId: user?.id,
           title: editForm.title,
-          price: `₡${editForm.price}`,
+          priceCents: editForm.priceCents,
           description: editForm.description,
           pickupConfig
         })
@@ -388,9 +388,10 @@ export default function AccountPage() {
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('account.price', 'Price')} (₡)</label>
                   <input
-                    type="text"
-                    value={editForm.price}
-                    onChange={e => setEditForm({ ...editForm, price: e.target.value })}
+                    type="number"
+                    min="0"
+                    value={editForm.priceCents}
+                    onChange={e => setEditForm({ ...editForm, priceCents: Number.parseInt(e.target.value, 10) || 0 })}
                     className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 focus:border-blue-500 focus:outline-none font-bold"
                   />
                 </div>

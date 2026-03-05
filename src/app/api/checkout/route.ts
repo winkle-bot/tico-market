@@ -39,7 +39,9 @@ export async function POST(request: Request) {
       return ApiResponse.forbidden('Not authorized to checkout this order');
     }
 
-    const itemAmount = parseColonPriceToCents(orderRecord.listing_snapshot?.price || '');
+    const itemAmount = typeof orderRecord.listing_snapshot?.priceCents === 'number'
+      ? orderRecord.listing_snapshot.priceCents
+      : parseColonPriceToCents(orderRecord.listing_snapshot?.price || '');
     const deliveryFee = Number.isFinite(orderRecord.delivery_fee) ? Number(orderRecord.delivery_fee) : 0;
     const deliveryAmount = deliveryFee > 0 ? deliveryFee * 100 : 0;
     const subtotalAmount = itemAmount + deliveryAmount;

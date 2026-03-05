@@ -11,7 +11,7 @@ const listingIdSchema = z.coerce.number().int().positive();
 const updateListingSchema = z.object({
   title: z.string().min(3).max(120).optional(),
   description: z.string().max(3000).optional(),
-  price: z.string().min(1).max(50).optional(),
+  priceCents: z.number().int().min(0).optional(),
   category: z.string().min(1).max(60).optional(),
   pickupConfig: z.record(z.unknown()).optional(),
   imageUrl: z.string().url().max(2048).nullable().optional(),
@@ -127,10 +127,12 @@ export async function PUT(
         }
       }
 
+      const rawPriceForm = formData.get('price');
+      const priceNumericForm = rawPriceForm ? Number.parseInt(String(rawPriceForm).replace(/[^0-9]/g, ''), 10) : undefined;
       updates = {
         title: typeof formData.get('title') === 'string' ? sanitizeText(String(formData.get('title')), 120) : undefined,
         description: typeof formData.get('description') === 'string' ? sanitizeText(String(formData.get('description')), 3000) : undefined,
-        price: typeof formData.get('price') === 'string' ? sanitizeText(String(formData.get('price')), 50) : undefined,
+        priceCents: Number.isFinite(priceNumericForm) ? priceNumericForm : undefined,
         category: typeof formData.get('category') === 'string' ? sanitizeText(String(formData.get('category')), 60) : undefined,
         pickupConfig,
         imageUrl,
@@ -141,7 +143,7 @@ export async function PUT(
       updates = {
         title: typeof bodyObj.title === 'string' ? sanitizeText(bodyObj.title, 120) : bodyObj.title,
         description: typeof bodyObj.description === 'string' ? sanitizeText(bodyObj.description, 3000) : bodyObj.description,
-        price: typeof bodyObj.price === 'string' ? sanitizeText(bodyObj.price, 50) : bodyObj.price,
+        priceCents: typeof bodyObj.priceCents === 'number' ? bodyObj.priceCents : undefined,
         category: typeof bodyObj.category === 'string' ? sanitizeText(bodyObj.category, 60) : bodyObj.category,
         pickupConfig: bodyObj.pickupConfig,
         imageUrl: bodyObj.imageUrl,
@@ -175,7 +177,7 @@ export async function PUT(
     const updateData: any = {};
     if (safeUpdates.title !== undefined) updateData.title = safeUpdates.title;
     if (safeUpdates.description !== undefined) updateData.description = safeUpdates.description;
-    if (safeUpdates.price !== undefined) updateData.price = safeUpdates.price;
+    if (safeUpdates.priceCents !== undefined) updateData.price_cents = safeUpdates.priceCents;
     if (safeUpdates.category !== undefined) updateData.category = safeUpdates.category;
     if (safeUpdates.pickupConfig !== undefined) updateData.pickup_config = safeUpdates.pickupConfig;
     if (safeUpdates.imageUrl !== undefined && safeUpdates.imageUrl !== null) updateData.image_url = safeUpdates.imageUrl;

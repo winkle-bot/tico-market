@@ -83,7 +83,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         }
 
         // Fetch drivers for delivery option
-        const driversRes = await fetch(`${API_ROUTES.LISTINGS}?type=driver&page=1&limit=40&sort=newest`, {
+        const driversRes = await fetch(`${API_ROUTES.LISTINGS}?listing_kind=driver&page=1&limit=40&sort=newest`, {
           signal: controller.signal,
         });
         if (driversRes.ok) {
@@ -91,7 +91,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
           if (payload && Array.isArray(payload.data)) {
             setDrivers(payload.data);
           } else if (Array.isArray(payload)) {
-            setDrivers(payload.filter((l: Listing) => l.type === 'driver'));
+            setDrivers(payload.filter((l: Listing) => l.listingKind === 'driver'));
           }
         }
       } catch (error: unknown) {

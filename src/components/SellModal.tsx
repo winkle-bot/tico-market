@@ -216,7 +216,7 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
     formData.append('sellerId', user.id);
     formData.append('owner', user.name || 'User');
     formData.append('rating', '5.0');
-    formData.append('type', 'seller');
+    formData.append('listing_kind', 'seller');
 
     formData.append('lat', String(coords?.lat || DEFAULT_LISTING_COORDS.lat));
     formData.append('lng', String(coords?.lng || DEFAULT_LISTING_COORDS.lng));

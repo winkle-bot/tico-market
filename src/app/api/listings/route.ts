@@ -2,15 +2,14 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing } from '@/lib/supabase-types';
 import type { Json } from '@/lib/database.types';
-import { toFrontendListing, parsePriceValue } from '@/lib/listing-utils';
+import { toFrontendListing } from '@/lib/listing-utils';
 import { sanitizeText } from '@/lib/security';
 import { z } from 'zod';
 
 const LISTINGS_BUCKET = 'listings';
 const createListingSchema = z.object({
   title: z.string().min(3).max(120),
-  price: z.string().min(1).max(50),
-  priceCents: z.number().int().min(0).optional(),
+  priceCents: z.number().int().min(0),
   currency: z.enum(['CRC', 'USD']).default('CRC'),
   category: z.string().min(1).max(60),
   description: z.string().max(3000).default(''),
@@ -18,7 +17,7 @@ const createListingSchema = z.object({
   itemType: z.enum(['physical', 'food', 'service', 'rental', 'free']).default('physical'),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  type: z.enum(['seller', 'driver']).default('seller'),
+  listingKind: z.enum(['seller', 'driver']).default('seller'),
   imageUrl: z.string().url().max(2048).nullable().optional(),
 });
 
@@ -80,7 +79,7 @@ export async function GET(request: Request) {
         .filter(Boolean),
     ];
     const categories = Array.from(new Set(categoryValues));
-    const type = url.searchParams.get('type');
+    const listingKind = url.searchParams.get('listing_kind') ?? url.searchParams.get('type');
 
     const minPrice = Number.parseFloat(url.searchParams.get('minPrice') || '');
     const maxPrice = Number.parseFloat(url.searchParams.get('maxPrice') || '');
@@ -120,8 +119,8 @@ export async function GET(request: Request) {
     if (categories.length > 0) {
       query = query.in('category', categories);
     }
-    if (type === 'seller' || type === 'driver') {
-      query = query.eq('type', type);
+    if (listingKind === 'seller' || listingKind === 'driver') {
+      query = query.eq('listing_kind', listingKind);
     }
 
     // Filter out expired listings (unless ?includeExpired=true)
@@ -139,16 +138,10 @@ export async function GET(request: Request) {
       let filtered = typedListings;
 
       if (hasMinPrice) {
-        filtered = filtered.filter((listing) => {
-          const cents = (listing as any).price_cents ?? parsePriceValue(listing.price);
-          return cents >= minPrice;
-        });
+        filtered = filtered.filter((listing) => (listing.price_cents ?? 0) >= minPrice);
       }
       if (hasMaxPrice) {
-        filtered = filtered.filter((listing) => {
-          const cents = (listing as any).price_cents ?? parsePriceValue(listing.price);
-          return cents <= maxPrice;
-        });
+        filtered = filtered.filter((listing) => (listing.price_cents ?? 0) <= maxPrice);
       }
       if (hasLocationFilter) {
         filtered = filtered.filter((listing) => {
@@ -163,13 +156,9 @@ export async function GET(request: Request) {
       }
 
       if (sort === 'price_asc') {
-        filtered = [...filtered].sort(
-          (a, b) => ((a as any).price_cents ?? parsePriceValue(a.price)) - ((b as any).price_cents ?? parsePriceValue(b.price))
-        );
+        filtered = [...filtered].sort((a, b) => (a.price_cents ?? 0) - (b.price_cents ?? 0));
       } else if (sort === 'price_desc') {
-        filtered = [...filtered].sort(
-          (a, b) => ((b as any).price_cents ?? parsePriceValue(b.price)) - ((a as any).price_cents ?? parsePriceValue(a.price))
-        );
+        filtered = [...filtered].sort((a, b) => (b.price_cents ?? 0) - (a.price_cents ?? 0));
       } else if (sort === 'distance' && Number.isFinite(lat) && Number.isFinite(lng)) {
         filtered = [...filtered].sort((a, b) => {
           const aDistance = getDistanceKm(lat, lng, a.location_lat, a.location_lng);
@@ -296,17 +285,16 @@ export async function POST(request: Request) {
     const rawItemType = String(formData.get('itemType') ?? 'physical');
     const rawLat = Number(formData.get('lat') ?? 9.9281);
     const rawLng = Number(formData.get('lng') ?? -84.0907);
-    const rawType = String(formData.get('type') ?? 'seller');
+    const rawListingKind = String(formData.get('listing_kind') ?? formData.get('type') ?? 'seller');
     const pickupConfigStr = formData.get('pickupConfig') as string;
     const fulfillmentStr = formData.get('fulfillmentOptions') as string;
 
-    // Parse numeric price from the display price
+    // Parse numeric price from the display price string
     const priceNumeric = Number.parseInt(rawPrice.replace(/[^0-9]/g, ''), 10) || 0;
     const priceCents = rawCurrency === 'USD' ? priceNumeric * 100 : priceNumeric;
 
     const parsed = createListingSchema.safeParse({
       title: sanitizeText(rawTitle, 120),
-      price: sanitizeText(rawPrice, 50),
       priceCents,
       currency: rawCurrency,
       category: sanitizeText(rawCategory, 60),
@@ -315,7 +303,7 @@ export async function POST(request: Request) {
       itemType: rawItemType,
       lat: rawLat,
       lng: rawLng,
-      type: rawType,
+      listingKind: rawListingKind,
       imageUrl,
     });
 
@@ -323,7 +311,7 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Invalid listing payload', parsed.error.flatten());
     }
 
-    const { title, price, currency, category, description, condition, itemType, lat, lng, type } = parsed.data;
+    const { title, priceCents: validatedPriceCents, currency, category, description, condition, itemType, lat, lng, listingKind } = parsed.data;
 
     let pickupConfig: Record<string, unknown> = {};
     if (pickupConfigStr) {
@@ -376,15 +364,14 @@ export async function POST(request: Request) {
         seller_id: user.id,
         title,
         description,
-        price,
-        price_cents: priceCents,
+        price_cents: validatedPriceCents,
         currency,
         category,
         condition,
         item_type: itemType,
         location_lat: lat,
         location_lng: lng,
-        type,
+        listing_kind: listingKind,
         owner: sanitizeText(profile?.name || user.email?.split('@')[0] || 'Unknown', 100),
         image_url: imageUrl,
         image_urls: imageUrlsArr,
