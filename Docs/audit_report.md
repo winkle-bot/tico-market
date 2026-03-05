@@ -35,21 +35,13 @@ Tico Market is a **P2P marketplace for Costa Rica** that unifies three fragmente
 | **Stripe Payments** | ⚠️ Partially Aligned | PRD says "Stripe if available in CR." Implementation exists but may be premature |
 | **Driver Profiles + Verification** | ✅ Aligned | Onboarding, verification flow, document upload, admin approval |
 | **Delivery Requests + Bids** | ✅ Aligned | Core delivery marketplace with broadcast/manual/auto modes, bidding |
-| **Delivery Negotiations** | ⚠️ Partially Aligned | Table + types exist but thin on UI/API usage. May be premature abstraction |
-| **Event Driver Signups** | ⚠️ Partially Aligned | Supports drivers signing up for events/ferias — useful but very niche for Phase 1 |
 | **Ferias Module** | ✅ Aligned | PRD's differentiating feature. Page, API, DB table present |
 | **Reviews** | ✅ Aligned | Post-transaction ratings, matches PRD's trust system |
 | **Reports + Community Moderation** | ✅ Aligned | Flag listings/users, admin review queue |
-| **Disputes** | ⚠️ Partially Aligned | Full dispute system with threads and evidence. Over-featured for Phase 1 |
 | **Admin Panel** | ✅ Aligned | Listings moderation, user management, reports, disputes, driver verification |
 | **Push Notifications** | ✅ Aligned | VAPID-based web push with subscription management |
-| **WhatsApp Notifications (Twilio)** | ⚠️ Partially Aligned | Code exists but depends on Twilio setup; PRD says "optional bridge" |
 | **i18n (ES/EN)** | ✅ Aligned | Full bilingual support, ~20K+ strings per language |
 | **Security (CSRF, Rate Limiting)** | ✅ Aligned | Middleware with per-endpoint rate limits, CSRF protection, input sanitization |
-| **Drizzle ORM Schema** | ❌ Drifted | Only defines `driver_profiles`. Unused for all other tables. Redundant with raw SQL |
-| **[db.json](file:///Users/codi/Developer/Web/tico-market/src/lib/db.json) (1,209 lines)** | ❌ Drifted | Vestigial local-first mock data file. No longer used by main app (Supabase is the DB) |
-| **Notification Settings Component** | ⚠️ Partially Aligned | UI for push/WhatsApp prefs exists but unclear backend storage for prefs |
-| **Booking Modal** | ⚠️ Unclear | [BookingModal.tsx](file:///Users/codi/Developer/Web/tico-market/src/components/BookingModal.tsx) — purpose overlaps with CheckoutModal |
 | **Map View** | ✅ Aligned | Leaflet-based map-first browse, core PRD feature |
 | **SEO (robots.ts, sitemap.ts)** | ✅ Aligned | Standard SEO practices |
 | **PWA / Service Worker** | ✅ Aligned | Manifest + SW registration in layout, matches PRD's "PWA as secondary channel" |
@@ -57,97 +49,62 @@ Tico Market is a **P2P marketplace for Costa Rica** that unifies three fragmente
 
 ---
 
-## Cut List (Moderate Pass)
+## Cut List — Status
 
-### 1. [src/lib/db.json](file:///Users/codi/Developer/Web/tico-market/src/lib/db.json) — 1,209 lines of mock/seed data ❌ **Remove**
-- **What**: A JSON file containing hardcoded listings, users, and messages from an earlier local-first prototype phase
-- **Why**: The app now uses Supabase as its primary database. This file is referenced nowhere in the main application flow. Some data references `/uploads/` paths for images that may not exist
-- **Action**: **Remove.** If seed data is needed, [supabase/seed.sql](file:///Users/codi/Developer/Web/tico-market/supabase/seed.sql) already exists for that purpose
+### ✅ 1. `src/lib/db.json` — DONE
+Removed. App uses Supabase exclusively.
 
-### 2. [drizzle.config.ts](file:///Users/codi/Developer/Web/tico-market/drizzle.config.ts) + [src/lib/schema.ts](file:///Users/codi/Developer/Web/tico-market/src/lib/schema.ts) — Drizzle ORM ❌ **Remove or Defer**
-- **What**: A Drizzle ORM setup that only defines `driver_profiles`. All other DB access uses raw Supabase client queries
-- **Why**: Drizzle is an ORM dependency (`drizzle-orm` + `drizzle-kit`) that adds bundle weight and cognitive overhead for a single table definition. The rest of the app doesn't use it. The [supabase/schema.sql](file:///Users/codi/Developer/Web/tico-market/supabase/schema.sql) is the source of truth
-- **Action**: **Remove** Drizzle entirely. Use Supabase client consistently. If you plan to migrate to Drizzle later, defer it — don't have two competing data access patterns
+### ✅ 2. `drizzle.config.ts` + `src/lib/schema.ts` — DONE
+Removed Drizzle ORM and its package dependencies (`drizzle-orm`, `drizzle-kit`). All DB access via Supabase client.
 
-### 3. [src/components/BookingModal.tsx](file:///Users/codi/Developer/Web/tico-market/src/components/BookingModal.tsx) — 7.4KB ⚠️ **Merge or Remove**
-- **What**: A booking modal component
-- **Why**: [CheckoutModal.tsx](file:///Users/codi/Developer/Web/tico-market/src/components/CheckoutModal.tsx) (18.3KB) already handles the full checkout flow with step-by-step method selection, pickup, delivery, and confirmation. BookingModal appears to be a simpler/older version. Having two checkout flows confuses the codebase
-- **Action**: **Merge** any unique functionality into CheckoutModal, then **remove** BookingModal
+### ✅ 3. `src/components/BookingModal.tsx` — DONE
+Removed. `CheckoutModal.tsx` is the single checkout flow.
 
-### 4. Delivery Negotiations table + types — premature scope ⚠️ **Defer**
-- **What**: `delivery_negotiations` table, [DeliveryNegotiation](file:///Users/codi/Developer/Web/tico-market/src/types/index.ts#166-174) type, negotiation status types
-- **Why**: The delivery bidding system (`delivery_bids`) already handles driver pricing. Negotiations add a counter-offer layer on top of bids that isn't part of the Phase 1 feature set in the PRD. The PRD describes flat-rate or driver-bidding only
-- **Action**: **Defer.** Keep the types for reference if needed, but drop the DB table from the active schema. Don't build API routes around it yet
+### ✅ 4. Delivery Negotiations API routes — DONE
+Removed `/api/delivery-requests/[id]/counter/route.ts` and `/api/delivery-requests/[id]/negotiations/route.ts`. Types kept for future reference.
 
-### 5. `src/components/disputes/` — 3 components, ~13KB total ⚠️ **Simplify**
-- **What**: Full dispute resolution UI with threaded messages, evidence uploads, and status tracking
-- **Why**: The PRD mentions disputes for escrowed transactions, but this is a Phase 2+ feature. The current platform hasn't even launched yet. Building a full dispute resolution thread UI before having real transactions is premature
-- **Action**: **Simplify.** Keep the `Dispute` and `DisputeMessage` types and the single POST API for opening disputes. Remove or defer the threaded conversation UI (`DisputeThread.tsx`) and dispute card display until post-launch
+### ✅ 5. `src/components/disputes/DisputeThread.tsx` + `DisputeCard.tsx` — DONE
+Removed threaded dispute UI. Core `Dispute`/`DisputeMessage` types and the POST API to open a dispute are retained.
 
-### 6. `src/lib/push-client.ts` + `src/lib/push.ts` + `src/app/api/push/` — push notification system ⚠️ **Defer partially**
-- **What**: Full VAPID-based web push notification system with client-side subscription management, server-side sending, and subscription cleanup
-- **Why**: This is well-built and aligned with the PRD's notification requirements. However, the `push_subscriptions` table is not in the main `schema.sql`, suggesting it was added separately and may not be fully integrated. The WhatsApp sending via Twilio is explicitly "optional" in the PRD
-- **Action**: **Keep push notifications** (core). **Defer WhatsApp/Twilio integration** (`sendWhatsAppToUser`) until you actually have a Twilio account and business verification. The function is fire-and-forget anyway
+### ✅ 6. Push notifications — No action needed
+Push is well-built and aligned. WhatsApp/Twilio was already fire-and-forget; no active Twilio credentials means it silently no-ops. No code removal needed until Twilio is wired up.
 
-### 7. Event Driver Signups — niche Phase 2 feature ⚠️ **Defer**
-- **What**: `event_drivers` table, `EventDriverSignup` type, `EventDriverSignup.tsx` component, `/api/event-drivers/` route
-- **Why**: The ability for drivers to sign up for specific feria events is a nice-to-have, but it's a second-order feature that depends on the feria module being mature and having actual feria organizer adoption. It adds 4 files and a DB table for a feature that won't see usage in Phase 1
-- **Action**: **Defer.** Keep the types definition for reference. Remove the component, API route, and DB table until driver event scheduling is actively needed
+### ✅ 7. Event Driver Signups — DONE
+Removed `EventDriverSignup.tsx` component and `/api/event-drivers/` route. `EventDriverSignup` type retained for reference.
 
-### 8. `src/app/driver-profile/`, `src/app/driver-application/`, `src/app/driver-verification/`, `src/app/drivers/` — 4 separate route groups ⚠️ **Merge**
-- **What**: Four separate page routes all related to the driver experience: profile, application, verification, and driver listing
-- **Why**: These could be consolidated under a single `/drivers/` route group with sub-routes (`/drivers/apply`, `/drivers/profile`, `/drivers/verify`). The current structure splits a single user journey across 4 top-level routes
-- **Action**: **Merge** into a single `/drivers/` route group with sub-pages
+### ✅ 8. Driver routes consolidated — DONE
+`/driver-application`, `/driver-profile`, `/driver-verification` merged into `/drivers/apply`, `/drivers/[id]`, `/drivers/verify`. Old routes removed.
 
-### 9. `src/app/feria/` vs `src/app/ferias/` — duplicate route naming ⚠️ **Clarify**
-- **What**: Two feria-related route groups: `/ferias` (list page) and `/feria/[slug]` (detail page)
-- **Why**: The inconsistent singular/plural naming (`feria` vs `ferias`) could confuse developers. Standard Next.js convention is to use one base path
-- **Action**: **Merge** under `/ferias/` with `/ferias/` as the index and `/ferias/[slug]` as the detail page
+### ✅ 9. `src/app/feria/` vs `src/app/ferias/` — DONE
+Merged under `/ferias/[slug]`. Old `feria/[id]` route removed.
 
-### 10. `src/components/NotificationSettings.tsx` — 6.2KB ⚠️ **Defer or simplify**
-- **What**: UI for managing push and WhatsApp notification preferences
-- **Why**: The UI component references `notification_prefs` on the user profile, but the `profiles` table in `schema.sql` doesn't have a `notification_prefs` column. The WhatsApp opt-in flow depends on Twilio integration which is deferred. This component is ahead of its backend
-- **Action**: **Simplify** to push notification toggle only. Remove WhatsApp preference toggles until that integration is live
+### ✅ 10. `src/components/NotificationSettings.tsx` — DONE
+Simplified to push-only toggle. WhatsApp preference UI removed.
 
 ---
 
-## Refactor Recommendations
+## Refactor Recommendations — Status
 
-### 1. Consolidate data access pattern
-The codebase uses **three** competing data access patterns:
-1. Raw Supabase client queries (most API routes)
-2. Drizzle ORM (`schema.ts` for `driver_profiles` only)
-3. Direct JSON file (`db.json`)
+### ✅ 1. Consolidate data access pattern — DONE
+Removed Drizzle and `db.json`. All data access via Supabase client.
 
-**Recommendation:** Standardize on Supabase client only. Remove Drizzle and `db.json`.
+### ⏳ 2. Rename `type` field on listings — DEFERRED (requires DB migration)
+The `listings.type` column (`'seller' | 'driver'`) should be renamed to `listing_kind` for clarity. Requires a DB migration + updating all API routes and types. Deferred to a dedicated migration pass.
 
-### 2. Rename `type` field on listings
-The `listings` table has a `type` column with values `'seller' | 'driver'`. This is confusing because `type` is a very generic name and it doesn't map clearly to the PRD's item types (`physical`, `food`, `service`, `rental`, `free` — which are already covered by `item_type`). The `type` field's purpose is to distinguish marketplace listings from driver service offerings.
+### ✅ 3. Category list — DONE
+Updated `src/lib/data.ts` and `src/types/index.ts` to match PRD §4.1.3:
+- **Removed:** Sports, Delivery (as a category)
+- **Added:** Rentals, Artisan, Free
+- **Kept:** Food, Home, Electronics, Vehicles, Fashion, Services, Other
 
-**Recommendation:** Rename to `listing_kind` or `listing_role` to make the distinction clearer.
+### ⏳ 4. Price storage — PARTIALLY DONE (DB migration needed to complete)
+The UI layer (`ListingCard`, `formatPrice()`) already uses `price_cents` as the canonical value with the text `price` as a fallback. Full canonicalization (making `price_cents` NOT NULL, dropping the text `price` column) requires a DB migration. Deferred.
 
-### 3. Category list doesn't match PRD
-- **Code categories:** Electronics, Home, Vehicles, Food, Services, Fashion, Sports, Delivery, Other
-- **PRD categories:** Produce and food, household goods, electronics, vehicles, clothing, services, rentals, handmade/artisan, free stuff
+### ✅ 5. Admin routes — ALREADY DONE
+`src/lib/admin.ts` exports `requireAdmin()` which is called at the top of every admin route handler. No duplication.
 
-Missing from code: **Rentals**, **Handmade/Artisan**, **Free Stuff** (the PRD explicitly calls out free/giveaway). **Delivery** as a category is odd — deliveries aren't listings you browse by category. The `item_type: 'free'` exists in the type system but there's no matching category.
-
-**Recommendation:** Align categories to PRD. Add Rentals, Artisan, and Free. Remove or rename Delivery (drivers have their own section).
-
-### 4. Price storage is inconsistent
-The `listings` table stores price as both `text` (`price` — e.g., "₡15,000") and `integer` (`price_cents`). The `price` field is displayed directly in the UI. Having a formatted string as the canonical price makes filtering, sorting, and currency conversion impossible.
-
-**Recommendation:** Make `price_cents` the canonical price value. Derive the display string from it in the UI layer using `formatPrice()` in `lib/format.ts`.
-
-### 5. Admin routes need guardrails
-The admin API routes at `/api/admin/` (5 sub-groups: disputes, listings, reports, users, verifications) check for admin/moderator role in the API handlers, but this check pattern is duplicated across every handler. 
-
-**Recommendation:** Extract an `assertAdmin()` or `requireRole()` middleware helper that's called once at the top of each admin route handler to reduce duplication and prevent accidental permission gaps.
-
-### 6. `src/components/index.ts` barrel export
-The file re-exports 12 components. This is fine for convenience but creates a single import path that can cause unnecessary module loading. For a Next.js app with code splitting, direct imports are preferred.
-
-**Recommendation:** No urgent action, but consider removing the barrel export and using direct imports for better tree-shaking.
+### ⏸️ 6. Barrel export cleanup — NOT URGENT
+`src/components/index.ts` re-exports ~10 components. Consider direct imports for better tree-shaking in a future cleanup pass.
 
 ---
 
@@ -172,28 +129,12 @@ The file re-exports 12 components. This is fine for convenience but creates a si
 
 ---
 
-## Clarifying Questions
-
-1. **Is `db.json` still used anywhere?** My analysis suggests the app fully migrated to Supabase, but I want to confirm there isn't a fallback path or a development mode that reads from it.
-
-2. **What is the intended purpose of `BookingModal` vs `CheckoutModal`?** Are these for different flows (e.g., services vs goods), or is BookingModal legacy?
-
-3. **Is Drizzle ORM a planned migration target?** If you intend to move all data access to Drizzle, I'd keep the config and expand it. If not, it's pure dead weight.
-
-4. **Are the `delivery_negotiations` actively being used?** I see the table and types but minimal API/UI support. Is this in active development or was it speculative?
-
-5. **Is the Twilio/WhatsApp integration actively planned for Phase 1?** The code is present but requires account credentials and business verification.
-
----
-
 ## Summary
 
 The codebase is **substantially aligned** with the PRD's vision. The core marketplace loop — list, discover, message, buy, deliver — is well-built. The tech choices (Next.js 16, Supabase, Cloudflare, Leaflet) are appropriate for the target market. Security fundamentals (CSRF, rate limiting, RLS, input sanitization) are solid.
 
-The main areas of drift are:
-- **Vestigial code** from an earlier prototype phase (`db.json`, Drizzle partial setup)
-- **Premature features** that won't see Phase 1 usage (dispute threads, delivery negotiations, event driver signups, WhatsApp integration)
-- **Route organization** that could be tighter (4 driver route groups, feria/ferias split)
-- **Data modeling inconsistencies** (dual price fields, generic `type` column, mismatched categories)
+**Remaining deferred items (require DB migrations):**
+- Rename `listings.type` → `listings.listing_kind`
+- Make `price_cents` NOT NULL and drop text `price` column
 
-None of these are blockers. The recommended actions are trimming, not adding.
+These are non-blocking. The recommended actions are trimming, not adding.

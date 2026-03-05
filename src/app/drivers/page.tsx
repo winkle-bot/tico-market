@@ -134,7 +134,7 @@ export default function DriversPage() {
                       <p className="mt-1 text-sm text-white/80">{t('drivers.joinNetwork', 'Join our delivery network and start earning today.')}</p>
                     </div>
                   </div>
-                  <Link href="/driver-application" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
+                  <Link href="/drivers/apply" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
                     {t('drivers.applyToDrive', 'Apply to Drive')}
                   </Link>
                 </div>

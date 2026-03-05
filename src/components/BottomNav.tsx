@@ -6,7 +6,7 @@ import { Home, ShoppingBag, PlusCircle, MessageCircle, User } from 'lucide-react
 import { useI18n } from '@/context/I18nContext';
 import { useAuth } from '@/context/AuthContext';
 
-const HIDDEN_PATHS = ['/admin', '/driver-application', '/driver-verification', '/auth'];
+const HIDDEN_PATHS = ['/admin', '/drivers/apply', '/drivers/verify', '/auth'];
 
 export function BottomNav({ onSell, onAuth }: { onSell: () => void; onAuth: () => void }) {
   const pathname = usePathname();
@@ -24,8 +24,7 @@ export function BottomNav({ onSell, onAuth }: { onSell: () => void; onAuth: () =
   };
 
   const linkClass = (path: string) =>
-    `flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors min-w-[48px] min-h-[44px] justify-center ${
-      isActive(path) ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+    `flex flex-col items-center gap-0.5 text-[10px] font-bold transition-colors min-w-[48px] min-h-[44px] justify-center ${isActive(path) ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
     }`;
 
   const handleSellClick = () => {

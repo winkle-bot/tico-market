@@ -57,16 +57,6 @@ export async function POST(
 
     const now = new Date().toISOString();
 
-    // Accept the latest proposed negotiation (if one exists)
-    const { data: latestNegotiation } = await (supabase
-      .from('delivery_negotiations') as any)
-      .select('id, amount, status')
-      .eq('delivery_request_id', id)
-      .eq('status', 'proposed')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
     // Accept the request
     const { data: updated, error: updateError } = await (supabase
       .from('delivery_requests') as any)
@@ -74,7 +64,7 @@ export async function POST(
         status: 'assigned',
         assigned_driver_id: user.id,
         assigned_at: now,
-        final_amount: latestNegotiation?.amount || deliveryRequest.offered_price || deliveryRequest.budget_amount,
+        final_amount: deliveryRequest.offered_price || deliveryRequest.budget_amount,
       })
       .eq('id', id)
       .eq('status', 'open')
@@ -86,12 +76,6 @@ export async function POST(
     }
     if (!updated) {
       return ApiResponse.badRequest('This request is no longer open');
-    }
-
-    if (latestNegotiation?.id) {
-      await (supabase.from('delivery_negotiations') as any)
-        .update({ status: 'accepted' })
-        .eq('id', latestNegotiation.id);
     }
 
     return ApiResponse.success({

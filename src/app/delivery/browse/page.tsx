@@ -132,15 +132,15 @@ export default function DeliveryBrowsePage() {
         const offer = request.offeredPrice ?? request.budgetAmount ?? 0;
         const dist =
           Number.isFinite(driver?.currentLat) &&
-          Number.isFinite(driver?.currentLng) &&
-          Number.isFinite(request.pickupLat) &&
-          Number.isFinite(request.pickupLng)
+            Number.isFinite(driver?.currentLng) &&
+            Number.isFinite(request.pickupLat) &&
+            Number.isFinite(request.pickupLng)
             ? distanceKm(
-                driver?.currentLat as number,
-                driver?.currentLng as number,
-                request.pickupLat as number,
-                request.pickupLng as number
-              )
+              driver?.currentLat as number,
+              driver?.currentLng as number,
+              request.pickupLat as number,
+              request.pickupLng as number
+            )
             : undefined;
 
         return {
@@ -215,7 +215,7 @@ export default function DeliveryBrowsePage() {
         <main className="tm-shell py-8">
           <div className="rounded-2xl border border-[#dce5f7] bg-white p-6 text-center space-y-3">
             <p className="text-[#334d80] font-semibold">You need a driver profile to claim deliveries.</p>
-            <Link href="/driver-application" className="tm-btn tm-btn-primary">{t('delivery.becomeDriver', 'Become a Driver')}</Link>
+            <Link href="/drivers/apply" className="tm-btn tm-btn-primary">{t('delivery.becomeDriver', 'Become a Driver')}</Link>
           </div>
         </main>
       </div>

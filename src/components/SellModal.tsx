@@ -41,7 +41,7 @@ const INITIAL_FORM_STATE: NewListingForm = {
   title: '',
   price: '',
   currency: 'CRC',
-  category: 'Electronics',
+  category: 'Other',
   description: '',
   images: [],
   condition: 'good',

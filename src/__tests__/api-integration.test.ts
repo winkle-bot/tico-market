@@ -148,7 +148,7 @@ describe('API integration tests', () => {
         title: 'Road Bike',
         description: 'Aluminum frame',
         price: '1000',
-        category: 'Sports',
+        category: 'Other',
         location_lat: 9.93,
         location_lng: -84.08,
         rating: 4.9,

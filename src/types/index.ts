@@ -91,16 +91,17 @@ export interface Listing {
   createdAt?: string;
 }
 
-// Category type - matches the categories array
+// Category type - matches the categories array (aligned with PRD §4.1.3)
 export type Category =
-  | 'Electronics'
-  | 'Home'
-  | 'Vehicles'
   | 'Food'
-  | 'Services'
+  | 'Home'
+  | 'Electronics'
+  | 'Vehicles'
   | 'Fashion'
-  | 'Sports'
-  | 'Delivery'
+  | 'Services'
+  | 'Rentals'
+  | 'Artisan'
+  | 'Free'
   | 'Other';
 
 // ============ USERS ============
@@ -452,8 +453,6 @@ export interface NewListingForm {
   leadTime: string;
   marketEvents: MarketEvent[];
 }
-
-export type BookingStep = 1 | 2;
 
 // ============ CHECKOUT ============
 

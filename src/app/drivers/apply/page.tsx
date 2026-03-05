@@ -201,7 +201,7 @@ export default function DriverApplicationPage() {
             {t('driverApp.successDescription', 'Start accepting deliveries right away, or get verified for more opportunities.')}
           </p>
           <div className="flex flex-col gap-2 pt-2">
-            <Link href="/driver-verification" className="tm-btn tm-btn-primary w-full justify-center">
+            <Link href="/drivers/verify" className="tm-btn tm-btn-primary w-full justify-center">
               {t('driverApp.getVerified', 'Get Verified for More Deliveries')}
             </Link>
             <Link href="/drivers" className="tm-btn w-full justify-center border border-[#dce5f7] text-[#334d80] hover:bg-[#f5f8ff]">
@@ -253,11 +253,10 @@ export default function DriverApplicationPage() {
                   key={option.value}
                   type="button"
                   onClick={() => setVehicleType(option.value)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
-                    vehicleType === option.value
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${vehicleType === option.value
                       ? 'border-[#1f4fbf] bg-[#edf2ff]'
                       : 'border-[#dce5f7] hover:bg-[#f5f8ff]'
-                  }`}
+                    }`}
                 >
                   <Truck className={`w-5 h-5 ${vehicleType === option.value ? 'text-[#1f4fbf]' : 'text-[#6780b3]'}`} />
                   <div>

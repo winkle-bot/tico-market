@@ -98,7 +98,7 @@ export default function FeriasPage() {
               {ferias.map((feria) => (
                 <Link
                   key={feria.id}
-                  href={`/feria/${feria.slug}`}
+                  href={`/ferias/${feria.slug}`}
                   className="bg-white rounded-3xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all group"
                 >
                   <div className="h-48 bg-gradient-to-br from-green-50 to-orange-50 relative overflow-hidden">

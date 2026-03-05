@@ -1,23 +1,25 @@
 export const categoryEmojis: Record<string, string> = {
-  'Electronics': '💻',
+  'Food': '🍎',
   'Home': '🏠',
+  'Electronics': '💻',
   'Vehicles': '🚗',
-  'Delivery': '📦',
-  'Food': '🍽️',
-  'Services': '🛠️',
   'Fashion': '👗',
-  'Sports': '⚽',
+  'Services': '🛠️',
+  'Rentals': '🔑',
+  'Artisan': '🎨',
+  'Free': '🎁',
   'Other': '✨'
 };
 
 export const categories = [
-  'Electronics',
-  'Home',
-  'Vehicles',
-  'Delivery',
   'Food',
-  'Services',
+  'Home',
+  'Electronics',
+  'Vehicles',
   'Fashion',
-  'Sports',
+  'Services',
+  'Rentals',
+  'Artisan',
+  'Free',
   'Other'
 ];

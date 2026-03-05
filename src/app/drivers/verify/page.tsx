@@ -47,7 +47,7 @@ export default function DriverVerificationPage() {
           break;
         case 'approved':
           if (myDriver.id) {
-            router.replace(`/driver-profile/${myDriver.id}`);
+            router.replace(`/drivers/${myDriver.id}`);
             return;
           }
           setState('approved');
@@ -187,7 +187,7 @@ export default function DriverVerificationPage() {
             >
               {t('driverVerify.retryStatus', 'Retry Status Check')}
             </button>
-            <Link href="/driver-application" className="tm-btn tm-btn-primary inline-flex">
+            <Link href="/drivers/apply" className="tm-btn tm-btn-primary inline-flex">
               {t('driverVerify.becomeDriver', 'Become a Driver')}
             </Link>
           </div>

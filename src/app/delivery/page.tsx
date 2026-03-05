@@ -126,9 +126,8 @@ export default function DeliveryPage() {
               <button
                 key={entry.id}
                 type="button"
-                className={`flex min-w-fit items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-wider transition-colors sm:px-4 ${
-                  isActive ? 'bg-[#1f4fbf] text-white' : 'text-[#39588f] hover:bg-[#eef3ff]'
-                }`}
+                className={`flex min-w-fit items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-black uppercase tracking-wider transition-colors sm:px-4 ${isActive ? 'bg-[#1f4fbf] text-white' : 'text-[#39588f] hover:bg-[#eef3ff]'
+                  }`}
                 onClick={() => setTab(entry.id)}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -216,7 +215,7 @@ export default function DeliveryPage() {
                 <p className="mt-1 text-sm text-white/80">Join our delivery network and earn money on your schedule.</p>
               </div>
             </div>
-            <Link href="/driver-application" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
+            <Link href="/drivers/apply" className="tm-btn bg-white text-[#1f4fbf] hover:bg-white/90 shrink-0">
               Apply Now
             </Link>
           </div>

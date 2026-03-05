@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { EventDriverSignup } from '@/components/delivery/EventDriverSignup';
 
 interface TaskItem {
   id: string;
@@ -92,8 +91,6 @@ export default function DeliveryTaskMarketplacePage() {
       </header>
 
       <main className="tm-shell py-6 space-y-5">
-        <EventDriverSignup />
-
         <section className="rounded-2xl border border-[#dce5f7] bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-semibold text-[#334d80]">

@@ -43,8 +43,8 @@ interface FeriaDetail {
   vendors: FeriaVendor[];
 }
 
-export default function FeriaDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function FeriaDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const { user } = useAuth();
   const { locale } = useI18n();
   const toast = useToast();
@@ -54,7 +54,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/ferias/${id}`)
+    fetch(`/api/ferias/${slug}`)
       .then((res) => {
         if (res.status === 404) {
           setFetchError('not_found');
@@ -73,7 +73,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
         setFetchError('error');
       })
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [slug]);
 
   const handleFollow = async () => {
     if (!user) {
@@ -180,11 +180,10 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="flex gap-3">
                   <button
                     onClick={handleFollow}
-                    className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors ${
-                      isFollowing
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
+                    className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors ${isFollowing
+                      ? 'bg-red-50 text-red-600 border border-red-200'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
                   >
                     <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
                     {isFollowing ? 'Following' : 'Follow'}

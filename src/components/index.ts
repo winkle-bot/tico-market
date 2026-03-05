@@ -1,6 +1,5 @@
 // Component exports
 export { AuthModal } from './AuthModal';
-export { BookingModal } from './BookingModal';
 export { default as ChatModal } from './ChatModal';
 export { CheckoutModal } from './CheckoutModal';
 export { FilterBar } from './FilterBar';
