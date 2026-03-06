@@ -4,7 +4,6 @@ Working rule: completed items get removed from this file when they land and are 
 
 ## 3. Feria Commerce Loop
 
-- Build deeper feria vendor storefronts
 - Add weekly availability publishing for feria vendors
 - Implement feria pre-orders
 - Implement reservation confirmation

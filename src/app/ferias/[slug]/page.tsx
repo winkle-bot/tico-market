@@ -10,6 +10,23 @@ import { useI18n } from '@/context/I18nContext';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
+import { formatResponseTime } from '@/lib/format';
+
+interface FeriaVendorListing {
+  id: number;
+  title: string;
+  price: string;
+  imageUrl?: string | null;
+  category: string;
+  pickupConfig?: {
+    leadTime?: string;
+    marketEvents?: Array<{ id: string; name: string }>;
+  };
+  fulfillmentOptions?: {
+    pickup?: boolean;
+    platform_delivery?: boolean;
+  };
+}
 
 interface FeriaVendor {
   id: string;
@@ -17,7 +34,18 @@ interface FeriaVendor {
   display_name: string | null;
   description: string | null;
   products_summary: string | null;
-  profiles?: { name: string; rating: number; verified: boolean };
+  active_listings_count: number;
+  featured_listings: FeriaVendorListing[];
+  profiles?: {
+    name: string | null;
+    rating: number | null;
+    verified: boolean | null;
+    bio: string | null;
+    location: string | null;
+    avg_response_minutes: number | null;
+    total_transactions: number | null;
+    accepts_delivery: boolean | null;
+  } | null;
 }
 
 interface FeriaDetail {
@@ -292,7 +320,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
               {/* Vendors */}
               <div>
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">
-                  Vendors ({feria.vendors.length})
+                  Vendor Storefronts ({feria.vendors.length})
                 </h2>
                 {feria.vendors.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
@@ -300,39 +328,146 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
                     <p className="text-gray-500 font-medium">No vendors registered yet</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-5">
                     {feria.vendors.map((vendor) => (
-                      <Link
+                      <article
                         key={vendor.id}
-                        href={`/seller/${vendor.vendor_id}`}
-                        className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-all group"
+                        className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all"
                       >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
-                            {(vendor.display_name || vendor.profiles?.name || '?')[0]}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">
-                              {vendor.display_name || vendor.profiles?.name || 'Vendor'}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              {vendor.profiles?.verified && (
-                                <span className="flex items-center gap-0.5 text-blue-600">
-                                  <ShieldCheck className="w-3 h-3" /> Verified
-                                </span>
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex items-start gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center text-green-700 font-bold text-xl shrink-0">
+                              {(vendor.display_name || vendor.profiles?.name || '?')[0]}
+                            </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="text-xl font-black text-gray-900">
+                                  {vendor.display_name || vendor.profiles?.name || 'Vendor'}
+                                </h4>
+                                {vendor.profiles?.verified && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-blue-600">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                                  </span>
+                                )}
+                                {vendor.profiles?.rating ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-orange-600">
+                                    <Star className="w-3.5 h-3.5 fill-current" /> {vendor.profiles.rating.toFixed(1)}
+                                  </span>
+                                ) : null}
+                              </div>
+                              {(vendor.products_summary || vendor.description || vendor.profiles?.bio) && (
+                                <p className="mt-2 text-sm text-gray-600 leading-relaxed max-w-2xl">
+                                  {vendor.products_summary || vendor.description || vendor.profiles?.bio}
+                                </p>
                               )}
-                              {vendor.profiles?.rating && (
-                                <span className="flex items-center gap-0.5">
-                                  <Star className="w-3 h-3 text-orange-500 fill-current" /> {vendor.profiles.rating}
-                                </span>
+                              {vendor.profiles?.location && (
+                                <p className="mt-2 text-xs font-semibold text-gray-500">
+                                  Based in {vendor.profiles.location}
+                                </p>
                               )}
                             </div>
                           </div>
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[380px]">
+                            <div className="rounded-2xl bg-[#f5f8ff] px-3 py-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-[#6f83ad]">Listings</p>
+                              <p className="mt-1 text-lg font-black text-[#18284a]">{vendor.active_listings_count}</p>
+                            </div>
+                            <div className="rounded-2xl bg-[#f5f8ff] px-3 py-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-[#6f83ad]">Response</p>
+                              <p className="mt-1 text-sm font-bold text-[#18284a]">
+                                {vendor.profiles?.avg_response_minutes
+                                  ? formatResponseTime(vendor.profiles.avg_response_minutes)
+                                  : 'New vendor'}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[#f5f8ff] px-3 py-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-[#6f83ad]">Orders</p>
+                              <p className="mt-1 text-lg font-black text-[#18284a]">
+                                {vendor.profiles?.total_transactions || 0}
+                              </p>
+                            </div>
+                            <div className="rounded-2xl bg-[#f5f8ff] px-3 py-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-[#6f83ad]">Delivery</p>
+                              <p className="mt-1 text-sm font-bold text-[#18284a]">
+                                {vendor.profiles?.accepts_delivery === false ? 'Pickup only' : 'Pickup + delivery'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        {vendor.products_summary && (
-                          <p className="text-sm text-gray-500 line-clamp-2">{vendor.products_summary}</p>
+
+                        {vendor.description && vendor.products_summary && vendor.description !== vendor.products_summary && (
+                          <p className="mt-4 text-sm text-gray-500 leading-relaxed">
+                            {vendor.description}
+                          </p>
                         )}
-                      </Link>
+
+                        <div className="mt-5 flex items-center justify-between gap-3">
+                          <h5 className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+                            Featured Listings
+                          </h5>
+                          <Link
+                            href={`/seller/${vendor.vendor_id}`}
+                            className="text-sm font-bold text-green-700 hover:text-green-800"
+                          >
+                            View storefront
+                          </Link>
+                        </div>
+
+                        {vendor.featured_listings.length === 0 ? (
+                          <div className="mt-3 rounded-2xl border border-dashed border-gray-200 px-4 py-5 text-sm text-gray-500">
+                            This vendor has not published feria-ready listings yet.
+                          </div>
+                        ) : (
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {vendor.featured_listings.map((listing) => (
+                              <Link
+                                key={listing.id}
+                                href={`/listing/${listing.id}`}
+                                className="rounded-2xl border border-gray-100 overflow-hidden hover:border-green-200 hover:shadow-sm transition-all group"
+                              >
+                                <div className="relative h-36 bg-gradient-to-br from-green-50 to-orange-50">
+                                  {listing.imageUrl ? (
+                                    <Image
+                                      src={listing.imageUrl}
+                                      alt={listing.title}
+                                      fill
+                                      sizes="(min-width: 768px) 33vw, 100vw"
+                                      className="object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-4xl">
+                                      🥕
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-3">
+                                  <h6 className="font-bold text-gray-900 group-hover:text-green-700 transition-colors line-clamp-1">
+                                    {listing.title}
+                                  </h6>
+                                  <p className="mt-1 text-green-700 font-black">{listing.price}</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {listing.fulfillmentOptions?.pickup && (
+                                      <span className="rounded-full bg-green-50 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-green-700">
+                                        Pickup
+                                      </span>
+                                    )}
+                                    {listing.fulfillmentOptions?.platform_delivery && (
+                                      <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+                                        Delivery
+                                      </span>
+                                    )}
+                                    {listing.pickupConfig?.leadTime && (
+                                      <span className="rounded-full bg-orange-50 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-orange-700">
+                                        {listing.pickupConfig.leadTime}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </article>
                     ))}
                   </div>
                 )}

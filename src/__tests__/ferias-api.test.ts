@@ -25,6 +25,7 @@ function buildMockSupabase(config: {
   userId?: string | null;
   feria?: Record<string, unknown> | null;
   vendors?: Record<string, unknown>[];
+  listings?: Record<string, unknown>[];
   followerCount?: number;
   isFollowing?: boolean;
 }) {
@@ -58,6 +59,19 @@ function buildMockSupabase(config: {
       };
       return chain;
     }),
+  };
+
+  const listingsTable = {
+    select: jest.fn(() => ({
+      in: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          order: jest.fn().mockResolvedValue({
+            data: config.listings ?? [],
+            error: null,
+          }),
+        })),
+      })),
+    })),
   };
 
   const feriaFollowersTable = {
@@ -101,6 +115,7 @@ function buildMockSupabase(config: {
       if (table === 'ferias') return feriasTable;
       if (table === 'feria_vendors') return feriaVendorsTable;
       if (table === 'feria_followers') return feriaFollowersTable;
+      if (table === 'listings') return listingsTable;
       throw new Error(`Unexpected table: ${table}`);
     }),
   };
@@ -176,5 +191,79 @@ describe('ferias api', () => {
     expect(body.feriaId).toBe('22222222-2222-2222-2222-222222222222');
     expect(body.isFollowing).toBe(true);
     expect(body.followerCount).toBe(4);
+  });
+
+  test('GET /api/ferias/[id] includes vendor storefront listing previews', async () => {
+    mockCreateSupabaseServerClient.mockResolvedValue(
+      buildMockSupabase({
+        feria: {
+          id: '22222222-2222-2222-2222-222222222222',
+          slug: 'uvita',
+          name: 'Feria Uvita',
+          vendor_count: 1,
+          photos: [],
+          schedule_days: [],
+        },
+        vendors: [
+          {
+            id: 'vendor-link-1',
+            vendor_id: '33333333-3333-3333-3333-333333333333',
+            display_name: 'Finca Verde',
+            products_summary: 'Organic greens and herbs',
+            profiles: {
+              name: 'Finca Verde',
+              rating: 4.8,
+              verified: true,
+              bio: 'Family-run produce stand',
+              location: 'Escazu',
+              avg_response_minutes: 15,
+              total_transactions: 42,
+              accepts_delivery: true,
+            },
+          },
+        ],
+        listings: [
+          {
+            id: 10,
+            seller_id: '33333333-3333-3333-3333-333333333333',
+            title: 'Fresh Kale',
+            description: 'Picked this morning',
+            price_cents: 2500,
+            currency: 'CRC',
+            category: 'Food',
+            location_lat: 9.93,
+            location_lng: -84.14,
+            rating: 4.9,
+            listing_kind: 'seller',
+            owner: 'Finca Verde',
+            image_url: null,
+            image_urls: null,
+            verified: true,
+            private_key: null,
+            pickup_config: { leadTime: 'Saturday morning' },
+            fulfillment_options: { pickup: true, platform_delivery: true },
+            moderation_status: 'active',
+            landmark_directions: null,
+            expires_at: null,
+            last_bumped_at: null,
+            condition: 'new',
+            item_type: 'food',
+            created_at: '2026-03-06T00:00:00Z',
+          },
+        ],
+      })
+    );
+
+    const response = await getFeriaDetail(
+      buildRequest('http://localhost/api/ferias/uvita'),
+      { params: Promise.resolve({ id: 'uvita' }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.vendors[0].active_listings_count).toBe(1);
+    expect(body.vendors[0].featured_listings).toHaveLength(1);
+    expect(body.vendors[0].featured_listings[0].title).toBe('Fresh Kale');
+    expect(body.vendors[0].profiles.avg_response_minutes).toBe(15);
   });
 });
