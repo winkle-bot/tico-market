@@ -1,4 +1,4 @@
-import { buildFeriaPreorderMeta, getFeriaPreorderMeta } from '@/lib/feria-preorders';
+import { buildFeriaPreorderMeta, getFeriaPreorderMeta, updateFeriaPreorderForStatus } from '@/lib/feria-preorders';
 
 describe('feria preorders', () => {
   test('builds feria preorder metadata from a market event', () => {
@@ -48,6 +48,31 @@ describe('feria preorders', () => {
     ).toMatchObject({
       eventId: 'feria-escazu-sat',
       reservationStatus: 'pending_confirmation',
+    });
+  });
+
+  test('marks feria preorder metadata as confirmed when the order is confirmed', () => {
+    expect(
+      updateFeriaPreorderForStatus(
+        {
+          title: 'Plantains',
+          feriaPreorder: {
+            kind: 'feria_preorder',
+            eventId: 'feria-escazu-sat',
+            eventName: 'Feria del Agricultor Escazu',
+            eventDate: 'Every Saturday',
+            timeWindow: '07:00 - 13:00',
+            locationName: 'Escazu Centro',
+            reservationStatus: 'pending_confirmation',
+            reservedAt: '2026-03-06T21:00:00.000Z',
+          },
+        },
+        'confirmed'
+      )
+    ).toMatchObject({
+      feriaPreorder: {
+        reservationStatus: 'confirmed',
+      },
     });
   });
 });

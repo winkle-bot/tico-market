@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { updateFeriaPreorderForStatus } from '@/lib/feria-preorders';
 import { sanitizeOptionalText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { sendPushToUser, sendWhatsAppToUser } from '@/lib/push';
@@ -387,7 +388,10 @@ export async function PATCH(
       return ApiResponse.forbidden(trackingValidationError);
     }
 
-    const nextSnapshot = (existing.listing_snapshot ?? {}) as Record<string, unknown>;
+    const nextSnapshot = updateFeriaPreorderForStatus(
+      (existing.listing_snapshot ?? {}) as Record<string, unknown>,
+      nextStatus
+    );
     const previousDeliveryMeta = (nextSnapshot.deliveryMeta ?? {}) as Record<string, unknown>;
     const previousUpdates = Array.isArray(previousDeliveryMeta.updates)
       ? previousDeliveryMeta.updates

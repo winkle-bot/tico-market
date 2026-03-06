@@ -258,4 +258,51 @@ describe('orders api patch delivery tracking', () => {
     expect(body.code).toBe('FORBIDDEN');
     expect(updateCalls).toHaveLength(0);
   });
+
+  test('marks feria preorder reservations as confirmed when a seller confirms the order', async () => {
+    const { supabase, updateCalls } = buildSupabase(
+      '22222222-2222-2222-2222-222222222222',
+      buildOrderRow({
+        type: 'pickup',
+        driver_id: null,
+        driver_name: null,
+        delivery_address: null,
+        delivery_fee: null,
+        pickup_location_id: 'feria-escazu-sat',
+        pickup_location: {
+          id: 'feria-escazu-sat',
+          name: 'Feria del Agricultor Escazu',
+          address: 'Escazu Centro',
+        },
+        listing_snapshot: {
+          title: 'Plantains',
+          feriaPreorder: {
+            kind: 'feria_preorder',
+            eventId: 'feria-escazu-sat',
+            eventName: 'Feria del Agricultor Escazu',
+            eventDate: 'Every Saturday',
+            timeWindow: '07:00 - 13:00',
+            locationName: 'Escazu Centro',
+            reservationStatus: 'pending_confirmation',
+            reservedAt: '2026-03-06T21:00:00.000Z',
+          },
+        },
+      })
+    );
+    mockCreateSupabaseServerClient.mockResolvedValue(supabase);
+
+    const response = await patchOrder(jsonRequest({ status: 'confirmed' }), {
+      params: Promise.resolve({ id: 'ord_1' }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('confirmed');
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].listing_snapshot).toMatchObject({
+      feriaPreorder: {
+        reservationStatus: 'confirmed',
+      },
+    });
+  });
 });

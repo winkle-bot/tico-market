@@ -1,4 +1,4 @@
-import type { FeriaPreorderMeta, ListingSnapshot, MarketEvent } from '@/types';
+import type { FeriaPreorderMeta, ListingSnapshot, MarketEvent, OrderStatus } from '@/types';
 
 const VALID_RESERVATION_STATUSES = new Set(['pending_confirmation', 'confirmed']);
 
@@ -44,4 +44,26 @@ export function getFeriaPreorderMeta(snapshot: unknown): FeriaPreorderMeta | nul
   }
 
   return candidate as FeriaPreorderMeta;
+}
+
+export function updateFeriaPreorderForStatus(
+  snapshot: Record<string, unknown>,
+  status: OrderStatus
+): Record<string, unknown> {
+  const preorder = getFeriaPreorderMeta(snapshot);
+  if (!preorder) {
+    return snapshot;
+  }
+
+  if (status !== 'confirmed') {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    feriaPreorder: {
+      ...preorder,
+      reservationStatus: 'confirmed',
+    },
+  };
 }

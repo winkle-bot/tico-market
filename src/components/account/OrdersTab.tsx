@@ -81,6 +81,28 @@ function getFeriaReservationLabel(preorder: FeriaPreorderMeta, status: Order['st
   return 'Waiting for the vendor to confirm this feria reservation.';
 }
 
+function getSellerConfirmLabel(feriaPreorder: FeriaPreorderMeta | null): string {
+  return feriaPreorder ? 'Confirm Reservation' : 'Confirm Order';
+}
+
+function getSellerConfirmMessage(feriaPreorder: FeriaPreorderMeta | null): string {
+  return feriaPreorder
+    ? 'Vendor confirmed the feria reservation.'
+    : 'Seller confirmed. Preparing handoff to driver.';
+}
+
+function getSellerConfirmSuccess(feriaPreorder: FeriaPreorderMeta | null): string {
+  return feriaPreorder ? 'Reservation confirmed.' : 'Order confirmed.';
+}
+
+function getSellerDeclineLabel(feriaPreorder: FeriaPreorderMeta | null): string {
+  return feriaPreorder ? 'Decline Reservation' : 'Decline';
+}
+
+function getBuyerCancelLabel(feriaPreorder: FeriaPreorderMeta | null): string {
+  return feriaPreorder ? 'Cancel Reservation' : 'Cancel Order';
+}
+
 export function OrdersTab({ 
   orders, 
   userId, 
@@ -575,22 +597,26 @@ export function OrdersTab({
                       {
                         status: 'confirmed',
                         trackingEvent: {
-                          phase: 'awaiting_pickup',
-                          message: 'Seller confirmed. Preparing handoff to driver.',
+                          ...(order.type === 'delivery' ? { phase: 'awaiting_pickup' } : {}),
+                          message: getSellerConfirmMessage(feriaPreorder),
                         },
                       },
-                      'Order confirmed.'
+                      getSellerConfirmSuccess(feriaPreorder)
                     )
                   }
                   className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
                 >
-                  Confirm Order
+                  {getSellerConfirmLabel(feriaPreorder)}
                 </button>
                 <button
-                  onClick={() => updateOrder(order.id, { status: 'cancelled' }, 'Order cancelled.')}
+                  onClick={() => updateOrder(
+                    order.id,
+                    { status: 'cancelled' },
+                    feriaPreorder ? 'Reservation declined.' : 'Order cancelled.'
+                  )}
                   className="px-4 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
                 >
-                  Decline
+                  {getSellerDeclineLabel(feriaPreorder)}
                 </button>
               </div>
             )}
@@ -665,10 +691,14 @@ export function OrdersTab({
             )}
             {order.status === 'pending' && isBuyer && (
               <button
-                onClick={() => updateOrder(order.id, { status: 'cancelled' }, 'Order cancelled.')}
+                onClick={() => updateOrder(
+                  order.id,
+                  { status: 'cancelled' },
+                  feriaPreorder ? 'Reservation cancelled.' : 'Order cancelled.'
+                )}
                 className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors text-sm"
               >
-                Cancel Order
+                {getBuyerCancelLabel(feriaPreorder)}
               </button>
             )}
             {order.status === 'in_transit' && isBuyer && (
