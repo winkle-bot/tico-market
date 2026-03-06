@@ -145,6 +145,72 @@ export async function GET(request: NextRequest) {
             }
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'order_messages',
+            filter: `buyer_id=eq.${safeUserId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'order_messages',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'order_messages',
+            filter: `seller_id=eq.${safeUserId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'order_messages',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'order_messages',
+            filter: `driver_id=eq.${safeUserId}`,
+          },
+          (payload) => {
+            const message = `data: ${JSON.stringify({
+              type: 'update',
+              table: 'order_messages',
+              timestamp: Date.now(),
+              payload,
+            })}\n\n`;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
+              // Controller might be closed
+            }
+          }
+        )
         .subscribe();
 
       // Send periodic heartbeat

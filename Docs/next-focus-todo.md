@@ -6,10 +6,6 @@ Working rule: completed items get removed from this file when they land and are 
 
 - Verify storage migrations and buckets in each deployed environment
 
-## 2. Delivery Trust And Coordination
-
-- Implement three-way buyer/seller/driver delivery chat
-
 ## 3. Feria Commerce Loop
 
 - Build deeper feria vendor storefronts

@@ -8,6 +8,7 @@ import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, X
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
+import { DeliveryRoomModal } from '@/components/account/DeliveryRoomModal';
 import { OrderDriverLiveMap } from '@/components/account/OrderDriverLiveMap';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
 import type { DeliveryMeta, DeliveryTrackingPhase, Order, Review } from '@/types';
@@ -89,7 +90,11 @@ export function OrdersTab({
   const [deliveryNoteByOrder, setDeliveryNoteByOrder] = useState<Record<string, string>>({});
   const [deliveryEtaByOrder, setDeliveryEtaByOrder] = useState<Record<string, string>>({});
   const [deliveryLocationByOrder, setDeliveryLocationByOrder] = useState<Record<string, string>>({});
+  const [deliveryRoomOrderId, setDeliveryRoomOrderId] = useState<string | null>(null);
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null);
+  const activeDeliveryRoomOrder = deliveryRoomOrderId
+    ? orders.find((entry) => entry.id === deliveryRoomOrderId) || null
+    : null;
 
   const updateOrder = async (
     orderId: string,
@@ -498,6 +503,17 @@ export function OrdersTab({
                 />
               )}
 
+            {order.type === 'delivery' && order.status !== 'cancelled' && (
+              <button
+                type="button"
+                onClick={() => setDeliveryRoomOrderId(order.id)}
+                className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl border border-[#dce5f7] bg-[#f5f8ff] py-3 text-sm font-bold text-[#2f539e] hover:bg-[#edf2ff] transition-colors"
+              >
+                <Route className="w-4 h-4" />
+                Open Delivery Room
+              </button>
+            )}
+
             {order.type === 'delivery' && recentUpdates.length > 0 && (
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
@@ -707,6 +723,15 @@ export function OrdersTab({
       })}
 
       <AnimatePresence>
+        {activeDeliveryRoomOrder && (
+          <DeliveryRoomModal
+            dateLocale={dateLocale}
+            isOpen={true}
+            onClose={() => setDeliveryRoomOrderId(null)}
+            order={activeDeliveryRoomOrder}
+            userId={userId}
+          />
+        )}
         {disputeOrderId && (
           <OpenDisputeModal
             orderId={disputeOrderId}
