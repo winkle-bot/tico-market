@@ -6,6 +6,7 @@ import { X, Send, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
+import { TranslatableText } from '@/components/TranslatableText';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -300,7 +301,14 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                           : 'bg-white text-[#18284a] rounded-bl-md shadow-sm border border-[#dce5f7]'
                       }`}
                     >
-                      <p className="text-sm">{msg.text}</p>
+                      <TranslatableText
+                        text={msg.text}
+                        context="message"
+                        textClassName="text-sm"
+                        metaClassName={msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'}
+                        translatedMetaClassName={msg.senderId === currentUser.id ? 'text-blue-100' : 'text-blue-600'}
+                        buttonClassName={msg.senderId === currentUser.id ? 'text-blue-100 hover:text-white' : 'text-[#5b78b5] hover:text-[#274f99]'}
+                      />
                       <p className={`text-[10px] mt-1 ${
                         msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'
                       }`}>

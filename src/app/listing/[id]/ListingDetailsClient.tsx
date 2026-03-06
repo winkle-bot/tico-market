@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ChatModal, CheckoutModal, AuthModal, ListingLocationMap } from '@/components';
 import { ListingDetailSkeleton } from '@/components/Skeletons';
+import { TranslatableText } from '@/components/TranslatableText';
 import { API_ROUTES } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
@@ -691,9 +692,14 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
               {/* Description */}
               <div className="mb-8">
                 <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">{t('listing.descriptionHeading', 'Description')}</h2>
-                <p className="text-gray-600 leading-relaxed font-medium">
-                  {listing.description || `Freshly listed ${listing.title} available for pickup or delivery in GAM. Reach out for details or more photos.`}
-                </p>
+                <TranslatableText
+                  text={listing.description || `Freshly listed ${listing.title} available for pickup or delivery in GAM. Reach out for details or more photos.`}
+                  context="listing"
+                  textClassName="text-gray-600 leading-relaxed font-medium"
+                  metaClassName="text-gray-400"
+                  translatedMetaClassName="text-blue-600"
+                  buttonClassName="text-blue-600 hover:text-blue-700"
+                />
               </div>
 
               {/* Availability & Logistics */}

@@ -7,6 +7,5 @@ Items are removed as they are completed and committed.
 
 ## Missing PRD Features To Start After Fixes
 
-- [ ] Add translation / bilingual assistance backlog entry implementation scaffold.
 - [ ] Add richer chat attachments backlog entry implementation scaffold.
 - [ ] Add offline-first / queued action backlog entry implementation scaffold.
