@@ -2,10 +2,6 @@
 
 Working rule: completed items get removed from this file when they land and are committed.
 
-## 1. Stabilize New Features
-
-- Verify storage migrations and buckets in each deployed environment
-
 ## 3. Feria Commerce Loop
 
 - Build deeper feria vendor storefronts
