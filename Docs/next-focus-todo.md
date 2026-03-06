@@ -11,8 +11,6 @@ Working rule: completed items get removed from this file when they land and are 
 - Browser QA for offline queue replay
 - Test reconnect edge cases
 - Verify storage migrations and buckets in each deployed environment
-- Add e2e happy-path coverage for translation
-- Add e2e happy-path coverage for chat attachments
 - Add e2e happy-path coverage for offline queue replay
 
 ## 2. Delivery Trust And Coordination
