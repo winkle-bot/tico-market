@@ -221,7 +221,11 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sellerListings.map(item => (
-                  <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 hover:border-blue-200 transition-colors cursor-pointer group">
+                  <Link
+                    key={item.id}
+                    href={`/listing/${item.id}`}
+                    className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex gap-4 hover:border-blue-200 transition-colors cursor-pointer group"
+                  >
                     <div className="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-all relative">
                       {item.imageUrl ? (
                         <Image src={item.imageUrl} alt={item.title} fill sizes="96px" className="object-cover" />
@@ -235,7 +239,7 @@ export default function SellerProfileClient({ sellerId }: { sellerId: string }) 
                       <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.title}</h3>
                       <p className="text-blue-600 font-black">{item.price}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

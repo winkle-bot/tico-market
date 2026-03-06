@@ -5,7 +5,6 @@ Items are removed as they are completed and committed.
 
 ## Remaining
 
-- Make seller profile listing cards open the corresponding listing.
 - Replace `window.location.href` seller navigation in listing cards with accessible client-side navigation.
 - Keep the mobile category filter drawer open during multi-select filtering.
 - Give the mobile bottom navigation a real direct path to messages instead of duplicating the account destination.
