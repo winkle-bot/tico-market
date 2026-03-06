@@ -32,6 +32,143 @@ type TrackingPayload = {
   etaMinutes?: number | null;
   driverLocationLabel?: string | null;
 };
+type QueryError = {
+  message: string;
+  code?: string;
+};
+type OrderRecord = {
+  id: string;
+  listing_id: number;
+  listing_snapshot: Record<string, unknown> | null;
+  buyer_id: string;
+  buyer_name: string;
+  seller_id: string;
+  seller_name: string;
+  type: OrderTypeValue;
+  status: OrderStatusValue;
+  driver_id: string | null;
+  driver_name: string | null;
+  delivery_address: string | null;
+  delivery_fee: number | null;
+  pickup_location_id: string | null;
+  pickup_location: Record<string, unknown> | null;
+  scheduled_window: string | null;
+  notes: string | null;
+  payment_status: string | null;
+  payment_amount: number | null;
+  payment_currency: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type DisputeRecord = {
+  id: string;
+  status: string;
+};
+type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+function getDeliveryPhaseFromStatus(
+  status: OrderStatusValue,
+  orderType: OrderTypeValue
+): TrackingPayload['phase'] | undefined {
+  if (status === 'completed') return 'delivered';
+  if (orderType !== 'delivery') return undefined;
+
+  const phaseByStatus: Partial<Record<OrderStatusValue, TrackingPayload['phase']>> = {
+    pending: 'awaiting_confirmation',
+    confirmed: 'awaiting_pickup',
+    in_transit: 'picked_up',
+  };
+
+  return phaseByStatus[status];
+}
+
+function getTrackingFallbackMessage(trackingEvent: TrackingPayload | undefined): string | undefined {
+  if (!trackingEvent) return undefined;
+
+  const parts: string[] = [];
+  const phaseMessages: Record<NonNullable<TrackingPayload['phase']>, string> = {
+    awaiting_confirmation: 'Order is awaiting confirmation.',
+    awaiting_pickup: 'Order is ready for driver pickup.',
+    picked_up: 'Driver picked up the order.',
+    near_buyer: 'Driver is getting close to the buyer.',
+    delivered: 'Delivery reached the buyer.',
+  };
+
+  if (trackingEvent.phase) {
+    parts.push(phaseMessages[trackingEvent.phase]);
+  }
+
+  if (trackingEvent.etaMinutes !== undefined && trackingEvent.etaMinutes !== null) {
+    parts.push(
+      trackingEvent.etaMinutes === 0
+        ? 'ETA updated: arriving now.'
+        : `ETA updated: about ${trackingEvent.etaMinutes} min away.`
+    );
+  }
+
+  if (trackingEvent.driverLocationLabel) {
+    parts.push(`Driver location: ${sanitizeOptionalText(trackingEvent.driverLocationLabel, 120)}.`);
+  }
+
+  return parts.length > 0 ? parts.join(' ') : undefined;
+}
+
+async function getOrderById(
+  supabase: SupabaseServerClient,
+  orderId: string
+): Promise<{ data: OrderRecord | null; error: QueryError | null }> {
+  const ordersTable = supabase.from('orders') as unknown as {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        single: () => Promise<{ data: OrderRecord | null; error: QueryError | null }>;
+      };
+    };
+  };
+
+  return ordersTable.select('*').eq('id', orderId).single();
+}
+
+async function getActiveDisputeForOrder(
+  supabase: SupabaseServerClient,
+  orderId: string
+): Promise<{ data: DisputeRecord | null; error: QueryError | null }> {
+  const disputesTable = supabase.from('disputes') as unknown as {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        not: (column: string, operator: string, value: string) => {
+          limit: (count: number) => {
+            maybeSingle: () => Promise<{ data: DisputeRecord | null; error: QueryError | null }>;
+          };
+        };
+      };
+    };
+  };
+
+  return disputesTable
+    .select('id, status')
+    .eq('order_id', orderId)
+    .not('status', 'in', '("closed")')
+    .limit(1)
+    .maybeSingle();
+}
+
+async function updateOrderRow(
+  supabase: SupabaseServerClient,
+  orderId: string,
+  payload: Record<string, unknown>
+): Promise<{ data: OrderRecord | null; error: QueryError | null }> {
+  const ordersTable = supabase.from('orders') as unknown as {
+    update: (nextPayload: Record<string, unknown>) => {
+      eq: (column: string, value: string) => {
+        select: () => {
+          single: () => Promise<{ data: OrderRecord | null; error: QueryError | null }>;
+        };
+      };
+    };
+  };
+
+  return ordersTable.update(payload).eq('id', orderId).select().single();
+}
 
 function getAllowedStatuses(
   role: OrderRole,
@@ -121,17 +258,16 @@ export async function GET(
       return ApiResponse.unauthorized('Must be logged in');
     }
 
-    const { data: order, error } = await (supabase
-      .from('orders') as any)
-      .select('*')
-      .eq('id', parsedOrderId.data)
-      .single();
+    const { data: order, error } = await getOrderById(supabase, parsedOrderId.data);
 
     if (error) {
       if (error.code === 'PGRST116') {
         return ApiResponse.error('Order not found', 404);
       }
       return ApiResponse.error(error.message, 500);
+    }
+    if (!order) {
+      return ApiResponse.error('Order not found', 404);
     }
 
     // Check if user is part of this order
@@ -142,13 +278,7 @@ export async function GET(
     }
 
     // Check for active dispute
-    const { data: activeDispute } = await (supabase
-      .from('disputes') as any)
-      .select('id, status')
-      .eq('order_id', parsedOrderId.data)
-      .not('status', 'in', '("closed")')
-      .limit(1)
-      .maybeSingle();
+    const { data: activeDispute } = await getActiveDisputeForOrder(supabase, parsedOrderId.data);
 
     return ApiResponse.success({
       id: order.id,
@@ -208,11 +338,7 @@ export async function PATCH(
     const { status, driverAssignment, trackingEvent } = parsedBody.data;
 
     // Verify user is part of this order
-    const { data: existing } = await (supabase
-      .from('orders') as any)
-      .select('*')
-      .eq('id', parsedOrderId.data)
-      .single();
+    const { data: existing } = await getOrderById(supabase, parsedOrderId.data);
 
     if (!existing) {
       return ApiResponse.error('Order not found', 404);
@@ -289,6 +415,7 @@ export async function PATCH(
 
     const newUpdateMessage =
       sanitizeOptionalText(trackingEvent?.message, 240) ||
+      getTrackingFallbackMessage(trackingEvent) ||
       (status ? messageFromStatus[status] : undefined);
 
     if (trackingEvent || status || driverAssignment) {
@@ -306,8 +433,9 @@ export async function PATCH(
         ...previousDeliveryMeta,
         updates,
       };
-      if (trackingEvent?.phase) {
-        nextDeliveryMeta.phase = trackingEvent.phase;
+      const nextPhase = trackingEvent?.phase || (status ? getDeliveryPhaseFromStatus(status, orderType) : undefined);
+      if (nextPhase) {
+        nextDeliveryMeta.phase = nextPhase;
       }
       if (trackingEvent?.etaMinutes !== undefined) {
         nextDeliveryMeta.estimatedEtaMinutes = trackingEvent.etaMinutes;
@@ -325,20 +453,21 @@ export async function PATCH(
       };
     }
 
-    const { data: order, error } = await (supabase
-      .from('orders') as any)
-      .update(updatePayload)
-      .eq('id', parsedOrderId.data)
-      .select()
-      .single();
+    const { data: order, error } = await updateOrderRow(supabase, parsedOrderId.data, updatePayload);
 
     if (error) {
       return ApiResponse.error(error.message, 500);
     }
+    if (!order) {
+      return ApiResponse.error('Order not found', 404);
+    }
 
     // Fire-and-forget push notifications for status changes
     if (status) {
-      const title = (existing.listing_snapshot as any)?.title || 'Order';
+      const title =
+        typeof existing.listing_snapshot?.title === 'string'
+          ? existing.listing_snapshot.title
+          : 'Order';
       const pushMsg = newUpdateMessage || `Order status: ${status}`;
       const notifyIds: string[] = [];
       if (!isBuyer) notifyIds.push(existing.buyer_id);

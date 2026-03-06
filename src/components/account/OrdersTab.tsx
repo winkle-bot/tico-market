@@ -9,7 +9,55 @@ import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
-import type { DeliveryMeta, Order, Review } from '@/types';
+import type { DeliveryMeta, DeliveryTrackingPhase, Order, Review } from '@/types';
+
+const deliveryPhaseOrder: DeliveryTrackingPhase[] = [
+  'awaiting_confirmation',
+  'awaiting_pickup',
+  'picked_up',
+  'near_buyer',
+  'delivered',
+];
+
+const deliveryPhaseLabels: Record<DeliveryTrackingPhase, string> = {
+  awaiting_confirmation: 'Confirm',
+  awaiting_pickup: 'Pickup',
+  picked_up: 'On Route',
+  near_buyer: 'Nearby',
+  delivered: 'Delivered',
+};
+
+const deliveryPhaseDescriptions: Record<DeliveryTrackingPhase, string> = {
+  awaiting_confirmation: 'Seller still needs to confirm this order.',
+  awaiting_pickup: 'The order is confirmed and ready for driver handoff.',
+  picked_up: 'The package is with the driver and moving to the buyer.',
+  near_buyer: 'The driver is approaching the drop-off point.',
+  delivered: 'The delivery handoff is complete.',
+};
+
+function getDeliveryPhase(order: Order, deliveryMeta: DeliveryMeta | null): DeliveryTrackingPhase {
+  if (deliveryMeta?.phase) return deliveryMeta.phase;
+  if (order.status === 'completed') return 'delivered';
+  if (order.status === 'in_transit') return 'picked_up';
+  if (order.status === 'confirmed') return 'awaiting_pickup';
+  return 'awaiting_confirmation';
+}
+
+function formatArrivalTime(dateLocale: string, etaMinutes: number | undefined): string | null {
+  if (etaMinutes === undefined || etaMinutes === null) return null;
+  return new Date(Date.now() + etaMinutes * 60_000).toLocaleTimeString(dateLocale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function formatUpdateTime(dateLocale: string, value: string | undefined): string | null {
+  if (!value) return null;
+  return new Date(value).toLocaleTimeString(dateLocale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export function OrdersTab({ 
   orders, 
@@ -31,6 +79,8 @@ export function OrdersTab({
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [deliveryNoteByOrder, setDeliveryNoteByOrder] = useState<Record<string, string>>({});
+  const [deliveryEtaByOrder, setDeliveryEtaByOrder] = useState<Record<string, string>>({});
+  const [deliveryLocationByOrder, setDeliveryLocationByOrder] = useState<Record<string, string>>({});
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null);
 
   const updateOrder = async (
@@ -48,6 +98,7 @@ export function OrdersTab({
       if (res.ok) {
         onStatusChange();
         toast.success(successMessage);
+        return true;
       } else {
         const err = await res.json();
         toast.error(err.error || 'Failed to update order');
@@ -55,12 +106,65 @@ export function OrdersTab({
     } catch {
       toast.error('Error updating order');
     }
+
+    return false;
   };
 
   const getDeliveryMeta = (order: Order): DeliveryMeta | null => {
     const raw = order.listingSnapshot?.deliveryMeta;
     if (!raw || typeof raw !== 'object') return null;
     return raw as DeliveryMeta;
+  };
+
+  const submitDriverTracking = async (
+    order: Order,
+    payload: {
+      phase?: DeliveryTrackingPhase;
+      etaMinutes?: number | null;
+      status?: 'in_transit' | 'completed';
+      successMessage: string;
+      message?: string;
+    }
+  ) => {
+    const etaValue = deliveryEtaByOrder[order.id]?.trim();
+    const locationValue = deliveryLocationByOrder[order.id]?.trim();
+    const parsedEta =
+      payload.etaMinutes !== undefined
+        ? payload.etaMinutes
+        : etaValue
+          ? Number.parseInt(etaValue, 10)
+          : undefined;
+
+    const hasTrackingDetails =
+      payload.phase !== undefined ||
+      payload.status !== undefined ||
+      Boolean(payload.message) ||
+      (parsedEta !== undefined && Number.isFinite(parsedEta)) ||
+      Boolean(locationValue);
+
+    if (!hasTrackingDetails) {
+      toast.error('Add an ETA or location before posting a live update.');
+      return;
+    }
+
+    const success = await updateOrder(
+      order.id,
+      {
+        ...(payload.status ? { status: payload.status } : {}),
+        trackingEvent: {
+          ...(payload.phase ? { phase: payload.phase } : {}),
+          ...(payload.message ? { message: payload.message } : {}),
+          ...(parsedEta !== undefined && Number.isFinite(parsedEta) ? { etaMinutes: parsedEta } : {}),
+          ...(locationValue ? { driverLocationLabel: locationValue } : {}),
+        },
+      },
+      payload.successMessage
+    );
+
+    if (success && payload.status === 'completed') {
+      setDeliveryEtaByOrder((prev) => ({ ...prev, [order.id]: '' }));
+      setDeliveryLocationByOrder((prev) => ({ ...prev, [order.id]: '' }));
+    }
   };
 
   const submitReview = async () => {
@@ -150,18 +254,15 @@ export function OrdersTab({
         const deliveryMeta = getDeliveryMeta(order);
         const updates = deliveryMeta?.updates || [];
         const recentUpdates = updates.slice(-3).reverse();
+        const latestUpdate = recentUpdates[0];
         const driverEta = deliveryMeta?.estimatedEtaMinutes;
-        const phase = deliveryMeta?.phase || (order.status === 'in_transit' ? 'picked_up' : 'awaiting_confirmation');
-        const phaseIndex = (() => {
-          const map: Record<string, number> = {
-            awaiting_confirmation: 0,
-            awaiting_pickup: 1,
-            picked_up: 2,
-            near_buyer: 3,
-            delivered: 4,
-          };
-          return map[phase] ?? 0;
-        })();
+        const phase = getDeliveryPhase(order, deliveryMeta);
+        const phaseIndex = deliveryPhaseOrder.indexOf(phase);
+        const nextPhase = deliveryPhaseOrder[Math.min(phaseIndex + 1, deliveryPhaseOrder.length - 1)];
+        const etaArrivalTime = formatArrivalTime(dateLocale, driverEta);
+        const lastUpdateTime = formatUpdateTime(dateLocale, latestUpdate?.createdAt);
+        const driverEtaDraft = deliveryEtaByOrder[order.id] ?? (driverEta !== undefined ? String(driverEta) : '');
+        const driverLocationDraft = deliveryLocationByOrder[order.id] ?? (deliveryMeta?.driverLocationLabel || '');
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -238,20 +339,140 @@ export function OrdersTab({
                     <Zap className="w-3.5 h-3.5" /> Express Tracking
                   </p>
                   <p className="text-xs text-blue-700 font-bold">
-                    {driverEta ? `ETA ~${driverEta} min` : 'Updating ETA'}
+                    {driverEta !== undefined && driverEta !== null ? `ETA ~${driverEta} min` : 'ETA pending'}
                   </p>
                 </div>
                 <div className="grid grid-cols-5 gap-2 mb-3">
-                  {['Seller', 'Pickup', 'En ruta', 'Cerca', 'Entregado'].map((label, idx) => (
-                    <div key={label} className="text-center">
+                  {deliveryPhaseOrder.map((deliveryStep, idx) => (
+                    <div key={deliveryStep} className="text-center">
                       <div className={`w-6 h-6 rounded-full mx-auto mb-1 border ${idx <= phaseIndex ? 'bg-blue-600 border-blue-600' : 'bg-white border-blue-200'}`} />
-                      <p className="text-[10px] text-blue-700 font-semibold">{label}</p>
+                      <p className="text-[10px] text-blue-700 font-semibold">{deliveryPhaseLabels[deliveryStep]}</p>
                     </div>
                   ))}
                 </div>
-                <div className="text-xs text-blue-700 space-y-1">
+                <div className="grid gap-2 text-xs text-blue-700 sm:grid-cols-2">
+                  <div className="rounded-xl bg-white/70 px-3 py-2">
+                    <p className="font-black uppercase tracking-widest text-[10px] text-blue-500">Current Stage</p>
+                    <p className="mt-1 font-semibold text-blue-900">{deliveryPhaseLabels[phase]}</p>
+                    <p className="mt-1 text-blue-700">{deliveryPhaseDescriptions[phase]}</p>
+                  </div>
+                  <div className="rounded-xl bg-white/70 px-3 py-2">
+                    <p className="font-black uppercase tracking-widest text-[10px] text-blue-500">Next Step</p>
+                    <p className="mt-1 font-semibold text-blue-900">
+                      {phase === 'delivered'
+                        ? 'Delivery finished'
+                        : deliveryPhaseLabels[nextPhase]}
+                    </p>
+                    <p className="mt-1 text-blue-700">
+                      {phase === 'delivered'
+                        ? 'No further delivery action is required.'
+                        : deliveryPhaseDescriptions[nextPhase]}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-blue-700 space-y-1">
                   <p className="font-semibold">Driver: {order.driverName || 'Unassigned'}</p>
+                  <p>
+                    Arrival:
+                    <span className="ml-1 font-semibold text-blue-900">
+                      {etaArrivalTime
+                        ? `${etaArrivalTime}${driverEta !== undefined && driverEta !== null ? ` (${driverEta} min)` : ''}`
+                        : 'Waiting for live ETA'}
+                    </span>
+                  </p>
                   {deliveryMeta?.driverLocationLabel && <p>Location: {deliveryMeta.driverLocationLabel}</p>}
+                  {lastUpdateTime && <p>Last update: {lastUpdateTime}</p>}
+                </div>
+              </div>
+            )}
+
+            {order.type === 'delivery' && isDriver && order.status !== 'completed' && order.status !== 'cancelled' && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 space-y-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Driver Live Update</p>
+                  <p className="text-xs text-slate-600 mt-1">Keep ETA and location current so buyer and seller see the right next step.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="text-xs text-slate-600">
+                    ETA (minutes)
+                    <input
+                      type="number"
+                      min={0}
+                      max={240}
+                      value={driverEtaDraft}
+                      onChange={(e) =>
+                        setDeliveryEtaByOrder((prev) => ({ ...prev, [order.id]: e.target.value }))
+                      }
+                      placeholder="15"
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-400"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-600">
+                    Current area
+                    <input
+                      type="text"
+                      value={driverLocationDraft}
+                      onChange={(e) =>
+                        setDeliveryLocationByOrder((prev) => ({ ...prev, [order.id]: e.target.value }))
+                      }
+                      placeholder="San Pedro"
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-400"
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {order.status === 'confirmed' && (
+                    <button
+                      onClick={() =>
+                        void submitDriverTracking(order, {
+                          status: 'in_transit',
+                          phase: 'picked_up',
+                          successMessage: 'Pickup confirmed.',
+                        })
+                      }
+                      className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
+                    >
+                      I Picked It Up
+                    </button>
+                  )}
+                  <button
+                    onClick={() =>
+                      void submitDriverTracking(order, {
+                        successMessage: 'Live ETA updated.',
+                      })
+                    }
+                    className="bg-white text-slate-700 font-bold py-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors text-sm"
+                  >
+                    Save ETA
+                  </button>
+                  {order.status === 'in_transit' && (
+                    <>
+                      <button
+                        onClick={() =>
+                          void submitDriverTracking(order, {
+                            phase: 'near_buyer',
+                            successMessage: 'Buyer notified.',
+                          })
+                        }
+                        className="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Near Buyer
+                      </button>
+                      <button
+                        onClick={() =>
+                          void submitDriverTracking(order, {
+                            status: 'completed',
+                            phase: 'delivered',
+                            etaMinutes: 0,
+                            successMessage: 'Delivery completed.',
+                          })
+                        }
+                        className="bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm sm:col-span-3"
+                      >
+                        Delivered
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -308,7 +529,26 @@ export function OrdersTab({
               </div>
             )}
             {order.status === 'confirmed' && isSeller && (
-              <div className="flex gap-2">
+              <div className="grid gap-2 sm:grid-cols-3">
+                {order.type === 'delivery' && (
+                  <button
+                    onClick={() =>
+                      updateOrder(
+                        order.id,
+                        {
+                          trackingEvent: {
+                            phase: 'awaiting_pickup',
+                            message: 'Seller says the package is ready for pickup.',
+                          },
+                        },
+                        'Pickup readiness posted.'
+                      )
+                    }
+                    className="bg-white text-blue-700 border border-blue-200 font-bold py-3 rounded-xl hover:bg-blue-50 transition-colors text-sm"
+                  >
+                    Ready for Pickup
+                  </button>
+                )}
                 {order.type === 'delivery' && (
                   <button
                     onClick={() =>
@@ -324,7 +564,7 @@ export function OrdersTab({
                         'Driver handoff recorded.'
                       )
                     }
-                    className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
+                    className="bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
                   >
                     Hand to Driver
                   </button>
@@ -337,31 +577,11 @@ export function OrdersTab({
                       'Order completed.'
                     )
                   }
-                  className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
+                  className="bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
                 >
                   Mark Completed
                 </button>
               </div>
-            )}
-            {order.status === 'confirmed' && isDriver && (
-              <button
-                onClick={() =>
-                  updateOrder(
-                    order.id,
-                    {
-                      status: 'in_transit',
-                      trackingEvent: {
-                        phase: 'picked_up',
-                        message: 'Driver picked up package from seller.',
-                      },
-                    },
-                    'Pickup confirmed.'
-                  )
-                }
-                className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-colors text-sm"
-              >
-                I Picked It Up
-              </button>
             )}
             {order.status === 'in_transit' && isSeller && (
               <button
@@ -376,47 +596,6 @@ export function OrdersTab({
               >
                 Mark Completed
               </button>
-            )}
-            {order.status === 'in_transit' && isDriver && (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() =>
-                    updateOrder(
-                      order.id,
-                      {
-                        trackingEvent: {
-                          phase: 'near_buyer',
-                          message: 'Driver is near the delivery point.',
-                          etaMinutes: 8,
-                        },
-                      },
-                      'Buyer notified.'
-                    )
-                  }
-                  className="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Near Buyer
-                </button>
-                <button
-                  onClick={() =>
-                    updateOrder(
-                      order.id,
-                      {
-                        status: 'completed',
-                        trackingEvent: {
-                          phase: 'delivered',
-                          message: 'Driver delivered the order.',
-                          etaMinutes: 0,
-                        },
-                      },
-                      'Delivery completed.'
-                    )
-                  }
-                  className="bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm"
-                >
-                  Delivered
-                </button>
-              </div>
             )}
             {order.status === 'pending' && isBuyer && (
               <button
