@@ -78,10 +78,7 @@ export function MobileMenu({
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => {
-                      onToggleCategory(cat as Category);
-                      onClose();
-                    }}
+                    onClick={() => onToggleCategory(cat as Category)}
                     className={`tm-chip ${
                       selectedCategories.includes(cat as Category)
                         ? 'tm-chip-active'
