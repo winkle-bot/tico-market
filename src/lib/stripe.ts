@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 
-const STRIPE_CURRENCY = 'crc';
+import type { PaymentCurrency } from '@/lib/payments';
 
 let stripeClient: Stripe | null = null;
 
@@ -17,6 +17,6 @@ export function getStripeClient(): Stripe {
   return stripeClient;
 }
 
-export function getStripeCurrency() {
-  return STRIPE_CURRENCY;
+export function getStripeCurrency(currency: PaymentCurrency) {
+  return currency.toLowerCase() as 'crc' | 'usd';
 }

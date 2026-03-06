@@ -9,7 +9,14 @@ import {
   API_ROUTES,
 } from '@/config/constants';
 import { withCsrfHeaders } from '@/lib/csrf';
-import { COSTA_RICA_IVA_RATE, formatColonFromCents, parseColonPriceToCents } from '@/lib/payments';
+import {
+  COSTA_RICA_IVA_RATE,
+  calculateIvaMinorUnits,
+  convertCrcAmountToMinorUnits,
+  formatMinorUnits,
+  parseDisplayPriceToMinorUnits,
+  type PaymentCurrency,
+} from '@/lib/payments';
 import { useI18n } from '@/context/I18nContext';
 import type {
   CheckoutPaymentMethod,
@@ -23,7 +30,7 @@ import { CheckoutConfirmStep } from './checkout/CheckoutConfirmStep';
 import { CheckoutDeliveryStep } from './checkout/CheckoutDeliveryStep';
 import { CheckoutMethodStep } from './checkout/CheckoutMethodStep';
 import { CheckoutPickupStep } from './checkout/CheckoutPickupStep';
-import { calculateDeliveryFee, estimateEtaMinutes, formatDeliveryFee, getDistanceKm, parseDeliveryFee, type DriverOption } from './checkout/checkout-utils';
+import { calculateDeliveryFee, estimateEtaMinutes, getDistanceKm, type DriverOption } from './checkout/checkout-utils';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -113,6 +120,7 @@ export function CheckoutModal({
 
   const selectedLocation = pickupLocations.find((location) => location.id === selectedLocationId);
   const selectedEvent = marketEvents.find((event) => event.id === selectedLocationId);
+  const currency: PaymentCurrency = listing?.currency === 'USD' ? 'USD' : 'CRC';
 
   const driverOptions = useMemo<DriverOption[]>(() => {
     if (!Array.isArray(drivers) || !Array.isArray(listing?.location) || listing.location.length !== 2) {
@@ -168,15 +176,25 @@ export function CheckoutModal({
     return calculateDeliveryFee(null, null);
   }, [method, selectedDriver, listing?.location]);
 
-  const deliveryFeeDisplay = formatDeliveryFee(deliveryFeeValue);
+  const deliveryFeeMinorUnits = useMemo(() => {
+    if (method !== 'delivery') return 0;
+    return convertCrcAmountToMinorUnits(deliveryFeeValue, currency);
+  }, [currency, deliveryFeeValue, method]);
+  const displayDeliveryFee = useMemo(() => {
+    if (method !== 'delivery') return formatMinorUnits(0, currency);
+    return formatMinorUnits(deliveryFeeMinorUnits, currency);
+  }, [currency, deliveryFeeMinorUnits, method]);
 
-  const subtotalCents = useMemo(() => {
+  const itemSubtotalMinorUnits = useMemo(() => {
     if (!listing) return 0;
-    const listingAmount = parseColonPriceToCents(listing.price);
-    return listingAmount + deliveryFeeValue * 100;
-  }, [deliveryFeeValue, listing]);
-  const ivaCents = Math.round(subtotalCents * COSTA_RICA_IVA_RATE);
-  const totalCents = subtotalCents + ivaCents;
+    if (typeof listing.priceCents === 'number') {
+      return listing.priceCents;
+    }
+    return parseDisplayPriceToMinorUnits(listing.price, currency);
+  }, [currency, listing]);
+  const pretaxTotalMinorUnits = itemSubtotalMinorUnits + deliveryFeeMinorUnits;
+  const ivaMinorUnits = calculateIvaMinorUnits(pretaxTotalMinorUnits, COSTA_RICA_IVA_RATE);
+  const totalMinorUnits = pretaxTotalMinorUnits + ivaMinorUnits;
 
   if (!listing || !seller) return null;
 
@@ -247,6 +265,7 @@ export function CheckoutModal({
           description: listing.description,
           price: listing.price,
           priceCents: listing.priceCents,
+          currency: listing.currency,
           category: listing.category,
           location: listing.location,
           rating: listing.rating,
@@ -492,10 +511,10 @@ export function CheckoutModal({
                   selectedDriver={selectedDriver}
                   notes={notes}
                   isSubmitting={isSubmitting}
-                  subtotalDisplay={formatColonFromCents(subtotalCents)}
-                  deliveryFeeDisplay={deliveryFeeDisplay}
-                  ivaDisplay={formatColonFromCents(ivaCents)}
-                  totalDisplay={formatColonFromCents(totalCents)}
+                  subtotalDisplay={formatMinorUnits(itemSubtotalMinorUnits, currency)}
+                  deliveryFeeDisplay={displayDeliveryFee}
+                  ivaDisplay={formatMinorUnits(ivaMinorUnits, currency)}
+                  totalDisplay={formatMinorUnits(totalMinorUnits, currency)}
                   paymentMethod={paymentMethod}
                   sinpeConfig={sinpeConfig}
                   sinpeReference={sinpeReference}

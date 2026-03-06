@@ -1,5 +1,10 @@
 import { ApiResponse } from '@/lib/api-response';
-import { calculateIvaCents, parseColonPriceToCents } from '@/lib/payments';
+import {
+  calculateIvaMinorUnits,
+  convertCrcAmountToMinorUnits,
+  parseDisplayPriceToMinorUnits,
+  type PaymentCurrency,
+} from '@/lib/payments';
 import { getStripeClient, getStripeCurrency } from '@/lib/stripe';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { readJsonBody } from '@/lib/validation';
@@ -39,13 +44,15 @@ export async function POST(request: Request) {
       return ApiResponse.forbidden('Not authorized to checkout this order');
     }
 
+    const currency: PaymentCurrency =
+      orderRecord.listing_snapshot?.currency === 'USD' ? 'USD' : 'CRC';
     const itemAmount = typeof orderRecord.listing_snapshot?.priceCents === 'number'
       ? orderRecord.listing_snapshot.priceCents
-      : parseColonPriceToCents(orderRecord.listing_snapshot?.price || '');
+      : parseDisplayPriceToMinorUnits(orderRecord.listing_snapshot?.price || '', currency);
     const deliveryFee = Number.isFinite(orderRecord.delivery_fee) ? Number(orderRecord.delivery_fee) : 0;
-    const deliveryAmount = deliveryFee > 0 ? deliveryFee * 100 : 0;
+    const deliveryAmount = convertCrcAmountToMinorUnits(deliveryFee, currency);
     const subtotalAmount = itemAmount + deliveryAmount;
-    const ivaAmount = calculateIvaCents(subtotalAmount);
+    const ivaAmount = calculateIvaMinorUnits(subtotalAmount);
     const totalAmount = subtotalAmount + ivaAmount;
 
     if (totalAmount <= 0) {
@@ -58,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripeClient();
-    const currency = getStripeCurrency();
+    const stripeCurrency = getStripeCurrency(currency);
     const listingTitle = String(orderRecord.listing_snapshot?.title || `Order ${orderRecord.id}`);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -66,7 +73,7 @@ export async function POST(request: Request) {
       line_items: [
         {
           price_data: {
-            currency,
+            currency: stripeCurrency,
             product_data: {
               name: listingTitle,
             },
@@ -76,7 +83,7 @@ export async function POST(request: Request) {
         },
         ...(deliveryAmount > 0 ? [{
           price_data: {
-            currency,
+            currency: stripeCurrency,
             product_data: {
               name: 'Delivery fee',
             },
@@ -86,7 +93,7 @@ export async function POST(request: Request) {
         }] : []),
         ...(ivaAmount > 0 ? [{
           price_data: {
-            currency,
+            currency: stripeCurrency,
             product_data: {
               name: 'IVA (13%)',
             },
@@ -114,7 +121,7 @@ export async function POST(request: Request) {
         payment_status: 'requires_payment',
         stripe_checkout_session_id: session.id,
         payment_amount: totalAmount,
-        payment_currency: currency,
+        payment_currency: stripeCurrency,
       } as never)
       .eq('id', orderRecord.id);
 

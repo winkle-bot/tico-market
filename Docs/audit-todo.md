@@ -5,7 +5,6 @@ Items are removed as they are completed and committed.
 
 ## Fixes
 
-- [ ] Fix checkout money math and currency handling so Stripe charges the correct amount for CRC and USD listings.
 - [ ] Enforce order status transition permissions on the server so buyers, sellers, and drivers can only perform allowed actions.
 - [ ] Restrict delivery request and bid visibility to authorized participants and drivers only.
 - [ ] Fix CSRF failures in delivery creation flows.
