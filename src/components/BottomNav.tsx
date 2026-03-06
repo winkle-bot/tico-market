@@ -56,7 +56,7 @@ export function BottomNav({ onSell, onAuth }: { onSell: () => void; onAuth: () =
           <span>{t('nav.sell') || 'Sell'}</span>
         </button>
 
-        <Link href="/account" className={linkClass('/account')}>
+        <Link href="/account?tab=messages" className={linkClass('/account')}>
           <MessageCircle className="w-5 h-5" />
           <span>{t('nav.messages') || 'Messages'}</span>
         </Link>

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Truck, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useListings } from '@/context/ListingsContext';
 import { categoryEmojis } from '@/lib/data';
@@ -35,6 +35,22 @@ interface EditFormState {
   marketEvents: MarketEvent[];
 }
 
+type AccountTab = 'listings' | 'orders' | 'favorites' | 'messages' | 'deliveries';
+
+const DEFAULT_ACCOUNT_TAB: AccountTab = 'listings';
+
+function parseAccountTab(value: string | null): AccountTab {
+  switch (value) {
+    case 'orders':
+    case 'favorites':
+    case 'messages':
+    case 'deliveries':
+      return value;
+    default:
+      return DEFAULT_ACCOUNT_TAB;
+  }
+}
+
 export default function AccountPage() {
   const toast = useToast();
   const { t, locale } = useI18n();
@@ -42,7 +58,8 @@ export default function AccountPage() {
   const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
   const { listings, updateListing, deleteListing } = useListings();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'listings' | 'orders' | 'favorites' | 'messages' | 'deliveries'>('listings');
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<AccountTab>(DEFAULT_ACCOUNT_TAB);
   const [deliverySection, setDeliverySection] = useState<'requests' | 'bids' | 'tasks'>('requests');
   
   // Derived state from context
@@ -192,6 +209,10 @@ export default function AccountPage() {
   }, [user, authLoading, router, loadData]);
 
   useEffect(() => {
+    setActiveTab(parseAccountTab(searchParams.get('tab')));
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!user) return;
 
     const source = new EventSource(`/api/events?userId=${user.id}`);
@@ -328,6 +349,20 @@ export default function AccountPage() {
   const removeFavorite = async (listingId: number) => {
     if (!user) return;
     toggleFavorite(listingId);
+  };
+
+  const handleTabChange = (nextTab: AccountTab) => {
+    setActiveTab(nextTab);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextTab === DEFAULT_ACCOUNT_TAB) {
+      params.delete('tab');
+    } else {
+      params.set('tab', nextTab);
+    }
+
+    const nextUrl = params.toString() ? `/account?${params.toString()}` : '/account';
+    router.replace(nextUrl, { scroll: false });
   };
 
 
@@ -569,7 +604,7 @@ export default function AccountPage() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
+                onClick={() => handleTabChange(tab.id as AccountTab)}
                 className={`flex items-center justify-center gap-1.5 min-w-0 flex-1 px-2 sm:px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap min-h-12 ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
