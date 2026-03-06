@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { withCsrfHeaders } from '@/lib/csrf';
+import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 
 interface TaskItem {
   id: string;
@@ -58,13 +60,27 @@ export default function DeliveryTaskMarketplacePage() {
     }
 
     try {
+      const body = {
+        amount,
+        etaMinutes: Number.isFinite(etaMinutes) && etaMinutes > 0 ? etaMinutes : undefined,
+      };
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${taskId}/bids`,
+          method: 'POST',
+          body,
+          headers: { 'Content-Type': 'application/json' },
+          queueKey: `delivery-request-bid:${taskId}`,
+        });
+        setFeedback('Bid queued for sync.');
+        return;
+      }
+
       const res = await fetch(`/api/delivery-requests/${taskId}/bids`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          etaMinutes: Number.isFinite(etaMinutes) && etaMinutes > 0 ? etaMinutes : undefined,
-        }),
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => null);
@@ -72,7 +88,21 @@ export default function DeliveryTaskMarketplacePage() {
       }
       setFeedback('Bid submitted successfully.');
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Failed to place bid.');
+      if (isOfflineMutationError(error)) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${taskId}/bids`,
+          method: 'POST',
+          body: {
+            amount,
+            etaMinutes: Number.isFinite(etaMinutes) && etaMinutes > 0 ? etaMinutes : undefined,
+          },
+          headers: { 'Content-Type': 'application/json' },
+          queueKey: `delivery-request-bid:${taskId}`,
+        });
+        setFeedback('Bid queued for sync.');
+      } else {
+        setFeedback(error instanceof Error ? error.message : 'Failed to place bid.');
+      }
     }
   };
 

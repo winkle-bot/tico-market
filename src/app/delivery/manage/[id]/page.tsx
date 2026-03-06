@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ChevronLeft, RefreshCcw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 
 type DeliveryRequestDetail = {
   id: string;
@@ -29,6 +30,7 @@ type NegotiationItem = {
   amount: number;
   status: 'proposed' | 'accepted' | 'rejected' | 'countered';
   createdAt: string;
+  pending?: boolean;
 };
 
 export default function DeliveryManagePage() {
@@ -108,10 +110,38 @@ export default function DeliveryManagePage() {
     0;
 
   const submitCounter = useCallback(async (amount: number, roleLabel: 'buyer' | 'driver') => {
-    if (!requestId) return;
+    if (!requestId || !user) return;
     setSubmitting('counter');
 
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/counter`,
+          method: 'POST',
+          body: { amount },
+          headers: { 'Content-Type': 'application/json' },
+          queueKey: `delivery-request-counter:${requestId}`,
+        });
+        const optimisticEntry: NegotiationItem = {
+          id: `queued-${Date.now()}`,
+          proposedBy: user.id,
+          proposedByName: 'You',
+          amount,
+          status: 'proposed',
+          createdAt: new Date().toISOString(),
+          pending: true,
+        };
+        setNegotiations((current) => [optimisticEntry, ...current.filter((entry) => !entry.pending)]);
+        setRequestData((current) => (current ? { ...current, offeredPrice: amount } : current));
+        setFeedback(roleLabel === 'buyer' ? 'Counter offer queued for sync.' : 'Driver counter offer queued for sync.');
+        if (roleLabel === 'buyer') setBuyerAmount('');
+        if (roleLabel === 'driver') {
+          setDriverCounterAmount('');
+          setShowDriverCounterInput(false);
+        }
+        return;
+      }
+
       const res = await fetch(`/api/delivery-requests/${requestId}/counter`, {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -129,17 +159,63 @@ export default function DeliveryManagePage() {
         setShowDriverCounterInput(false);
       }
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Failed to submit counter offer');
+      if (isOfflineMutationError(error)) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/counter`,
+          method: 'POST',
+          body: { amount },
+          headers: { 'Content-Type': 'application/json' },
+          queueKey: `delivery-request-counter:${requestId}`,
+        });
+        const optimisticEntry: NegotiationItem = {
+          id: `queued-${Date.now()}`,
+          proposedBy: user.id,
+          proposedByName: 'You',
+          amount,
+          status: 'proposed',
+          createdAt: new Date().toISOString(),
+          pending: true,
+        };
+        setNegotiations((current) => [optimisticEntry, ...current.filter((entry) => !entry.pending)]);
+        setRequestData((current) => (current ? { ...current, offeredPrice: amount } : current));
+        setFeedback(roleLabel === 'buyer' ? 'Counter offer queued for sync.' : 'Driver counter offer queued for sync.');
+        if (roleLabel === 'buyer') setBuyerAmount('');
+        if (roleLabel === 'driver') {
+          setDriverCounterAmount('');
+          setShowDriverCounterInput(false);
+        }
+      } else {
+        setFeedback(error instanceof Error ? error.message : 'Failed to submit counter offer');
+      }
     } finally {
       setSubmitting(null);
     }
-  }, [fetchData, requestId]);
+  }, [fetchData, requestId, user]);
 
   const acceptAsDriver = useCallback(async () => {
-    if (!requestId) return;
+    if (!requestId || !user) return;
     setSubmitting('accept');
 
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/accept`,
+          method: 'POST',
+          queueKey: `delivery-request-status:${requestId}`,
+        });
+        setRequestData((current) => (
+          current
+            ? {
+                ...current,
+                status: 'assigned',
+                assignedDriverId: user.id,
+              }
+            : current
+        ));
+        setFeedback('Delivery acceptance queued for sync.');
+        return;
+      }
+
       const res = await fetch(`/api/delivery-requests/${requestId}/accept`, {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -151,17 +227,52 @@ export default function DeliveryManagePage() {
       setFeedback('Delivery accepted.');
       await fetchData();
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Failed to accept request');
+      if (isOfflineMutationError(error)) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/accept`,
+          method: 'POST',
+          queueKey: `delivery-request-status:${requestId}`,
+        });
+        setRequestData((current) => (
+          current
+            ? {
+                ...current,
+                status: 'assigned',
+                assignedDriverId: user.id,
+              }
+            : current
+        ));
+        setFeedback('Delivery acceptance queued for sync.');
+      } else {
+        setFeedback(error instanceof Error ? error.message : 'Failed to accept request');
+      }
     } finally {
       setSubmitting(null);
     }
-  }, [fetchData, requestId]);
+  }, [fetchData, requestId, user]);
 
   const declineAsDriver = useCallback(async () => {
     if (!requestId) return;
     setSubmitting('decline');
 
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/decline`,
+          method: 'POST',
+          queueKey: `delivery-request-status:${requestId}`,
+        });
+        setRequestData((current) => {
+          if (!current) return current;
+          if (current.requestType === 'broadcast') {
+            return current;
+          }
+          return { ...current, status: 'cancelled' };
+        });
+        setFeedback('Request decline queued for sync.');
+        return;
+      }
+
       const res = await fetch(`/api/delivery-requests/${requestId}/decline`, {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -173,7 +284,23 @@ export default function DeliveryManagePage() {
       setFeedback('Request declined.');
       await fetchData();
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Failed to decline request');
+      if (isOfflineMutationError(error)) {
+        await enqueueJsonMutation({
+          url: `/api/delivery-requests/${requestId}/decline`,
+          method: 'POST',
+          queueKey: `delivery-request-status:${requestId}`,
+        });
+        setRequestData((current) => {
+          if (!current) return current;
+          if (current.requestType === 'broadcast') {
+            return current;
+          }
+          return { ...current, status: 'cancelled' };
+        });
+        setFeedback('Request decline queued for sync.');
+      } else {
+        setFeedback(error instanceof Error ? error.message : 'Failed to decline request');
+      }
     } finally {
       setSubmitting(null);
     }
@@ -242,7 +369,7 @@ export default function DeliveryManagePage() {
                         : entry.status === 'countered'
                           ? 'bg-amber-100 text-amber-700'
                           : 'bg-[#eaf0ff] text-[#335186]'
-                  }`}>{entry.status}</span>
+                  }`}>{entry.pending ? 'queued' : entry.status}</span>
                 </article>
               ))}
             </div>

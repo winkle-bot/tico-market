@@ -7,6 +7,7 @@ import { ChevronLeft, Radio, User, Megaphone, Send } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 import type { DeliveryRequestType, DriverProfile } from '@/types';
 
 type RequestMode = DeliveryRequestType;
@@ -98,6 +99,22 @@ function DeliveryRequestContent() {
         body.targetDriverId = selectedDriverId;
       }
 
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: '/api/delivery-requests',
+          method: 'POST',
+          body,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        setSuccess('Delivery request queued for sync. It will send when your connection returns.');
+        setPickupAddress('');
+        setDropoffAddress('');
+        setItemDescription('');
+        setOfferedPrice('');
+        setSelectedDriverId('');
+        return;
+      }
+
       const res = await fetch('/api/delivery-requests', {
         method: 'POST',
         headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
@@ -112,11 +129,38 @@ function DeliveryRequestContent() {
         router.push(`/delivery/manage/${data.id}`);
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      if (isOfflineMutationError(err)) {
+        const body: Record<string, unknown> = {
+          requestType: mode,
+          pickupAddress: pickupAddress.trim(),
+          dropoffAddress: dropoffAddress.trim(),
+          itemDescription: itemDescription.trim(),
+          budgetAmount: offeredPrice ? parseInt(offeredPrice, 10) : undefined,
+          offeredPrice: offeredPrice ? parseInt(offeredPrice, 10) : undefined,
+        };
+        if (mode === 'manual' && selectedDriverId) {
+          body.targetDriverId = selectedDriverId;
+        }
+
+        await enqueueJsonMutation({
+          url: '/api/delivery-requests',
+          method: 'POST',
+          body,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        setSuccess('Delivery request queued for sync. It will send when your connection returns.');
+        setPickupAddress('');
+        setDropoffAddress('');
+        setItemDescription('');
+        setOfferedPrice('');
+        setSelectedDriverId('');
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [mode, pickupAddress, dropoffAddress, itemDescription, offeredPrice, selectedDriverId, router]);
+  }, [mode, pickupAddress, dropoffAddress, itemDescription, offeredPrice, selectedDriverId, router, t]);
 
   if (isLoading || !user) {
     return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;

@@ -12,8 +12,6 @@ Working rule: completed items get removed from this file when they land and are 
 - Add real-time driver tracking in active orders
 - Add clearer delivery state transitions in account and order views
 - Add ETA updates in account and order views
-- Improve queued and offline handling for delivery-request creation
-- Improve queued and offline handling for delivery status updates
 
 ## 3. Feria Commerce Loop
 
