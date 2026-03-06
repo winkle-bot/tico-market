@@ -386,6 +386,7 @@ export interface Database {
           item_photos: string[] | null;
           estimated_weight_kg: number | null;
           is_fragile: boolean | null;
+          batch_context: Json | null;
           budget_amount: number | null;
           final_amount: number | null;
           assigned_driver_id: string | null;
@@ -419,6 +420,7 @@ export interface Database {
           item_photos?: string[] | null;
           estimated_weight_kg?: number | null;
           is_fragile?: boolean | null;
+          batch_context?: Json | null;
           budget_amount?: number | null;
           final_amount?: number | null;
           assigned_driver_id?: string | null;
@@ -452,6 +454,7 @@ export interface Database {
           item_photos?: string[] | null;
           estimated_weight_kg?: number | null;
           is_fragile?: boolean | null;
+          batch_context?: Json | null;
           budget_amount?: number | null;
           final_amount?: number | null;
           assigned_driver_id?: string | null;

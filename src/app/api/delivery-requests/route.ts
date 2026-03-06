@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { normalizeFeriaBatchContext } from '@/lib/delivery-batching';
 import { sanitizeOptionalText, sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
@@ -29,6 +30,12 @@ const createDeliveryRequestSchema = z.object({
   isFragile: z.boolean().optional(),
   budgetAmount: z.number().int().min(0).nullable().optional(),
   vehicleTypeFilter: z.enum(['motorcycle', 'car', 'pickup']).nullable().optional(),
+  batchContext: z.object({
+    feriaName: z.string().min(3).max(120),
+    marketDate: z.string().min(3).max(60),
+    pickupHubLabel: z.string().min(3).max(120),
+    batchWindowLabel: z.string().min(3).max(120),
+  }).nullable().optional(),
 });
 
 const requestStatusValues = ['open', 'assigned', 'in_transit', 'completed', 'cancelled'] as const;
@@ -59,6 +66,7 @@ function toRequestResponse(row: Record<string, unknown>) {
     itemPhotos: row.item_photos || [],
     estimatedWeightKg: row.estimated_weight_kg,
     isFragile: row.is_fragile,
+    batchContext: row.batch_context,
     budgetAmount: row.budget_amount,
     finalAmount: row.final_amount,
     assignedDriverId: row.assigned_driver_id,
@@ -157,6 +165,9 @@ export async function POST(request: Request) {
 
     const payload = parsed.data;
     const requestType = payload.requestType || 'broadcast';
+    const batchContext = payload.batchContext
+      ? normalizeFeriaBatchContext(payload.batchContext)
+      : {};
     if (requestType === 'manual' && !payload.targetDriverId) {
       return ApiResponse.badRequest('Manual requests require a target driver.');
     }
@@ -190,6 +201,7 @@ export async function POST(request: Request) {
         item_photos: payload.itemPhotos || [],
         estimated_weight_kg: payload.estimatedWeightKg,
         is_fragile: payload.isFragile ?? false,
+        batch_context: batchContext,
         budget_amount: payload.budgetAmount,
       })
       .select('*')

@@ -38,6 +38,7 @@ function toRequestResponse(row: Record<string, unknown>) {
     itemPhotos: row.item_photos || [],
     estimatedWeightKg: row.estimated_weight_kg,
     isFragile: row.is_fragile,
+    batchContext: row.batch_context,
     budgetAmount: row.budget_amount,
     finalAmount: row.final_amount,
     assignedDriverId: row.assigned_driver_id,

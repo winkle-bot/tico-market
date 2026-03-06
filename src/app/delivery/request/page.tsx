@@ -38,6 +38,11 @@ function DeliveryRequestContent() {
   const [itemDescription, setItemDescription] = useState('');
   const [offeredPrice, setOfferedPrice] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState<string>('');
+  const [isFeriaBatch, setIsFeriaBatch] = useState(false);
+  const [feriaName, setFeriaName] = useState('');
+  const [marketDate, setMarketDate] = useState('');
+  const [pickupHubLabel, setPickupHubLabel] = useState('');
+  const [batchWindowLabel, setBatchWindowLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -82,6 +87,11 @@ function DeliveryRequestContent() {
       return;
     }
 
+    if (isFeriaBatch && (!feriaName.trim() || !marketDate.trim() || !pickupHubLabel.trim() || !batchWindowLabel.trim())) {
+      setError('Fill in the feria batch details so drivers can group these pickups.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -98,6 +108,14 @@ function DeliveryRequestContent() {
       if (mode === 'manual' && selectedDriverId) {
         body.targetDriverId = selectedDriverId;
       }
+      if (isFeriaBatch) {
+        body.batchContext = {
+          feriaName: feriaName.trim(),
+          marketDate: marketDate.trim(),
+          pickupHubLabel: pickupHubLabel.trim(),
+          batchWindowLabel: batchWindowLabel.trim(),
+        };
+      }
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         await enqueueJsonMutation({
@@ -112,6 +130,11 @@ function DeliveryRequestContent() {
         setItemDescription('');
         setOfferedPrice('');
         setSelectedDriverId('');
+        setIsFeriaBatch(false);
+        setFeriaName('');
+        setMarketDate('');
+        setPickupHubLabel('');
+        setBatchWindowLabel('');
         return;
       }
 
@@ -141,6 +164,14 @@ function DeliveryRequestContent() {
         if (mode === 'manual' && selectedDriverId) {
           body.targetDriverId = selectedDriverId;
         }
+        if (isFeriaBatch) {
+          body.batchContext = {
+            feriaName: feriaName.trim(),
+            marketDate: marketDate.trim(),
+            pickupHubLabel: pickupHubLabel.trim(),
+            batchWindowLabel: batchWindowLabel.trim(),
+          };
+        }
 
         await enqueueJsonMutation({
           url: '/api/delivery-requests',
@@ -154,13 +185,18 @@ function DeliveryRequestContent() {
         setItemDescription('');
         setOfferedPrice('');
         setSelectedDriverId('');
+        setIsFeriaBatch(false);
+        setFeriaName('');
+        setMarketDate('');
+        setPickupHubLabel('');
+        setBatchWindowLabel('');
       } else {
         setError(err instanceof Error ? err.message : 'Something went wrong');
       }
     } finally {
       setSubmitting(false);
     }
-  }, [mode, pickupAddress, dropoffAddress, itemDescription, offeredPrice, selectedDriverId, router, t]);
+  }, [batchWindowLabel, dropoffAddress, feriaName, isFeriaBatch, itemDescription, marketDate, mode, offeredPrice, pickupAddress, pickupHubLabel, router, selectedDriverId, t]);
 
   if (isLoading || !user) {
     return <div className="min-h-screen bg-[#f5f8ff] flex items-center justify-center text-[#6780b3]">{t('common.loading', 'Loading...')}</div>;
@@ -317,6 +353,40 @@ function DeliveryRequestContent() {
               <p className="text-xs text-[#6780b3] mt-1">Drivers can accept or counter with a different price.</p>
             )}
           </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-[#dce5f7] p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-[#335186]">Feria Batch Pickup</h2>
+              <p className="mt-1 text-xs text-[#6780b3]">Mark requests that should be grouped with other feria pickups from the same market window.</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-[#334d80]">
+              <input type="checkbox" checked={isFeriaBatch} onChange={(event) => setIsFeriaBatch(event.target.checked)} />
+              Enable
+            </label>
+          </div>
+
+          {isFeriaBatch && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm text-[#334d80] font-semibold">
+                Feria Name
+                <input className="tm-input mt-1" value={feriaName} onChange={(event) => setFeriaName(event.target.value)} placeholder="Feria del Agricultor Escazu" />
+              </label>
+              <label className="text-sm text-[#334d80] font-semibold">
+                Market Day
+                <input className="tm-input mt-1" value={marketDate} onChange={(event) => setMarketDate(event.target.value)} placeholder="Saturday, Mar 7" />
+              </label>
+              <label className="text-sm text-[#334d80] font-semibold">
+                Pickup Hub
+                <input className="tm-input mt-1" value={pickupHubLabel} onChange={(event) => setPickupHubLabel(event.target.value)} placeholder="Escazu feria north gate" />
+              </label>
+              <label className="text-sm text-[#334d80] font-semibold">
+                Batch Window
+                <input className="tm-input mt-1" value={batchWindowLabel} onChange={(event) => setBatchWindowLabel(event.target.value)} placeholder="08:00 - 09:30 pickup wave" />
+              </label>
+            </div>
+          )}
         </section>
 
         <button

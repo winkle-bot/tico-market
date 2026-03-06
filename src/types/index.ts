@@ -192,6 +192,15 @@ export interface DeliveryNegotiation {
 export type DeliveryRequestStatus = 'open' | 'assigned' | 'in_transit' | 'completed' | 'cancelled';
 export type DeliveryBidStatus = 'pending' | 'accepted' | 'rejected';
 
+export interface DeliveryBatchContext {
+  kind: 'feria_pickup';
+  feriaName: string;
+  marketDate: string;
+  pickupHubLabel: string;
+  batchWindowLabel: string;
+  batchKey: string;
+}
+
 export interface DeliveryRequest {
   id: string;
   requesterId: string;
@@ -216,6 +225,7 @@ export interface DeliveryRequest {
   itemPhotos: string[];
   estimatedWeightKg?: number;
   isFragile: boolean;
+  batchContext?: DeliveryBatchContext | null;
   budgetAmount?: number;
   finalAmount?: number;
   assignedDriverId?: string;

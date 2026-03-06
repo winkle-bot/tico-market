@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { wazeLink } from '@/lib/format';
+import type { DeliveryBatchContext } from '@/types';
 
 type DriverVehicleType = 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker';
 
@@ -31,6 +32,7 @@ type DeliveryRequestItem = {
   itemDescription: string;
   estimatedWeightKg?: number | null;
   isFragile?: boolean;
+  batchContext?: DeliveryBatchContext | null;
   createdAt: string;
 };
 
@@ -168,6 +170,45 @@ export default function DeliveryBrowsePage() {
       });
   }, [distanceMax, driver?.currentLat, driver?.currentLng, driver?.id, driver?.vehicleType, priceMax, priceMin, requests]);
 
+  const batchGroups = useMemo(() => {
+    const grouped = new Map<string, {
+      context: DeliveryBatchContext;
+      items: typeof visibleRequests;
+      totalOffer: number;
+      nearestDistance?: number;
+    }>();
+
+    for (const entry of visibleRequests) {
+      const context = entry.request.batchContext;
+      if (!context || context.kind !== 'feria_pickup') {
+        continue;
+      }
+
+      const current = grouped.get(context.batchKey);
+      if (!current) {
+        grouped.set(context.batchKey, {
+          context,
+          items: [entry],
+          totalOffer: entry.offer,
+          nearestDistance: entry.distance,
+        });
+        continue;
+      }
+
+      current.items.push(entry);
+      current.totalOffer += entry.offer;
+      if (entry.distance !== undefined) {
+        current.nearestDistance = current.nearestDistance === undefined
+          ? entry.distance
+          : Math.min(current.nearestDistance, entry.distance);
+      }
+    }
+
+    return Array.from(grouped.values())
+      .filter((group) => group.items.length > 1)
+      .sort((a, b) => b.items.length - a.items.length);
+  }, [visibleRequests]);
+
   const acceptRequest = useCallback(async (requestId: string) => {
     setAcceptingId(requestId);
     setFeedback(null);
@@ -271,6 +312,28 @@ export default function DeliveryBrowsePage() {
 
         {feedback && <p className="text-sm text-[#4d6698]">{feedback}</p>}
 
+        {batchGroups.length > 0 && (
+          <section className="grid gap-3 lg:grid-cols-2">
+            {batchGroups.map((group) => (
+              <article key={group.context.batchKey} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Feria Batch Opportunity</p>
+                <h2 className="mt-2 text-lg font-black text-emerald-950">{group.context.feriaName}</h2>
+                <p className="mt-1 text-sm font-semibold text-emerald-800">
+                  {group.items.length} stops ready from {group.context.pickupHubLabel}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-emerald-800">
+                  <span className="rounded-full bg-white px-2.5 py-1 font-semibold">{group.context.marketDate}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-semibold">{group.context.batchWindowLabel}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-semibold">Payout pool: ₡{group.totalOffer.toLocaleString('es-CR')}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-semibold">
+                    {group.nearestDistance === undefined ? 'Distance: N/A' : `Nearest pickup: ${group.nearestDistance.toFixed(1)} km`}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+
         <section className="space-y-3">
           {visibleRequests.length === 0 ? (
             <div className="rounded-2xl border border-[#dce5f7] bg-white p-8 text-center text-[#6780b3]">
@@ -280,6 +343,13 @@ export default function DeliveryBrowsePage() {
             visibleRequests.map(({ request, offer, distance }) => (
               <article key={request.id} className="rounded-2xl border border-[#dce5f7] bg-white p-4 space-y-2">
                 <p className="text-xs uppercase tracking-wider text-[#7890bd] font-black">Request #{request.id.slice(0, 8)}</p>
+                {request.batchContext?.kind === 'feria_pickup' && (
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">{request.batchContext.feriaName}</span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">{request.batchContext.batchWindowLabel}</span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700">{request.batchContext.pickupHubLabel}</span>
+                  </div>
+                )}
                 <p className="text-sm text-[#4d689b]">
                   <span className="font-semibold text-[#223d6b]">Pickup:</span> {request.pickupAddress}
                   {request.pickupLat != null && request.pickupLng != null && (

@@ -4,7 +4,6 @@ Working rule: completed items get removed from this file when they land and are 
 
 ## 3. Feria Commerce Loop
 
-- Support feria-specific batching logic for delivery requests
 
 ## 4. Translation And Messaging
 
