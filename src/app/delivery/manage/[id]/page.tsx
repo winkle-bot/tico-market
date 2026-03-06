@@ -56,12 +56,12 @@ export default function DeliveryManagePage() {
         fetch('/api/drivers/me'),
       ]);
 
+      const requestPayload = await requestRes.json().catch(() => null);
       if (!requestRes.ok) {
-        const payload = await requestRes.json().catch(() => null);
+        const payload = requestPayload;
         throw new Error(payload?.error || 'Failed to load request');
       }
-      const requestPayload = (await requestRes.json()) as DeliveryRequestDetail;
-      setRequestData(requestPayload);
+      setRequestData(requestPayload as DeliveryRequestDetail);
 
       if (negotiationRes.ok) {
         const negotiationPayload = await negotiationRes.json();
@@ -101,7 +101,11 @@ export default function DeliveryManagePage() {
     [requestData?.requesterId, user?.id]
   );
 
-  const currentOffer = requestData?.offeredPrice ?? requestData?.budgetAmount ?? requestData?.finalAmount ?? 0;
+  const currentOffer = negotiations[0]?.amount ??
+    requestData?.offeredPrice ??
+    requestData?.budgetAmount ??
+    requestData?.finalAmount ??
+    0;
 
   const submitCounter = useCallback(async (amount: number, roleLabel: 'buyer' | 'driver') => {
     if (!requestId) return;
