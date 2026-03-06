@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Search, PlusCircle, User, LogOut, Menu, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -23,6 +24,34 @@ export function Navbar({
 }: NavbarProps) {
   const { user, logout, unreadCount } = useAuth();
   const { t } = useI18n();
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isAccountMenuOpen]);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[#dce5f7]/90 bg-white/90 backdrop-blur-xl">
@@ -70,11 +99,20 @@ export function Navbar({
               </Link>
             )}
 
-            <div className="relative group">
+            <div className="relative" ref={accountMenuRef}>
               <button
-                onClick={() => !user && onOpenAuthModal()}
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    onOpenAuthModal();
+                    return;
+                  }
+                  setIsAccountMenuOpen((current) => !current);
+                }}
                 className="p-2.5 text-[#60749f] hover:bg-[#edf2ff] rounded-full transition-colors flex items-center gap-2"
                 aria-label={user ? 'Account menu' : 'Sign in'}
+                aria-haspopup={user ? 'menu' : undefined}
+                aria-expanded={user ? isAccountMenuOpen : undefined}
               >
                 <div className="w-8 h-8 rounded-full bg-[#edf2ff] flex items-center justify-center text-[#60749f] overflow-hidden">
                   {user ? (
@@ -93,16 +131,30 @@ export function Navbar({
               </button>
 
               {user && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-[#dce5f7] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 z-50">
+                <div
+                  className={`absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-[#dce5f7] transition-all p-2 z-50 ${
+                    isAccountMenuOpen
+                      ? 'visible opacity-100'
+                      : 'invisible opacity-0 pointer-events-none'
+                  }`}
+                  role="menu"
+                >
                   <Link
                     href="/account"
+                    onClick={() => setIsAccountMenuOpen(false)}
                     className="w-full flex items-center gap-2 p-3 text-[#334d80] font-bold text-sm hover:bg-[#f5f8ff] rounded-xl transition-colors"
+                    role="menuitem"
                   >
                     <User className="w-4 h-4" /> {t('navbar.account')}
                   </Link>
                   <button
-                    onClick={logout}
+                    type="button"
+                    onClick={() => {
+                      setIsAccountMenuOpen(false);
+                      logout();
+                    }}
                     className="w-full flex items-center gap-2 p-3 text-red-600 font-bold text-sm hover:bg-red-50 rounded-xl transition-colors"
+                    role="menuitem"
                   >
                     <LogOut className="w-4 h-4" /> {t('navbar.logout')}
                   </button>
