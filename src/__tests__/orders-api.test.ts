@@ -302,6 +302,68 @@ describe('orders api patch delivery tracking', () => {
     expect(updateCalls[0].listing_snapshot).toMatchObject({
       feriaPreorder: {
         reservationStatus: 'confirmed',
+        pickupQrToken: expect.stringContaining('tico-market:feria-pickup:ord_1:'),
+      },
+    });
+  });
+
+  test('completes feria pickup when the seller verifies the buyer QR token', async () => {
+    const pickupQrToken = 'tico-market:feria-pickup:ord_1:qrverify1234567890';
+    const { supabase, updateCalls } = buildSupabase(
+      '22222222-2222-2222-2222-222222222222',
+      buildOrderRow({
+        type: 'pickup',
+        status: 'confirmed',
+        driver_id: null,
+        driver_name: null,
+        delivery_address: null,
+        delivery_fee: null,
+        pickup_location_id: 'feria-escazu-sat',
+        pickup_location: {
+          id: 'feria-escazu-sat',
+          name: 'Feria del Agricultor Escazu',
+          address: 'Escazu Centro',
+        },
+        listing_snapshot: {
+          title: 'Plantains',
+          feriaPreorder: {
+            kind: 'feria_preorder',
+            eventId: 'feria-escazu-sat',
+            eventName: 'Feria del Agricultor Escazu',
+            eventDate: 'Every Saturday',
+            timeWindow: '07:00 - 13:00',
+            locationName: 'Escazu Centro',
+            reservationStatus: 'confirmed',
+            reservedAt: '2026-03-06T21:00:00.000Z',
+            pickupQrToken,
+          },
+        },
+      })
+    );
+    mockCreateSupabaseServerClient.mockResolvedValue(supabase);
+
+    const response = await patchOrder(
+      jsonRequest({
+        pickupVerification: {
+          token: pickupQrToken,
+        },
+      }),
+      {
+        params: Promise.resolve({ id: 'ord_1' }),
+      }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('completed');
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toMatchObject({
+      status: 'completed',
+      listing_snapshot: {
+        feriaPreorder: {
+          pickupCompletedByUserId: '22222222-2222-2222-2222-222222222222',
+          pickupQrToken,
+        },
       },
     });
   });

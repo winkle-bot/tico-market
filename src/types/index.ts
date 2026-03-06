@@ -307,6 +307,9 @@ export interface FeriaPreorderMeta {
   locationName: string;
   reservationStatus: FeriaReservationStatus;
   reservedAt: string;
+  pickupQrToken?: string;
+  pickupCompletedAt?: string;
+  pickupCompletedByUserId?: string;
 }
 
 export interface ListingSnapshot {

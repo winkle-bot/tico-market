@@ -2,6 +2,13 @@ import type { FeriaPreorderMeta, ListingSnapshot, MarketEvent, OrderStatus } fro
 
 const VALID_RESERVATION_STATUSES = new Set(['pending_confirmation', 'confirmed']);
 
+function createPickupQrToken(orderId: string): string {
+  const nonce = typeof globalThis.crypto?.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID().replace(/-/g, '')
+    : `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 18)}`;
+  return `tico-market:feria-pickup:${orderId}:${nonce}`;
+}
+
 export function buildFeriaPreorderMeta(
   event: MarketEvent,
   reservedAt = new Date().toISOString()
@@ -46,9 +53,19 @@ export function getFeriaPreorderMeta(snapshot: unknown): FeriaPreorderMeta | nul
   return candidate as FeriaPreorderMeta;
 }
 
+export function formatFeriaPickupCode(token: string | undefined): string | null {
+  if (!token) {
+    return null;
+  }
+
+  const code = token.split(':').at(-1)?.slice(-8).toUpperCase();
+  return code && code.length === 8 ? code : null;
+}
+
 export function updateFeriaPreorderForStatus(
   snapshot: Record<string, unknown>,
-  status: OrderStatus
+  status: OrderStatus,
+  orderId: string
 ): Record<string, unknown> {
   const preorder = getFeriaPreorderMeta(snapshot);
   if (!preorder) {
@@ -64,6 +81,28 @@ export function updateFeriaPreorderForStatus(
     feriaPreorder: {
       ...preorder,
       reservationStatus: 'confirmed',
+      pickupQrToken: preorder.pickupQrToken ?? createPickupQrToken(orderId),
+    },
+  };
+}
+
+export function completeFeriaPreorderPickup(
+  snapshot: Record<string, unknown>,
+  completedByUserId: string,
+  completedAt = new Date().toISOString()
+): Record<string, unknown> {
+  const preorder = getFeriaPreorderMeta(snapshot);
+  if (!preorder) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    feriaPreorder: {
+      ...preorder,
+      reservationStatus: 'confirmed',
+      pickupCompletedAt: completedAt,
+      pickupCompletedByUserId: completedByUserId,
     },
   };
 }

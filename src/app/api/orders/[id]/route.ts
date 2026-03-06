@@ -1,6 +1,10 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
-import { updateFeriaPreorderForStatus } from '@/lib/feria-preorders';
+import {
+  completeFeriaPreorderPickup,
+  getFeriaPreorderMeta,
+  updateFeriaPreorderForStatus,
+} from '@/lib/feria-preorders';
 import { sanitizeOptionalText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { sendPushToUser, sendWhatsAppToUser } from '@/lib/push';
@@ -20,7 +24,10 @@ const orderStatusSchema = z.object({
     etaMinutes: z.number().int().min(0).max(240).nullable().optional(),
     driverLocationLabel: z.string().max(120).nullable().optional(),
   }).optional(),
-}).refine((value) => Boolean(value.status || value.driverAssignment || value.trackingEvent), {
+  pickupVerification: z.object({
+    token: z.string().min(16).max(240),
+  }).optional(),
+}).refine((value) => Boolean(value.status || value.driverAssignment || value.trackingEvent || value.pickupVerification), {
   message: 'At least one update field is required',
 });
 
@@ -336,7 +343,7 @@ export async function PATCH(
     if (!parsedBody.success) {
       return ApiResponse.badRequest('Invalid status payload', parsedBody.error.flatten());
     }
-    const { status, driverAssignment, trackingEvent } = parsedBody.data;
+    const { status, driverAssignment, trackingEvent, pickupVerification } = parsedBody.data;
 
     // Verify user is part of this order
     const { data: existing } = await getOrderById(supabase, parsedOrderId.data);
@@ -359,12 +366,32 @@ export async function PATCH(
     const actorRole: OrderRole = isSeller ? 'seller' : isDriver ? 'driver' : 'buyer';
     const currentStatus = existing.status as OrderStatusValue;
     const orderType = existing.type as OrderTypeValue;
-    const nextStatus = (status ?? currentStatus) as OrderStatusValue;
+    const requestedStatus = pickupVerification ? 'completed' : status;
+    const nextStatus = (requestedStatus ?? currentStatus) as OrderStatusValue;
 
-    if (status) {
+    if (requestedStatus) {
       const allowedStatuses = getAllowedStatuses(actorRole, currentStatus, orderType);
-      if (!allowedStatuses.includes(status)) {
+      if (!allowedStatuses.includes(requestedStatus)) {
         return ApiResponse.forbidden('Not authorized to set this order status');
+      }
+    }
+
+    if (pickupVerification) {
+      const preorder = getFeriaPreorderMeta(existing.listing_snapshot);
+      if (!preorder?.pickupQrToken) {
+        return ApiResponse.badRequest('This order does not have an active feria pickup QR');
+      }
+      if (actorRole !== 'seller') {
+        return ApiResponse.forbidden('Only the seller can verify feria pickup handoff');
+      }
+      if (orderType !== 'pickup') {
+        return ApiResponse.badRequest('QR pickup verification is only supported for pickup orders');
+      }
+      if (currentStatus !== 'confirmed') {
+        return ApiResponse.badRequest('Pickup QR verification requires a confirmed reservation');
+      }
+      if (pickupVerification.token !== preorder.pickupQrToken) {
+        return ApiResponse.forbidden('Invalid feria pickup QR token');
       }
     }
 
@@ -390,7 +417,8 @@ export async function PATCH(
 
     const nextSnapshot = updateFeriaPreorderForStatus(
       (existing.listing_snapshot ?? {}) as Record<string, unknown>,
-      nextStatus
+      nextStatus,
+      existing.id
     );
     const previousDeliveryMeta = (nextSnapshot.deliveryMeta ?? {}) as Record<string, unknown>;
     const previousUpdates = Array.isArray(previousDeliveryMeta.updates)
@@ -401,8 +429,8 @@ export async function PATCH(
       updated_at: new Date().toISOString(),
     };
 
-    if (status) {
-      updatePayload.status = status;
+    if (requestedStatus) {
+      updatePayload.status = requestedStatus;
     }
     if (driverAssignment) {
       updatePayload.driver_id = driverAssignment.driverId;
@@ -413,16 +441,18 @@ export async function PATCH(
       pending: 'Order is pending confirmation.',
       confirmed: 'Seller confirmed the order.',
       in_transit: 'Delivery is now in transit.',
-      completed: 'Order was marked as completed.',
+      completed: pickupVerification
+        ? 'Seller completed feria pickup using the buyer QR code.'
+        : 'Order was marked as completed.',
       cancelled: 'Order was cancelled.',
     };
 
     const newUpdateMessage =
       sanitizeOptionalText(trackingEvent?.message, 240) ||
       getTrackingFallbackMessage(trackingEvent) ||
-      (status ? messageFromStatus[status] : undefined);
+      (requestedStatus ? messageFromStatus[requestedStatus] : undefined);
 
-    if (trackingEvent || status || driverAssignment) {
+    if (trackingEvent || requestedStatus || driverAssignment || pickupVerification) {
       const updates = [...previousUpdates];
       if (newUpdateMessage) {
         updates.push({
@@ -437,7 +467,7 @@ export async function PATCH(
         ...previousDeliveryMeta,
         updates,
       };
-      const nextPhase = trackingEvent?.phase || (status ? getDeliveryPhaseFromStatus(status, orderType) : undefined);
+      const nextPhase = trackingEvent?.phase || (requestedStatus ? getDeliveryPhaseFromStatus(requestedStatus, orderType) : undefined);
       if (nextPhase) {
         nextDeliveryMeta.phase = nextPhase;
       }
@@ -457,6 +487,16 @@ export async function PATCH(
       };
     }
 
+    if (pickupVerification) {
+      const snapshotWithVerification = completeFeriaPreorderPickup(
+        updatePayload.listing_snapshot
+          ? (updatePayload.listing_snapshot as Record<string, unknown>)
+          : nextSnapshot,
+        user.id
+      );
+      updatePayload.listing_snapshot = snapshotWithVerification;
+    }
+
     const { data: order, error } = await updateOrderRow(supabase, parsedOrderId.data, updatePayload);
 
     if (error) {
@@ -467,19 +507,19 @@ export async function PATCH(
     }
 
     // Fire-and-forget push notifications for status changes
-    if (status) {
+    if (requestedStatus) {
       const title =
         typeof existing.listing_snapshot?.title === 'string'
           ? existing.listing_snapshot.title
           : 'Order';
-      const pushMsg = newUpdateMessage || `Order status: ${status}`;
+      const pushMsg = newUpdateMessage || `Order status: ${requestedStatus}`;
       const notifyIds: string[] = [];
       if (!isBuyer) notifyIds.push(existing.buyer_id);
       if (!isSeller) notifyIds.push(existing.seller_id);
       if (existing.driver_id && !isDriver) notifyIds.push(existing.driver_id);
       for (const uid of notifyIds) {
         sendPushToUser(uid, {
-          title: `${title} — ${status.replace('_', ' ')}`,
+          title: `${title} — ${requestedStatus.replace('_', ' ')}`,
           body: pushMsg,
           url: `/account?tab=orders`,
         }).catch(() => {});

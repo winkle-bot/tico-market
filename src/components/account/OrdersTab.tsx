@@ -7,9 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, XCircle, Zap } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
-import { getFeriaPreorderMeta } from '@/lib/feria-preorders';
+import { formatFeriaPickupCode, getFeriaPreorderMeta } from '@/lib/feria-preorders';
 import { useI18n } from '@/context/I18nContext';
 import { DeliveryRoomModal } from '@/components/account/DeliveryRoomModal';
+import { FeriaPickupScanner } from '@/components/account/FeriaPickupScanner';
+import { OrderPickupQrCode } from '@/components/account/OrderPickupQrCode';
 import { OrderDriverLiveMap } from '@/components/account/OrderDriverLiveMap';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
 import type { DeliveryMeta, DeliveryTrackingPhase, FeriaPreorderMeta, Order, Review } from '@/types';
@@ -70,8 +72,14 @@ function getLatLngPair(value: unknown): [number, number] | null {
 }
 
 function getFeriaReservationLabel(preorder: FeriaPreorderMeta, status: Order['status']): string {
-  if (preorder.reservationStatus === 'confirmed' || status === 'confirmed' || status === 'completed') {
-    return 'Feria reservation confirmed.';
+  if (preorder.pickupCompletedAt || status === 'completed') {
+    return 'Feria pickup completed.';
+  }
+
+  if (preorder.reservationStatus === 'confirmed' || status === 'confirmed') {
+    return preorder.pickupQrToken
+      ? 'Feria reservation confirmed. Buyer QR ready for handoff.'
+      : 'Feria reservation confirmed.';
   }
 
   if (status === 'cancelled') {
@@ -125,6 +133,7 @@ export function OrdersTab({
   const [deliveryNoteByOrder, setDeliveryNoteByOrder] = useState<Record<string, string>>({});
   const [deliveryEtaByOrder, setDeliveryEtaByOrder] = useState<Record<string, string>>({});
   const [deliveryLocationByOrder, setDeliveryLocationByOrder] = useState<Record<string, string>>({});
+  const [pickupVerificationOrderId, setPickupVerificationOrderId] = useState<string | null>(null);
   const [deliveryRoomOrderId, setDeliveryRoomOrderId] = useState<string | null>(null);
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null);
   const activeDeliveryRoomOrder = deliveryRoomOrderId
@@ -212,6 +221,23 @@ export function OrdersTab({
     if (success && payload.status === 'completed') {
       setDeliveryEtaByOrder((prev) => ({ ...prev, [order.id]: '' }));
       setDeliveryLocationByOrder((prev) => ({ ...prev, [order.id]: '' }));
+    }
+  };
+
+  const submitPickupVerification = async (order: Order, token: string) => {
+    setPickupVerificationOrderId(order.id);
+    try {
+      await updateOrder(
+        order.id,
+        {
+          pickupVerification: {
+            token,
+          },
+        },
+        'Feria pickup completed.'
+      );
+    } finally {
+      setPickupVerificationOrderId((current) => (current === order.id ? null : current));
     }
   };
 
@@ -313,6 +339,8 @@ export function OrdersTab({
         const driverLocationDraft = deliveryLocationByOrder[order.id] ?? (deliveryMeta?.driverLocationLabel || '');
         const pickupCoords = getLatLngPair(order.listingSnapshot?.location);
         const feriaPreorder = getFeriaPreorderMeta(order.listingSnapshot);
+        const pickupCode = formatFeriaPickupCode(feriaPreorder?.pickupQrToken);
+        const pickupCompletedAt = formatUpdateTime(dateLocale, feriaPreorder?.pickupCompletedAt);
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -386,8 +414,46 @@ export function OrdersTab({
                     <p className="mt-1 font-semibold text-orange-900">
                       {getFeriaReservationLabel(feriaPreorder, order.status)}
                     </p>
+                    {pickupCompletedAt && (
+                      <p className="mt-1 text-xs text-orange-700">Completed at {pickupCompletedAt}</p>
+                    )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {feriaPreorder?.pickupQrToken && isBuyer && order.status === 'confirmed' && (
+              <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                  Feria Pickup QR
+                </p>
+                <div className="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <OrderPickupQrCode token={feriaPreorder.pickupQrToken} />
+                  <div className="text-sm text-emerald-900 sm:max-w-[220px]">
+                    <p className="font-semibold">Show this QR to the vendor at pickup.</p>
+                    {pickupCode && <p className="mt-2 text-xs font-black uppercase tracking-widest text-emerald-700">Code: {pickupCode}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {feriaPreorder?.pickupQrToken && isSeller && order.status === 'confirmed' && !feriaPreorder.pickupCompletedAt && (
+              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Feria Pickup Verification
+                </p>
+                <p className="mt-2 text-sm text-slate-700">
+                  Scan the buyer QR or paste the token to complete the feria handoff.
+                </p>
+                {pickupCode && <p className="mt-2 text-xs font-black uppercase tracking-widest text-slate-500">Fallback code: {pickupCode}</p>}
+                <div className="mt-3">
+                  <FeriaPickupScanner
+                    isSubmitting={pickupVerificationOrderId === order.id}
+                    onTokenDetected={(token) => {
+                      void submitPickupVerification(order, token);
+                    }}
+                  />
+                </div>
               </div>
             )}
             {order.type === 'delivery' && order.deliveryAddress && (
