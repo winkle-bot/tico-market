@@ -5,7 +5,6 @@ Items are removed as they are completed and committed.
 
 ## Fixes
 
-- [ ] Fix automated test configuration and stale schema expectations so unit tests reflect the current API shape.
 - [ ] Move sensitive driver verification assets out of public listing storage.
 
 ## Missing PRD Features To Start After Fixes
