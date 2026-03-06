@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import { toFrontendListing } from '@/lib/listing-utils';
 import type { Listing as DatabaseListing } from '@/lib/supabase-types';
+import type { WeeklySchedule } from '@/types';
 
 type FeriaRow = {
   id: string;
@@ -43,6 +44,7 @@ type FeriaVendorRow = {
   display_name: string | null;
   description: string | null;
   products_summary: string | null;
+  weekly_availability: WeeklySchedule | null;
   profiles: VendorProfileRow | null;
 };
 
@@ -78,7 +80,7 @@ async function getApprovedVendors(
   };
 
   return vendorsTable
-    .select('id, vendor_id, display_name, description, products_summary, profiles:vendor_id(name, rating, verified, bio, location, avg_response_minutes, total_transactions, accepts_delivery)')
+    .select('id, vendor_id, display_name, description, products_summary, weekly_availability, profiles:vendor_id(name, rating, verified, bio, location, avg_response_minutes, total_transactions, accepts_delivery)')
     .eq('feria_id', feriaId)
     .eq('status', 'approved');
 }
@@ -203,6 +205,7 @@ export async function GET(
         display_name: vendor.display_name,
         description: vendor.description,
         products_summary: vendor.products_summary,
+        weekly_availability: vendor.weekly_availability || {},
         active_listings_count: (listingsByVendor.get(vendor.vendor_id) || []).length,
         featured_listings: featuredListings,
         profiles: vendor.profiles

@@ -138,6 +138,7 @@ create table if not exists public.messages (
 
 alter table public.messages add column if not exists attachments jsonb default '[]'::jsonb;
 alter table public.messages add column if not exists client_mutation_id text;
+alter table public.feria_vendors add column if not exists weekly_availability jsonb default '{}'::jsonb;
 
 -- Indexes for messages
 create index if not exists idx_messages_listing_id on public.messages(listing_id);

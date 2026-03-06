@@ -16,9 +16,21 @@ jest.mock('@/lib/supabase-server', () => ({
 
 import { GET as getFeriaDetail } from '@/app/api/ferias/[id]/route';
 import { POST as postFeriaFollow } from '@/app/api/ferias/[id]/follow/route';
+import { PATCH as patchVendorAvailability } from '@/app/api/ferias/[id]/vendors/me/route';
 
 function buildRequest(url: string, method = 'GET'): Request {
   return { url, method } as unknown as Request;
+}
+
+function buildJsonRequest(url: string, method: string, body: unknown): Request {
+  return {
+    url,
+    method,
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+    },
+    json: async () => body,
+  } as unknown as Request;
 }
 
 function buildMockSupabase(config: {
@@ -26,6 +38,7 @@ function buildMockSupabase(config: {
   feria?: Record<string, unknown> | null;
   vendors?: Record<string, unknown>[];
   listings?: Record<string, unknown>[];
+  ownVendorEntry?: Record<string, unknown> | null;
   followerCount?: number;
   isFollowing?: boolean;
 }) {
@@ -43,7 +56,20 @@ function buildMockSupabase(config: {
   };
 
   const feriaVendorsTable = {
-    select: jest.fn(() => {
+    select: jest.fn((columns?: string) => {
+      if (columns?.includes('feria_id') && columns?.includes('weekly_availability')) {
+        return {
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({
+                data: config.ownVendorEntry ?? null,
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
+
       let eqCalls = 0;
       const chain = {
         eq: jest.fn(() => {
@@ -59,6 +85,21 @@ function buildMockSupabase(config: {
       };
       return chain;
     }),
+    update: jest.fn((payload: Record<string, unknown>) => ({
+      eq: jest.fn(() => ({
+        select: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue({
+            data: config.ownVendorEntry
+              ? {
+                  ...config.ownVendorEntry,
+                  weekly_availability: payload.weekly_availability,
+                }
+              : null,
+            error: null,
+          }),
+        })),
+      })),
+    })),
   };
 
   const listingsTable = {
@@ -265,5 +306,65 @@ describe('ferias api', () => {
     expect(body.vendors[0].featured_listings).toHaveLength(1);
     expect(body.vendors[0].featured_listings[0].title).toBe('Fresh Kale');
     expect(body.vendors[0].profiles.avg_response_minutes).toBe(15);
+  });
+
+  test('PATCH /api/ferias/[id]/vendors/me updates weekly availability for the signed-in vendor', async () => {
+    mockCreateSupabaseServerClient.mockResolvedValue(
+      buildMockSupabase({
+        userId: '33333333-3333-3333-3333-333333333333',
+        feria: {
+          id: '22222222-2222-2222-2222-222222222222',
+          slug: 'uvita',
+          name: 'Feria Uvita',
+        },
+        ownVendorEntry: {
+          id: 'vendor-link-1',
+          feria_id: '22222222-2222-2222-2222-222222222222',
+          vendor_id: '33333333-3333-3333-3333-333333333333',
+          status: 'approved',
+          weekly_availability: {},
+        },
+      })
+    );
+
+    const response = await patchVendorAvailability(
+      buildJsonRequest('http://localhost/api/ferias/uvita/vendors/me', 'PATCH', {
+        weeklyAvailability: {
+          saturday: [{ start: '07:00', end: '12:00' }],
+        },
+      }),
+      { params: Promise.resolve({ id: 'uvita' }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.weeklyAvailability.saturday).toEqual([{ start: '07:00', end: '12:00' }]);
+  });
+
+  test('PATCH /api/ferias/[id]/vendors/me rejects non-vendors', async () => {
+    mockCreateSupabaseServerClient.mockResolvedValue(
+      buildMockSupabase({
+        userId: '44444444-4444-4444-4444-444444444444',
+        feria: {
+          id: '22222222-2222-2222-2222-222222222222',
+          slug: 'uvita',
+          name: 'Feria Uvita',
+        },
+        ownVendorEntry: null,
+      })
+    );
+
+    const response = await patchVendorAvailability(
+      buildJsonRequest('http://localhost/api/ferias/uvita/vendors/me', 'PATCH', {
+        weeklyAvailability: {
+          saturday: [{ start: '07:00', end: '12:00' }],
+        },
+      }),
+      { params: Promise.resolve({ id: 'uvita' }) }
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.code).toBe('FORBIDDEN');
   });
 });

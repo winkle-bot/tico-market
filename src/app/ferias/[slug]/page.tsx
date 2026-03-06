@@ -11,6 +11,8 @@ import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 import { formatResponseTime } from '@/lib/format';
+import { formatWeeklySchedule, parseWeeklyScheduleInput, serializeWeeklyScheduleDay } from '@/lib/weekly-schedule';
+import type { WeeklySchedule } from '@/types';
 
 interface FeriaVendorListing {
   id: number;
@@ -36,6 +38,7 @@ interface FeriaVendor {
   products_summary: string | null;
   active_listings_count: number;
   featured_listings: FeriaVendorListing[];
+  weekly_availability: WeeklySchedule;
   profiles?: {
     name: string | null;
     rating: number | null;
@@ -82,6 +85,9 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<'not_found' | 'error' | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
+  const [editingVendorId, setEditingVendorId] = useState<string | null>(null);
+  const [availabilityDrafts, setAvailabilityDrafts] = useState<Record<string, Partial<Record<keyof WeeklySchedule, string>>>>({});
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
 
   useEffect(() => {
     fetch(`/api/ferias/${slug}`)
@@ -104,6 +110,67 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
       })
       .finally(() => setIsLoading(false));
   }, [slug, user?.id]);
+
+  const openAvailabilityEditor = (vendor: FeriaVendor) => {
+    setEditingVendorId(vendor.id);
+    setAvailabilityDrafts((current) => ({
+      ...current,
+      [vendor.id]: {
+        monday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'monday'),
+        tuesday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'tuesday'),
+        wednesday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'wednesday'),
+        thursday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'thursday'),
+        friday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'friday'),
+        saturday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'saturday'),
+        sunday: serializeWeeklyScheduleDay(vendor.weekly_availability, 'sunday'),
+      },
+    }));
+  };
+
+  const saveAvailability = async (vendor: FeriaVendor) => {
+    const draft = availabilityDrafts[vendor.id] || {};
+
+    let weeklyAvailability: WeeklySchedule;
+    try {
+      weeklyAvailability = parseWeeklyScheduleInput(draft);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid weekly availability');
+      return;
+    }
+
+    setIsSavingAvailability(true);
+    try {
+      const response = await fetch(`/api/ferias/${feria?.slug || slug}/vendors/me`, {
+        method: 'PATCH',
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ weeklyAvailability }),
+      });
+
+      const payload = await response.json().catch(() => ({} as { error?: string; weeklyAvailability?: WeeklySchedule }));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not publish weekly availability');
+      }
+
+      setFeria((current) => (
+        current
+          ? {
+              ...current,
+              vendors: current.vendors.map((entry) => (
+                entry.id === vendor.id
+                  ? { ...entry, weekly_availability: payload.weeklyAvailability || weeklyAvailability }
+                  : entry
+              )),
+            }
+          : current
+      ));
+      setEditingVendorId(null);
+      toast.success('Weekly availability published');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not publish weekly availability');
+    } finally {
+      setIsSavingAvailability(false);
+    }
+  };
 
   const handleFollow = async () => {
     if (!user) {
@@ -334,6 +401,24 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
                         key={vendor.id}
                         className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all"
                       >
+                        {user?.id === vendor.vendor_id && (
+                          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-green-200 bg-green-50 px-4 py-3">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-green-700">Vendor Tools</p>
+                              <p className="mt-1 text-sm font-medium text-green-900">
+                                Publish the times you plan to attend this feria each week.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openAvailabilityEditor(vendor)}
+                              className="rounded-full bg-green-600 px-4 py-2 text-xs font-black uppercase tracking-wider text-white hover:bg-green-700 transition-colors"
+                            >
+                              {editingVendorId === vendor.id ? 'Editing' : 'Publish Availability'}
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex items-start gap-4">
                             <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center text-green-700 font-bold text-xl shrink-0">
@@ -400,6 +485,73 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
                             {vendor.description}
                           </p>
                         )}
+
+                        <div className="mt-4">
+                          <h5 className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2">
+                            Weekly Availability
+                          </h5>
+                          {editingVendorId === vendor.id ? (
+                            <div className="rounded-2xl border border-green-100 bg-green-50 p-4 space-y-3">
+                              {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const).map((day) => (
+                                <label key={day} className="grid gap-1 sm:grid-cols-[90px_1fr] sm:items-center">
+                                  <span className="text-xs font-black uppercase tracking-wider text-green-700">
+                                    {day.slice(0, 3)}
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={availabilityDrafts[vendor.id]?.[day] || ''}
+                                    onChange={(event) =>
+                                      setAvailabilityDrafts((current) => ({
+                                        ...current,
+                                        [vendor.id]: {
+                                          ...current[vendor.id],
+                                          [day]: event.target.value,
+                                        },
+                                      }))
+                                    }
+                                    placeholder="07:00-12:00, 14:00-16:00"
+                                    className="w-full rounded-xl border border-green-100 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-green-400"
+                                  />
+                                </label>
+                              ))}
+                              <p className="text-xs text-green-700">
+                                Use 24-hour time and comma-separated ranges. Leave a day blank if you will not attend.
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => void saveAvailability(vendor)}
+                                  disabled={isSavingAvailability}
+                                  className="rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700 disabled:bg-green-300 transition-colors"
+                                >
+                                  {isSavingAvailability ? 'Saving...' : 'Save Availability'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingVendorId(null)}
+                                  className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : formatWeeklySchedule(vendor.weekly_availability).length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {formatWeeklySchedule(vendor.weekly_availability).map((entry) => (
+                                <span
+                                  key={`${vendor.id}-${entry}`}
+                                  className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700 border border-green-100"
+                                >
+                                  {entry}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-4 text-sm text-gray-500">
+                              Weekly feria hours have not been published yet.
+                            </div>
+                          )}
+                        </div>
 
                         <div className="mt-5 flex items-center justify-between gap-3">
                           <h5 className="text-[11px] font-black uppercase tracking-widest text-gray-400">
