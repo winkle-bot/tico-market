@@ -6,7 +6,9 @@ import { X, Send, MessageCircle, ImagePlus, MapPin, Loader2 } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
+import { useToast } from '@/context/ToastContext';
 import { TranslatableText } from '@/components/TranslatableText';
+import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 import type { MessageAttachment } from '@/types';
 
 interface ChatModalProps {
@@ -35,6 +37,7 @@ interface Message {
   attachments?: MessageAttachment[];
   createdAt: string;
   read?: boolean;
+  pending?: boolean;
 }
 
 interface Conversation {
@@ -45,6 +48,7 @@ interface Conversation {
 
 export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired, chatWithName, chatWithId }: ChatModalProps) {
   const { t } = useI18n();
+  const toast = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [pendingImage, setPendingImage] = useState<File | null>(null);
@@ -187,6 +191,58 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
       sellerId = listing.sellerId;
       sellerName = listing.owner;
     }
+
+    const locationAttachments = pendingLocation
+      ? [
+          {
+            type: 'location' as const,
+            lat: pendingLocation.lat,
+            lng: pendingLocation.lng,
+            label: pendingLocation.label,
+          },
+        ]
+      : [];
+    const queuedPayload = {
+      listingId: listing.id,
+      buyerId,
+      buyerName,
+      sellerId,
+      sellerName,
+      senderId: currentUser.id,
+      text: newMessage.trim(),
+      attachments: locationAttachments,
+    };
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (pendingImage) {
+        toast.error('Image attachments need a connection to send.');
+        return;
+      }
+
+      await enqueueJsonMutation({
+        url: '/api/messages',
+        method: 'POST',
+        body: queuedPayload,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: -Date.now(),
+          senderId: currentUser.id,
+          text: newMessage.trim(),
+          attachments: locationAttachments,
+          createdAt: new Date().toISOString(),
+          read: false,
+          pending: true,
+        },
+      ]);
+      setNewMessage('');
+      setPendingLocation(null);
+      toast.success('Message queued for sync');
+      return;
+    }
     
     setIsSending(true);
     try {
@@ -219,15 +275,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
           : {
               method: 'POST',
               headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
-              body: JSON.stringify({
-                listingId: listing.id,
-                buyerId,
-                buyerName,
-                sellerId,
-                sellerName,
-                senderId: currentUser.id,
-                text: newMessage.trim(),
-              }),
+              body: JSON.stringify(queuedPayload),
             };
 
       const res = await fetch('/api/messages', requestInit);
@@ -240,9 +288,37 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         setPendingLocation(null);
         // Refresh immediately
         void loadMessages();
+      } else {
+        const payload = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(payload.error || 'Could not send message');
       }
     } catch (err) {
-      console.error('Error sending message:', err);
+      if (isOfflineMutationError(err) && !pendingImage) {
+        await enqueueJsonMutation({
+          url: '/api/messages',
+          method: 'POST',
+          body: queuedPayload,
+          headers: { 'Content-Type': 'application/json' },
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: -Date.now(),
+            senderId: currentUser.id,
+            text: newMessage.trim(),
+            attachments: locationAttachments,
+            createdAt: new Date().toISOString(),
+            read: false,
+            pending: true,
+          },
+        ]);
+        setNewMessage('');
+        setPendingLocation(null);
+        toast.success('Message queued for sync');
+      } else {
+        console.error('Error sending message:', err);
+        toast.error(err instanceof Error ? err.message : 'Could not send message');
+      }
     } finally {
       setIsSending(false);
     }
@@ -405,6 +481,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })}
+                        {msg.pending ? ' • queued' : ''}
                       </p>
                     </div>
                   </div>

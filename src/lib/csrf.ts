@@ -13,9 +13,13 @@ function readCookieValue(name: string): string | null {
   return decodeURIComponent(cookie.split('=').slice(1).join('='));
 }
 
+export function getCsrfToken(): string | null {
+  return readCookieValue(CSRF_COOKIE_NAME);
+}
+
 export function withCsrfHeaders(headers: HeadersInit = {}): Headers {
   const merged = new Headers(headers);
-  const token = readCookieValue(CSRF_COOKIE_NAME);
+  const token = getCsrfToken();
   if (token) {
     merged.set(CSRF_HEADER_NAME, token);
   }

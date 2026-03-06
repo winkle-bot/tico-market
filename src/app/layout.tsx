@@ -6,6 +6,7 @@ import { ListingsProvider } from "@/context/ListingsContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { I18nProvider } from "@/context/I18nContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OfflineQueueManager } from "@/components/OfflineQueueManager";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -67,6 +68,7 @@ export default function RootLayout({
               <AuthProvider>
                 <ListingsProvider>
                   {children}
+                  <OfflineQueueManager />
                 </ListingsProvider>
               </AuthProvider>
             </I18nProvider>

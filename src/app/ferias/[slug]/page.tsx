@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
 
 interface FeriaVendor {
   id: string;
@@ -104,6 +105,15 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
     ));
 
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueueJsonMutation({
+          url: `/api/ferias/${feria.slug}/follow`,
+          method: nextFollowing ? 'POST' : 'DELETE',
+        });
+        toast.success(nextFollowing ? 'Feria follow queued' : 'Feria unfollow queued');
+        return;
+      }
+
       const response = await fetch(`/api/ferias/${feria.slug}/follow`, {
         method: nextFollowing ? 'POST' : 'DELETE',
         headers: withCsrfHeaders(),
@@ -127,6 +137,15 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
 
       toast.success(nextFollowing ? 'Feria followed' : 'Feria unfollowed');
     } catch (error) {
+      if (isOfflineMutationError(error)) {
+        await enqueueJsonMutation({
+          url: `/api/ferias/${feria.slug}/follow`,
+          method: nextFollowing ? 'POST' : 'DELETE',
+        });
+        toast.success(nextFollowing ? 'Feria follow queued' : 'Feria unfollow queued');
+        return;
+      }
+
       setFeria((current) => (
         current
           ? {
