@@ -5,6 +5,8 @@ import type { Listing } from '@/lib/supabase-types';
 import type { Json } from '@/lib/database.types';
 import { toFrontendListing } from '@/lib/listing-utils';
 import { matchesSavedSearch } from '@/lib/saved-searches';
+import { formatPrice } from '@/lib/format';
+import { parseDisplayPriceToMinorUnits, type PaymentCurrency } from '@/lib/payments';
 import { sanitizeText } from '@/lib/security';
 import { sendPushToUser } from '@/lib/push';
 import { z } from 'zod';
@@ -30,6 +32,20 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 60;
 const DEFAULT_RADIUS_KM = 20;
+
+function parseListingPrice(
+  rawPrice: string,
+  rawCurrency: string
+): { currency: PaymentCurrency; priceCents: number; legacyPrice: string } {
+  const currency: PaymentCurrency = rawCurrency === 'USD' ? 'USD' : 'CRC';
+  const priceCents = parseDisplayPriceToMinorUnits(rawPrice, currency);
+
+  return {
+    currency,
+    priceCents,
+    legacyPrice: formatPrice(priceCents, currency),
+  };
+}
 
 async function notifySavedSearchSubscribers(
   listing: Listing
@@ -338,14 +354,19 @@ export async function POST(request: Request) {
     const pickupConfigStr = formData.get('pickupConfig') as string;
     const fulfillmentStr = formData.get('fulfillmentOptions') as string;
 
-    // Parse numeric price from the display price string
-    const priceNumeric = Number.parseInt(rawPrice.replace(/[^0-9]/g, ''), 10) || 0;
-    const priceCents = rawCurrency === 'USD' ? priceNumeric * 100 : priceNumeric;
+    let normalizedPrice: ReturnType<typeof parseListingPrice>;
+    try {
+      normalizedPrice = parseListingPrice(rawPrice, rawCurrency);
+    } catch (error) {
+      return ApiResponse.badRequest(
+        error instanceof Error ? error.message : 'Invalid price amount'
+      );
+    }
 
     const parsed = createListingSchema.safeParse({
       title: sanitizeText(rawTitle, 120),
-      priceCents,
-      currency: rawCurrency,
+      priceCents: normalizedPrice.priceCents,
+      currency: normalizedPrice.currency,
       category: sanitizeText(rawCategory, 60),
       description: sanitizeText(rawDescription, 3000),
       condition: rawCondition,
@@ -413,6 +434,7 @@ export async function POST(request: Request) {
         seller_id: user.id,
         title,
         description,
+        price: normalizedPrice.legacyPrice,
         price_cents: validatedPriceCents,
         currency,
         category,

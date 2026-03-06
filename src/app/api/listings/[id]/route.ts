@@ -1,7 +1,9 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing } from '@/lib/supabase-types';
+import { formatPrice } from '@/lib/format';
 import { toFrontendListing } from '@/lib/listing-utils';
+import { parseDisplayPriceToMinorUnits, type PaymentCurrency } from '@/lib/payments';
 import { sanitizeText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
@@ -17,6 +19,10 @@ const updateListingSchema = z.object({
   imageUrl: z.string().url().max(2048).nullable().optional(),
   location: z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]).optional(),
 });
+
+function normalizeListingCurrency(rawCurrency: unknown): PaymentCurrency {
+  return rawCurrency === 'USD' ? 'USD' : 'CRC';
+}
 
 // GET single listing
 export async function GET(
@@ -128,11 +134,24 @@ export async function PUT(
       }
 
       const rawPriceForm = formData.get('price');
-      const priceNumericForm = rawPriceForm ? Number.parseInt(String(rawPriceForm).replace(/[^0-9]/g, ''), 10) : undefined;
+      const rawCurrencyForm = formData.get('currency');
+      let parsedPriceCents: number | undefined;
+
+      if (typeof rawPriceForm === 'string' && rawPriceForm.trim().length > 0) {
+        try {
+          parsedPriceCents = parseDisplayPriceToMinorUnits(
+            rawPriceForm,
+            normalizeListingCurrency(rawCurrencyForm)
+          );
+        } catch {
+          return ApiResponse.badRequest('Invalid price amount');
+        }
+      }
+
       updates = {
         title: typeof formData.get('title') === 'string' ? sanitizeText(String(formData.get('title')), 120) : undefined,
         description: typeof formData.get('description') === 'string' ? sanitizeText(String(formData.get('description')), 3000) : undefined,
-        priceCents: Number.isFinite(priceNumericForm) ? priceNumericForm : undefined,
+        priceCents: parsedPriceCents,
         category: typeof formData.get('category') === 'string' ? sanitizeText(String(formData.get('category')), 60) : undefined,
         pickupConfig,
         imageUrl,
@@ -160,7 +179,7 @@ export async function PUT(
     // Verify ownership
     const { data: existing } = await supabase
       .from('listings')
-      .select('seller_id')
+      .select('seller_id, currency')
       .eq('id', listingId)
       .single();
 
@@ -168,7 +187,7 @@ export async function PUT(
       return ApiResponse.error('Listing not found', 404);
     }
 
-    const typedExisting = existing as { seller_id: string };
+    const typedExisting = existing as { seller_id: string; currency: PaymentCurrency | null };
     if (typedExisting.seller_id !== user.id) {
       return ApiResponse.unauthorized('Not authorized to update this listing');
     }
@@ -177,7 +196,11 @@ export async function PUT(
     const updateData: any = {};
     if (safeUpdates.title !== undefined) updateData.title = safeUpdates.title;
     if (safeUpdates.description !== undefined) updateData.description = safeUpdates.description;
-    if (safeUpdates.priceCents !== undefined) updateData.price_cents = safeUpdates.priceCents;
+    if (safeUpdates.priceCents !== undefined) {
+      const currency = typedExisting.currency === 'USD' ? 'USD' : 'CRC';
+      updateData.price_cents = safeUpdates.priceCents;
+      updateData.price = formatPrice(safeUpdates.priceCents, currency);
+    }
     if (safeUpdates.category !== undefined) updateData.category = safeUpdates.category;
     if (safeUpdates.pickupConfig !== undefined) updateData.pickup_config = safeUpdates.pickupConfig;
     if (safeUpdates.imageUrl !== undefined && safeUpdates.imageUrl !== null) updateData.image_url = safeUpdates.imageUrl;

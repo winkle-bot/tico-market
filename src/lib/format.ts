@@ -20,8 +20,8 @@ export function formatPrice(
     return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: dollars % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
   }
 
-  // CRC: no decimal places, period as thousands separator
-  return `₡${priceCents.toLocaleString('es-CR', { maximumFractionDigits: 0 }).replace(/,/g, '.')}`;
+  // CRC: force period separators to avoid locale-dependent spaces/commas across environments.
+  return `₡${Math.max(0, Math.round(priceCents)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 }
 
 /**

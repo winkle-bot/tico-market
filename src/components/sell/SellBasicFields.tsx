@@ -71,9 +71,9 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
           <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
             {t('sell.price')}
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
             <select
-              className="tm-input w-20 appearance-none text-center font-bold"
+              className="tm-input !w-full shrink-0 appearance-none px-3 text-center font-bold"
               value={form.currency}
               onChange={(e) => setForm({ ...form, currency: e.target.value as ListingCurrency })}
             >
@@ -83,7 +83,7 @@ export function SellBasicFields({ form, errors, setForm }: SellBasicFieldsProps)
             <input
               type="text"
               placeholder={form.currency === 'CRC' ? '15.000' : '50'}
-              className="tm-input flex-1"
+              className="tm-input min-w-0"
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
