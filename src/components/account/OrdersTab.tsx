@@ -8,6 +8,7 @@ import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, X
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
+import { OrderDriverLiveMap } from '@/components/account/OrderDriverLiveMap';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
 import type { DeliveryMeta, DeliveryTrackingPhase, Order, Review } from '@/types';
 
@@ -57,6 +58,13 @@ function formatUpdateTime(dateLocale: string, value: string | undefined): string
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function getLatLngPair(value: unknown): [number, number] | null {
+  if (!Array.isArray(value) || value.length !== 2) return null;
+  const [lat, lng] = value;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return [Number(lat), Number(lng)];
 }
 
 export function OrdersTab({ 
@@ -263,6 +271,7 @@ export function OrdersTab({
         const lastUpdateTime = formatUpdateTime(dateLocale, latestUpdate?.createdAt);
         const driverEtaDraft = deliveryEtaByOrder[order.id] ?? (driverEta !== undefined ? String(driverEta) : '');
         const driverLocationDraft = deliveryLocationByOrder[order.id] ?? (deliveryMeta?.driverLocationLabel || '');
+        const pickupCoords = getLatLngPair(order.listingSnapshot?.location);
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -476,6 +485,18 @@ export function OrdersTab({
                 </div>
               </div>
             )}
+
+            {order.type === 'delivery' &&
+              order.status !== 'completed' &&
+              order.status !== 'cancelled' &&
+              order.driverId && (
+                <OrderDriverLiveMap
+                  driverUserId={order.driverId}
+                  driverName={order.driverName}
+                  dateLocale={dateLocale}
+                  pickupCoords={pickupCoords}
+                />
+              )}
 
             {order.type === 'delivery' && recentUpdates.length > 0 && (
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 space-y-2">

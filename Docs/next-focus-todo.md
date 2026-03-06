@@ -9,7 +9,6 @@ Working rule: completed items get removed from this file when they land and are 
 ## 2. Delivery Trust And Coordination
 
 - Implement three-way buyer/seller/driver delivery chat
-- Add real-time driver tracking in active orders
 
 ## 3. Feria Commerce Loop
 
