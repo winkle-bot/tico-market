@@ -12,6 +12,43 @@ import type { User, PickupLocation } from '@/types';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
+const E2E_AUTH_STORAGE_KEY = 'tico:e2e-user';
+
+function readE2EAuthOverride(): User | null {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(E2E_AUTH_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<User> | null;
+    if (!parsed?.id || !parsed?.email || !parsed?.name) {
+      return null;
+    }
+
+    return {
+      id: parsed.id,
+      email: parsed.email,
+      name: parsed.name,
+      joined: parsed.joined || new Date().toISOString(),
+      verified: parsed.verified ?? true,
+      role: parsed.role || 'user',
+      favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
+      bio: parsed.bio,
+      location: parsed.location,
+      rating: parsed.rating,
+      pickupLocations: parsed.pickupLocations,
+      acceptsDelivery: parsed.acceptsDelivery,
+    };
+  } catch {
+    return null;
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
@@ -34,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [e2eOverrideUser, setE2eOverrideUser] = useState<User | null>(null);
   type ProfileRow = Database['public']['Tables']['profiles']['Row'];
   type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
   type FavoriteRow = Database['public']['Tables']['favorites']['Row'];
@@ -120,6 +158,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const loadInitialSession = async () => {
       setIsLoading(true);
+      const overrideUser = readE2EAuthOverride();
+      if (overrideUser) {
+        setE2eOverrideUser(overrideUser);
+        setSupabaseUser(null);
+        setUser(overrideUser);
+        setUnreadCount(0);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -153,6 +201,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadInitialSession();
+
+    if (readE2EAuthOverride()) {
+      return () => {
+        isMounted = false;
+      };
+    }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -194,6 +248,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Poll for unread messages
   useEffect(() => {
+    if (e2eOverrideUser) {
+      setUnreadCount(0);
+      return;
+    }
+
     if (!user) {
       setUnreadCount(0);
       return;
@@ -242,7 +301,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [user]);
+  }, [e2eOverrideUser, user]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
     try {
@@ -330,6 +389,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (e2eOverrideUser) {
+      window.localStorage.removeItem(E2E_AUTH_STORAGE_KEY);
+      setE2eOverrideUser(null);
+      setUser(null);
+      setSupabaseUser(null);
+      return;
+    }
+
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -337,9 +404,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUser(null);
     setSupabaseUser(null);
-  }, []);
+  }, [e2eOverrideUser]);
 
   const refreshUser = useCallback(async () => {
+    if (e2eOverrideUser) {
+      setUser(e2eOverrideUser);
+      return;
+    }
+
     if (!supabaseUser?.id) {
       setUser(null);
       return;
@@ -347,9 +419,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const profile = await fetchProfile(supabaseUser.id);
     setUser((prev) => profile ?? toFallbackUser(supabaseUser, prev));
-  }, [supabaseUser, fetchProfile, toFallbackUser]);
+  }, [e2eOverrideUser, supabaseUser, fetchProfile, toFallbackUser]);
 
   const updateUser = useCallback(async (updates: Partial<User>) => {
+    if (e2eOverrideUser) {
+      const nextUser = { ...e2eOverrideUser, ...updates };
+      setE2eOverrideUser(nextUser);
+      setUser(nextUser);
+      window.localStorage.setItem(E2E_AUTH_STORAGE_KEY, JSON.stringify(nextUser));
+      return;
+    }
+
     if (!user?.id) return;
 
     // Transform User type to database format
@@ -379,10 +459,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!prev) return null;
       return { ...prev, ...updates };
     });
-  }, [user]);
+  }, [e2eOverrideUser, user]);
 
   const toggleFavorite = useCallback(
     async (listingId: number): Promise<boolean> => {
+      if (e2eOverrideUser) {
+        const isFav = e2eOverrideUser.favorites.includes(listingId);
+        const favorites = isFav
+          ? e2eOverrideUser.favorites.filter((id) => id !== listingId)
+          : [...e2eOverrideUser.favorites, listingId];
+        const nextUser = { ...e2eOverrideUser, favorites };
+        setE2eOverrideUser(nextUser);
+        setUser(nextUser);
+        window.localStorage.setItem(E2E_AUTH_STORAGE_KEY, JSON.stringify(nextUser));
+        return true;
+      }
+
       if (!user) return false;
 
       const isFav = user.favorites.includes(listingId);
@@ -428,7 +520,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     },
-    [user]
+    [e2eOverrideUser, user]
   );
 
   const isFavorite = useCallback(
