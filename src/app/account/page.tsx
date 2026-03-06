@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Package, Heart, MessageCircle, LogOut, Edit2, Trash2, Plus, ChevronLeft, ShoppingBag, Truck, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useListings } from '@/context/ListingsContext';
 import { categoryEmojis } from '@/lib/data';
@@ -58,7 +58,6 @@ export default function AccountPage() {
   const { user, logout, isLoading: authLoading, toggleFavorite } = useAuth();
   const { listings, updateListing, deleteListing } = useListings();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<AccountTab>(DEFAULT_ACCOUNT_TAB);
   const [deliverySection, setDeliverySection] = useState<'requests' | 'bids' | 'tasks'>('requests');
   
@@ -209,8 +208,18 @@ export default function AccountPage() {
   }, [user, authLoading, router, loadData]);
 
   useEffect(() => {
-    setActiveTab(parseAccountTab(searchParams.get('tab')));
-  }, [searchParams]);
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '') || null;
+      setActiveTab(parseAccountTab(hash));
+    };
+
+    syncTabFromHash();
+    window.addEventListener('hashchange', syncTabFromHash);
+
+    return () => {
+      window.removeEventListener('hashchange', syncTabFromHash);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -353,16 +362,8 @@ export default function AccountPage() {
 
   const handleTabChange = (nextTab: AccountTab) => {
     setActiveTab(nextTab);
-
-    const params = new URLSearchParams(searchParams.toString());
-    if (nextTab === DEFAULT_ACCOUNT_TAB) {
-      params.delete('tab');
-    } else {
-      params.set('tab', nextTab);
-    }
-
-    const nextUrl = params.toString() ? `/account?${params.toString()}` : '/account';
-    router.replace(nextUrl, { scroll: false });
+    const nextHash = nextTab === DEFAULT_ACCOUNT_TAB ? '' : `#${nextTab}`;
+    window.history.replaceState(null, '', `/account${nextHash}`);
   };
 
 

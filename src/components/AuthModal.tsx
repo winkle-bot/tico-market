@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MODAL_BACKDROP_VARIANTS } from '@/config/constants';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
+import { useOverlayDialog } from '@/lib/use-overlay-dialog';
 import type { AuthFormState } from '@/types';
 
 interface AuthModalProps {
@@ -32,6 +33,19 @@ export function AuthModal({
   const [emailSent, setEmailSent] = useState(false);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
   const AUTH_TIMEOUT_MS = 15000;
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const confirmationButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useOverlayDialog<HTMLDivElement>({
+    isOpen,
+    onClose,
+    initialFocusRef:
+      emailSent || passwordResetSent
+        ? confirmationButtonRef
+        : mode === 'signup'
+          ? nameInputRef
+          : emailInputRef,
+  });
 
   // Reset state when modal opens
   useEffect(() => {
@@ -140,6 +154,8 @@ export function AuthModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            ref={dialogRef}
+            tabIndex={-1}
             className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#dce5f7]"
           >
             <h2 className="text-2xl font-black text-[#18284a] uppercase mb-6">
@@ -163,6 +179,7 @@ export function AuthModal({
                     : t('auth.clickConfirmLink', 'Click the link in the email to verify your account and log in.')}
                 </p>
                 <button
+                  ref={confirmationButtonRef}
                   onClick={() => {
                     setEmailSent(false);
                     setPasswordResetSent(false);
@@ -180,6 +197,7 @@ export function AuthModal({
                 <div key="name-field">
                   <label htmlFor="auth-name" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">{t('auth.name', 'Full Name')}</label>
                   <input
+                    ref={nameInputRef}
                     id="auth-name"
                     type="text"
                     placeholder={t('auth.name', 'Full Name')}
@@ -199,6 +217,7 @@ export function AuthModal({
               <div>
                 <label htmlFor="auth-email" className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-1.5">{t('auth.emailAddress', 'Email Address')}</label>
                 <input
+                  ref={emailInputRef}
                   id="auth-email"
                   type="email"
                   placeholder={t('auth.emailAddress', 'Email Address')}

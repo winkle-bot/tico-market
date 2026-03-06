@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, ChevronLeft, X } from 'lucide-react';
 import {
@@ -18,6 +18,7 @@ import {
   type PaymentCurrency,
 } from '@/lib/payments';
 import { useI18n } from '@/context/I18nContext';
+import { useOverlayDialog } from '@/lib/use-overlay-dialog';
 import type {
   CheckoutPaymentMethod,
   Listing,
@@ -71,6 +72,12 @@ export function CheckoutModal({
   const [senderPhone, setSenderPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useOverlayDialog<HTMLDivElement>({
+    isOpen,
+    onClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -439,6 +446,8 @@ export function CheckoutModal({
           />
           <motion.div
             {...MODAL_CONTENT_VARIANTS}
+            ref={dialogRef}
+            tabIndex={-1}
             className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-[#dce5f7]"
           >
             <div className="p-5 sm:p-6 border-b border-[#dce5f7] flex justify-between items-center shrink-0">
@@ -460,6 +469,7 @@ export function CheckoutModal({
                 </h2>
               </div>
               <button
+                ref={closeButtonRef}
                 onClick={onClose}
                 className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label={t('common.close')}

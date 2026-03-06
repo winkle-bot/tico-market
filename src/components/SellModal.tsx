@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusCircle, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
 import { useListings } from '@/context/ListingsContext';
 import { useI18n } from '@/context/I18nContext';
+import { useOverlayDialog } from '@/lib/use-overlay-dialog';
 import { SellBasicFields } from './sell/SellBasicFields';
 import { SellFulfillmentSection } from './sell/SellFulfillmentSection';
 import { SellImageUpload } from './sell/SellImageUpload';
@@ -76,6 +77,7 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
     wazeLink: '',
   });
   const [showEventForm, setShowEventForm] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const validateForm = () => {
     const nextErrors: Record<string, string> = {};
@@ -109,6 +111,12 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
     setSubmitError(null);
     setErrors({});
   };
+
+  const dialogRef = useOverlayDialog<HTMLDivElement>({
+    isOpen,
+    onClose: handleClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -272,11 +280,14 @@ export function SellModal({ isOpen, onClose, onListingCreated, onOpenAuth }: Sel
           />
           <motion.div
             {...MODAL_CONTENT_VARIANTS}
+            ref={dialogRef}
+            tabIndex={-1}
             className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto border border-[#dce5f7]"
           >
             <div className="p-5 sm:p-6 border-b border-[#dce5f7] flex justify-between items-center sticky top-0 bg-white z-10">
               <h2 className="text-xl font-black text-[#18284a] uppercase tracking-tight">{t('sell.title')}</h2>
               <button
+                ref={closeButtonRef}
                 onClick={handleClose}
                 className="p-2.5 hover:bg-[#edf2ff] rounded-full transition-colors"
                 aria-label={t('common.close')}

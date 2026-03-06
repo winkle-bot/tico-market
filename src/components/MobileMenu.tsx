@@ -1,11 +1,13 @@
 'use client';
 
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { X, Search, User, LogOut } from 'lucide-react';
 import { categoryEmojis, categories } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { MODAL_BACKDROP_VARIANTS, SLIDE_IN_VARIANTS } from '@/config/constants';
+import { useOverlayDialog } from '@/lib/use-overlay-dialog';
 import type { Category } from '@/types';
 
 interface MobileMenuProps {
@@ -28,11 +30,17 @@ export function MobileMenu({
   onOpenAuth,
 }: MobileMenuProps) {
   const { user, logout } = useAuth();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const dialogRef = useOverlayDialog<HTMLDivElement>({
+    isOpen,
+    onClose,
+    initialFocusRef: searchInputRef,
+  });
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] md:hidden">
+        <div className="fixed inset-0 z-[100] md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <motion.div
             {...MODAL_BACKDROP_VARIANTS}
             onClick={onClose}
@@ -41,6 +49,8 @@ export function MobileMenu({
           <motion.div
             {...SLIDE_IN_VARIANTS}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            ref={dialogRef}
+            tabIndex={-1}
             className="absolute right-0 top-0 bottom-0 w-80 max-w-[88vw] bg-white shadow-2xl border-l border-[#dce5f7]"
           >
             <div className="p-4 border-b border-[#dce5f7] flex justify-between items-center">
@@ -59,6 +69,7 @@ export function MobileMenu({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f83ad] w-5 h-5" />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}

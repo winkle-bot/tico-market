@@ -9,6 +9,7 @@ import { useI18n } from '@/context/I18nContext';
 import { useToast } from '@/context/ToastContext';
 import { TranslatableText } from '@/components/TranslatableText';
 import { enqueueJsonMutation, isOfflineMutationError } from '@/lib/offline-queue';
+import { useOverlayDialog } from '@/lib/use-overlay-dialog';
 import type { MessageAttachment } from '@/types';
 
 interface ChatModalProps {
@@ -58,6 +59,13 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasLoadedMessagesRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
+  const authButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useOverlayDialog<HTMLDivElement>({
+    isOpen,
+    onClose,
+    initialFocusRef: currentUser ? messageInputRef : authButtonRef,
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -365,6 +373,8 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          ref={dialogRef}
+          tabIndex={-1}
           className="relative bg-white w-full max-w-lg h-[600px] max-h-[84vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-[#dce5f7]"
         >
           {/* Header */}
@@ -398,6 +408,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                 <h4 className="font-bold text-[#18284a] mb-2">{t('chat.signInToMessage', 'Sign in to message')}</h4>
                 <p className="text-sm text-[#6f83ad] mb-4">{t('chat.createAccountToContact', 'Create an account to contact sellers')}</p>
                 <button
+                  ref={authButtonRef}
                   onClick={() => { onClose(); onAuthRequired(); }}
                   className="tm-btn tm-btn-primary rounded-full px-6"
                 >
@@ -573,6 +584,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                   <MapPin className="w-5 h-5" />
                 </button>
                 <input
+                  ref={messageInputRef}
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
