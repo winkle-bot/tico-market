@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { DRIVER_DOCUMENTS_BUCKET } from '@/lib/driver-documents';
 
 export async function POST(request: Request) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     const fileBuffer = new Uint8Array(await licenseFile.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage
-      .from('listings')
+      .from(DRIVER_DOCUMENTS_BUCKET)
       .upload(storageKey, fileBuffer, {
         contentType: licenseFile.type,
         cacheControl: '3600',

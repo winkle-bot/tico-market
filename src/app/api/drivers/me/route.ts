@@ -2,6 +2,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
 import type { Database } from '@/lib/database.types';
+import { createSignedDriverDocumentUrl } from '@/lib/driver-documents';
 import { sanitizeOptionalText } from '@/lib/security';
 import { readJsonBody } from '@/lib/validation';
 import { z } from 'zod';
@@ -40,6 +41,10 @@ export async function GET() {
     }
 
     const typedData = data as DriverProfileRow;
+    const signedFaceImageUrl = await createSignedDriverDocumentUrl(
+      supabase,
+      typedData.face_image_url
+    );
     return ApiResponse.success({
       id: typedData.id,
       userId: typedData.user_id,
@@ -58,7 +63,7 @@ export async function GET() {
       totalDeliveries: typedData.total_deliveries ?? 0,
       rating: typedData.rating ?? 5,
       baseRate: typedData.base_rate,
-      faceImageUrl: typedData.face_image_url,
+      faceImageUrl: signedFaceImageUrl,
       createdAt: typedData.created_at,
       updatedAt: typedData.updated_at,
     });

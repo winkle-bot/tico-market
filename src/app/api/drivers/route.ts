@@ -77,7 +77,6 @@ function toDriverResponse(driver: DriverRow, viewerLat?: number, viewerLng?: num
     verificationStatus: driver.verification_status ?? 'none',
     totalDeliveries: driver.total_deliveries ?? 0,
     baseRate: driver.base_rate ?? undefined,
-    faceImageUrl: driver.face_image_url ?? undefined,
     distanceKm,
     createdAt: driver.created_at,
     updatedAt: driver.updated_at,

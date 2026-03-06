@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { DRIVER_DOCUMENTS_BUCKET } from '@/lib/driver-documents';
 import { sanitizeText } from '@/lib/security';
 import { z } from 'zod';
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
     const imagePath = `drivers/${user.id}/face-${Date.now()}.${imageExtension}`;
     const { error: uploadError } = await supabase.storage
-      .from('listings')
+      .from(DRIVER_DOCUMENTS_BUCKET)
       .upload(imagePath, imageBuffer, {
         contentType: mimeType,
         cacheControl: '3600',
@@ -77,10 +78,6 @@ export async function POST(request: Request) {
     if (uploadError) {
       return ApiResponse.error('Failed to upload face image: ' + uploadError.message, 500);
     }
-
-    const { data: { publicUrl: faceImageUrl } } = supabase.storage
-      .from('listings')
-      .getPublicUrl(imagePath);
 
     // Update profile name
     await (supabase as AnySupabase).from('profiles')
@@ -93,7 +90,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         vehicle_type: vehicleType,
-        face_image_url: faceImageUrl,
+        face_image_url: imagePath,
         is_verified: false,
         verification_status: 'none',
       })
@@ -109,7 +106,6 @@ export async function POST(request: Request) {
       driverProfile: {
         id: driverProfile.id,
         vehicleType: driverProfile.vehicle_type,
-        faceImageUrl: driverProfile.face_image_url,
         verificationStatus: driverProfile.verification_status,
         createdAt: driverProfile.created_at,
       },

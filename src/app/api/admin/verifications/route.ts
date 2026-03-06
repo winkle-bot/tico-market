@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { ApiResponse } from '@/lib/api-response';
+import { createSignedDriverDocumentUrl } from '@/lib/driver-documents';
+import { createSupabaseAdminClient } from '@/lib/supabase-admin';
 
 export async function GET() {
   try {
@@ -31,19 +33,21 @@ export async function GET() {
       return ApiResponse.error(error.message, 500);
     }
 
-    const transformed = (drivers || []).map((d: any) => ({
+    const admin = createSupabaseAdminClient();
+    const transformed = await Promise.all((drivers || []).map(async (d: any) => ({
       id: d.id,
       userId: d.user_id,
       name: d.profiles?.name || 'Unknown',
       email: d.profiles?.email || '',
       vehicleType: d.vehicle_type,
-      faceImageUrl: d.face_image_url,
+      faceImageUrl: await createSignedDriverDocumentUrl(admin, d.face_image_url),
       licenseImageKey: d.license_image_key,
+      licenseImageUrl: await createSignedDriverDocumentUrl(admin, d.license_image_key),
       verificationStatus: d.verification_status,
       isVerified: d.is_verified,
       createdAt: d.created_at,
       updatedAt: d.updated_at,
-    }));
+    })));
 
     return ApiResponse.success({ data: transformed });
   } catch (error) {
