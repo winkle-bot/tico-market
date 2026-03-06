@@ -61,6 +61,16 @@ export async function GET(
     }
 
     const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
+    const { data: driverProfile } = await (supabase
+      .from('driver_profiles') as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const driverProfileId = driverProfile?.id as string | undefined;
     const { data, error } = await (supabase
       .from('delivery_requests') as any)
       .select('*')
@@ -72,6 +82,16 @@ export async function GET(
         return ApiResponse.notFound('Delivery request not found');
       }
       return ApiResponse.error(error.message, 500);
+    }
+
+    const isRequester = data.requester_id === user.id;
+    const isAssignedDriver = data.assigned_driver_id === user.id;
+    const isTargetDriver =
+      Boolean(driverProfileId) &&
+      (data.target_driver_id === driverProfileId ||
+        (data.request_type === 'broadcast' && data.status === 'open'));
+    if (!isRequester && !isAssignedDriver && !isTargetDriver) {
+      return ApiResponse.forbidden('Not authorized to view this delivery request');
     }
 
     return ApiResponse.success(toRequestResponse(data as Record<string, unknown>));

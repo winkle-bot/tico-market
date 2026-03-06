@@ -31,6 +31,10 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const limit = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('limit') || '40', 10)));
 
+    if (!driverId && !deliveryRequestId) {
+      return ApiResponse.badRequest('driverId or deliveryRequestId is required');
+    }
+
     let query = supabase
       .from('delivery_bids')
       .select('*')
@@ -38,9 +42,29 @@ export async function GET(request: Request) {
       .limit(limit);
 
     if (driverId) {
+      if (driverId !== user.id) {
+        return ApiResponse.forbidden('Not authorized to view these bids');
+      }
       query = query.eq('driver_id', driverId);
     }
     if (deliveryRequestId) {
+      const { data: requestRow, error: requestError } = await (supabase
+        .from('delivery_requests') as any)
+        .select('requester_id, assigned_driver_id')
+        .eq('id', deliveryRequestId)
+        .single();
+
+      if (requestError || !requestRow) {
+        return ApiResponse.notFound('Delivery request not found');
+      }
+
+      const canViewRequestBids =
+        requestRow.requester_id === user.id ||
+        requestRow.assigned_driver_id === user.id ||
+        driverId === user.id;
+      if (!canViewRequestBids) {
+        return ApiResponse.forbidden('Not authorized to view bids for this request');
+      }
       query = query.eq('delivery_request_id', deliveryRequestId);
     }
     if (status && ['pending', 'accepted', 'rejected'].includes(status)) {

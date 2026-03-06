@@ -73,6 +73,10 @@ function toRequestResponse(row: Record<string, unknown>) {
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return ApiResponse.unauthorized('Must be logged in');
+    }
     const { searchParams } = new URL(request.url);
 
     const statusParam = searchParams.get('status');
@@ -80,6 +84,12 @@ export async function GET(request: Request) {
     const requesterId = searchParams.get('requesterId');
     const assignedDriverId = searchParams.get('assignedDriverId');
     const limit = Math.min(100, Math.max(1, Number.parseInt(searchParams.get('limit') || '30', 10)));
+    const { data: driverProfile } = await (supabase
+      .from('driver_profiles') as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const driverProfileId = driverProfile?.id as string | undefined;
 
     let query = (supabase
       .from('delivery_requests') as any)
@@ -87,14 +97,34 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (status && requestStatusValues.includes(status as RequestStatus)) {
-      query = query.eq('status', status as RequestStatus);
-    }
     if (requesterId) {
+      if (requesterId !== user.id) {
+        return ApiResponse.forbidden('Not authorized to view these delivery requests');
+      }
       query = query.eq('requester_id', requesterId);
     }
+
     if (assignedDriverId) {
+      if (assignedDriverId !== user.id) {
+        return ApiResponse.forbidden('Not authorized to view these delivery tasks');
+      }
       query = query.eq('assigned_driver_id', assignedDriverId);
+    }
+
+    const isDriverBrowse = !requesterId && !assignedDriverId;
+    if (isDriverBrowse) {
+      if (!driverProfileId) {
+        return ApiResponse.forbidden('Driver access required');
+      }
+
+      query = query.eq('status', 'open');
+      query = query.or(
+        `request_type.eq.broadcast,and(request_type.eq.manual,target_driver_id.eq.${driverProfileId}),and(request_type.eq.auto,target_driver_id.eq.${driverProfileId})`
+      );
+    }
+
+    if (status && requestStatusValues.includes(status as RequestStatus)) {
+      query = query.eq('status', status as RequestStatus);
     }
 
     const { data, error } = await query;
