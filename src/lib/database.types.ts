@@ -175,6 +175,7 @@ export interface Database {
           listing_id: number;
           sender_id: string;
           text: string;
+          attachments: Json | null;
           created_at: string;
           read: boolean;
           buyer_id: string;
@@ -187,6 +188,7 @@ export interface Database {
           listing_id: number;
           sender_id: string;
           text: string;
+          attachments?: Json | null;
           created_at?: string;
           read?: boolean;
           buyer_id: string;
@@ -199,6 +201,7 @@ export interface Database {
           listing_id?: number;
           sender_id?: string;
           text?: string;
+          attachments?: Json | null;
           created_at?: string;
           read?: boolean;
           buyer_id?: string;
@@ -973,4 +976,3 @@ export interface Database {
     };
   };
 }
-

@@ -80,9 +80,39 @@ async function setupStorage() {
     console.log('✅ Updated private bucket settings');
   }
 
+  const { error: messageBucketError } = await supabase.storage.createBucket('message-attachments', {
+    public: false,
+    fileSizeLimit: 5242880,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+  });
+
+  if (messageBucketError) {
+    if (messageBucketError.message.includes('already exists')) {
+      console.log('✅ Bucket "message-attachments" already exists');
+    } else {
+      console.error('❌ Error creating message bucket:', messageBucketError);
+      process.exit(1);
+    }
+  } else {
+    console.log('✅ Created bucket "message-attachments"');
+  }
+
+  const { error: messageUpdateError } = await supabase.storage.updateBucket('message-attachments', {
+    public: false,
+    fileSizeLimit: 5242880,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']
+  });
+
+  if (messageUpdateError) {
+    console.error('❌ Error updating message bucket:', messageUpdateError);
+  } else {
+    console.log('✅ Updated message bucket settings');
+  }
+
   console.log('\n🎉 Storage setup complete!');
   console.log('   - Bucket: listings (public)');
   console.log('   - Bucket: driver-documents (private)');
+  console.log('   - Bucket: message-attachments (private)');
   console.log('   - Max file size: 5MB');
   console.log('   - Allowed types: JPEG, PNG, WebP, GIF');
 }

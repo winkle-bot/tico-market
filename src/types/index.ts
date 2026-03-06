@@ -123,6 +123,21 @@ export interface User {
   acceptsDelivery?: boolean; // Default true
 }
 
+export type MessageAttachment =
+  | {
+      type: 'image';
+      signedUrl?: string;
+      storageKey?: string;
+      mimeType?: string;
+      fileName?: string;
+    }
+  | {
+      type: 'location';
+      lat: number;
+      lng: number;
+      label?: string;
+    };
+
 // ============ DRIVER MARKETPLACE ============
 
 export type VehicleType = 'motorcycle' | 'car' | 'pickup' | 'bike' | 'walker';
@@ -327,6 +342,7 @@ export interface Message {
   listingId: number;
   senderId: string;
   text: string;
+  attachments?: MessageAttachment[];
   createdAt: string;
   read: boolean;
   

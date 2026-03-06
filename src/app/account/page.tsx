@@ -754,7 +754,12 @@ export default function AccountPage() {
                           </div>
                           <p className="text-sm text-gray-500 mb-1">with {conv.otherPartyName}</p>
                           <p className="text-sm text-gray-600 truncate">
-                            {conv.messages[conv.messages.length - 1]?.text}
+                            {conv.messages[conv.messages.length - 1]?.text ||
+                              (conv.messages[conv.messages.length - 1]?.attachments?.some((attachment) => attachment.type === 'image')
+                                ? 'Image attachment'
+                                : conv.messages[conv.messages.length - 1]?.attachments?.some((attachment) => attachment.type === 'location')
+                                  ? 'Location pin'
+                                  : '')}
                           </p>
                         </div>
                       </button>

@@ -126,6 +126,7 @@ create table if not exists public.messages (
   listing_id bigint references public.listings(id) on delete cascade not null,
   sender_id uuid references public.profiles(id) on delete cascade not null,
   text text not null,
+  attachments jsonb default '[]'::jsonb,
   created_at timestamptz default now(),
   read boolean default false,
   buyer_id uuid references public.profiles(id) on delete cascade not null,
@@ -133,6 +134,8 @@ create table if not exists public.messages (
   seller_id uuid references public.profiles(id) on delete cascade not null,
   seller_name text not null
 );
+
+alter table public.messages add column if not exists attachments jsonb default '[]'::jsonb;
 
 -- Indexes for messages
 create index if not exists idx_messages_listing_id on public.messages(listing_id);

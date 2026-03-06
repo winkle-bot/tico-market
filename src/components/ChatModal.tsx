@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { X, Send, MessageCircle } from 'lucide-react';
+import { X, Send, MessageCircle, ImagePlus, MapPin, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withCsrfHeaders } from '@/lib/csrf';
 import { useI18n } from '@/context/I18nContext';
 import { TranslatableText } from '@/components/TranslatableText';
+import type { MessageAttachment } from '@/types';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ interface Message {
   id: number;
   senderId: string;
   text: string;
+  attachments?: MessageAttachment[];
   createdAt: string;
   read?: boolean;
 }
@@ -45,10 +47,13 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   const { t } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasLoadedMessagesRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -155,7 +160,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUser || isSending) return;
+    if ((!newMessage.trim() && !pendingImage && !pendingLocation) || !currentUser || isSending) return;
 
     // Determine roles
     // If I am the seller, the "buyer" is the person I'm chatting with (chatWithId)
@@ -185,24 +190,54 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
     
     setIsSending(true);
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          listingId: listing.id,
-          buyerId,
-          buyerName,
-          sellerId,
-          sellerName,
-          senderId: currentUser.id,
-          text: newMessage.trim()
-        })
-      });
+      const requestInit: RequestInit =
+        pendingImage || pendingLocation
+          ? {
+              method: 'POST',
+              headers: withCsrfHeaders(),
+              body: (() => {
+                const formData = new FormData();
+                formData.set('listingId', String(listing.id));
+                formData.set('buyerId', buyerId);
+                formData.set('buyerName', buyerName);
+                formData.set('sellerId', sellerId);
+                formData.set('sellerName', sellerName);
+                formData.set('text', newMessage.trim());
+                if (pendingImage) {
+                  formData.set('image', pendingImage);
+                }
+                if (pendingLocation) {
+                  formData.set('locationLat', String(pendingLocation.lat));
+                  formData.set('locationLng', String(pendingLocation.lng));
+                  if (pendingLocation.label) {
+                    formData.set('locationLabel', pendingLocation.label);
+                  }
+                }
+                return formData;
+              })(),
+            }
+          : {
+              method: 'POST',
+              headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({
+                listingId: listing.id,
+                buyerId,
+                buyerName,
+                sellerId,
+                sellerName,
+                senderId: currentUser.id,
+                text: newMessage.trim(),
+              }),
+            };
+
+      const res = await fetch('/api/messages', requestInit);
 
       if (res.ok) {
         const msg = await res.json();
         setMessages(prev => [...prev, msg]);
         setNewMessage('');
+        setPendingImage(null);
+        setPendingLocation(null);
         // Refresh immediately
         void loadMessages();
       }
@@ -218,6 +253,24 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
       e.preventDefault();
       void sendMessage();
     }
+  };
+
+  const handlePickLocation = () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPendingLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: 'Shared location',
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
   };
 
   if (!isOpen) return null;
@@ -301,14 +354,50 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                           : 'bg-white text-[#18284a] rounded-bl-md shadow-sm border border-[#dce5f7]'
                       }`}
                     >
-                      <TranslatableText
-                        text={msg.text}
-                        context="message"
-                        textClassName="text-sm"
-                        metaClassName={msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'}
-                        translatedMetaClassName={msg.senderId === currentUser.id ? 'text-blue-100' : 'text-blue-600'}
-                        buttonClassName={msg.senderId === currentUser.id ? 'text-blue-100 hover:text-white' : 'text-[#5b78b5] hover:text-[#274f99]'}
-                      />
+                      {msg.attachments?.map((attachment, index) => {
+                        if (attachment.type === 'image' && attachment.signedUrl) {
+                          return (
+                            <div key={`${msg.id}-attachment-${index}`} className="mb-2 overflow-hidden rounded-2xl">
+                              <Image
+                                src={attachment.signedUrl}
+                                alt={attachment.fileName || 'Message attachment'}
+                                width={220}
+                                height={220}
+                                className="h-auto w-full max-w-[220px] object-cover"
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (attachment.type === 'location') {
+                          return (
+                            <a
+                              key={`${msg.id}-attachment-${index}`}
+                              href={`https://www.google.com/maps/search/?api=1&query=${attachment.lat},${attachment.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`mb-2 inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold ${
+                                msg.senderId === currentUser.id ? 'bg-blue-500 text-white' : 'bg-[#eef4ff] text-[#32569a]'
+                              }`}
+                            >
+                              <MapPin className="h-4 w-4" />
+                              {attachment.label || 'Shared location'}
+                            </a>
+                          );
+                        }
+
+                        return null;
+                      })}
+                      {msg.text && (
+                        <TranslatableText
+                          text={msg.text}
+                          context="message"
+                          textClassName="text-sm"
+                          metaClassName={msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'}
+                          translatedMetaClassName={msg.senderId === currentUser.id ? 'text-blue-100' : 'text-blue-600'}
+                          buttonClassName={msg.senderId === currentUser.id ? 'text-blue-100 hover:text-white' : 'text-[#5b78b5] hover:text-[#274f99]'}
+                        />
+                      )}
                       <p className={`text-[10px] mt-1 ${
                         msg.senderId === currentUser.id ? 'text-blue-200' : 'text-[#7d91b8]'
                       }`}>
@@ -354,7 +443,58 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                   </button>
                 ))}
               </div>
+              {(pendingImage || pendingLocation) && (
+                <div className="px-4 pt-2 flex flex-wrap gap-2">
+                  {pendingImage && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-[#edf4ff] px-3 py-1.5 text-xs font-bold text-[#32569a]">
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      <span className="max-w-[180px] truncate">{pendingImage.name}</span>
+                      <button type="button" onClick={() => setPendingImage(null)} aria-label="Remove image">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  {pendingLocation && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-[#edf4ff] px-3 py-1.5 text-xs font-bold text-[#32569a]">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{pendingLocation.label || 'Location ready'}</span>
+                      <button type="button" onClick={() => setPendingLocation(null)} aria-label="Remove location">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="p-4 pt-2 flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      setPendingImage(file);
+                    }
+                    event.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="tm-btn px-3 min-w-12 border border-[#dce5f7] bg-white text-[#32569a] hover:bg-[#edf4ff]"
+                  aria-label="Attach image"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePickLocation}
+                  className="tm-btn px-3 min-w-12 border border-[#dce5f7] bg-white text-[#32569a] hover:bg-[#edf4ff]"
+                  aria-label="Share location"
+                >
+                  <MapPin className="w-5 h-5" />
+                </button>
                 <input
                   type="text"
                   value={newMessage}
@@ -365,10 +505,10 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
                 />
                 <button
                   onClick={sendMessage}
-                  disabled={!newMessage.trim() || isSending}
+                  disabled={(!newMessage.trim() && !pendingImage && !pendingLocation) || isSending}
                   className="tm-btn tm-btn-primary px-3 min-w-12 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-5 h-5" />
+                  {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </button>
               </div>
             </div>
