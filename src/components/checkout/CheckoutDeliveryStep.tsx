@@ -92,7 +92,7 @@ export function CheckoutDeliveryStep({
           <div className="space-y-2">
             {driverOptions.map((driver, index) => (
               <button
-                key={driver.listingId}
+                key={driver.profileId}
                 onClick={() => setSelectedDriverId(selectedDriverId === driver.id ? null : driver.id)}
                 className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 min-h-14 ${
                   selectedDriverId === driver.id

@@ -8,7 +8,7 @@ import {
 
 export interface DriverOption {
   id: string;
-  listingId: number;
+  profileId: string;
   name: string;
   rating: number;
   verified: boolean;

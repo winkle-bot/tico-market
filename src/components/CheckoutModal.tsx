@@ -25,6 +25,7 @@ import type {
   OrderType,
   SinpeConfig,
   User,
+  DriverProfile,
 } from '@/types';
 import { CheckoutConfirmStep } from './checkout/CheckoutConfirmStep';
 import { CheckoutDeliveryStep } from './checkout/CheckoutDeliveryStep';
@@ -38,7 +39,7 @@ interface CheckoutModalProps {
   listing: Listing | null;
   seller: User | null;
   currentUser: { id: string; name: string } | null;
-  drivers: Listing[];
+  drivers: DriverProfile[];
   onSuccess: (orderId: string) => void;
   onAuthRequired: () => void;
   preferredMethod?: OrderType | null;
@@ -129,19 +130,33 @@ export function CheckoutModal({
 
     return drivers
       .map((driver) => {
-        const distanceKm = getDistanceKm(listing.location, driver.location);
+        let driverCoords: [number, number] | null = null;
+        if (Number.isFinite(driver.currentLat) && Number.isFinite(driver.currentLng)) {
+          driverCoords = [Number(driver.currentLat), Number(driver.currentLng)];
+        } else if (
+          Number.isFinite(driver.baseLocationLat) &&
+          Number.isFinite(driver.baseLocationLng)
+        ) {
+          driverCoords = [Number(driver.baseLocationLat), Number(driver.baseLocationLng)];
+        }
+        if (!driverCoords) {
+          return null;
+        }
+
+        const distanceKm = getDistanceKm(listing.location, driverCoords);
         const etaMinutes = estimateEtaMinutes(distanceKm);
         return {
-          id: driver.sellerId,
-          listingId: driver.id,
-          name: driver.owner,
+          id: driver.userId,
+          profileId: driver.id,
+          name: driver.name,
           rating: driver.rating,
-          verified: Boolean(driver.verified),
+          verified: Boolean(driver.isVerified),
           distanceKm,
           etaMinutes,
           availabilityLabel: etaMinutes <= 20 ? 'Disponible ahora' : `Listo en ~${etaMinutes} min`,
         };
       })
+      .filter((driver): driver is DriverOption => driver !== null)
       .sort((a, b) => {
         const aScore = a.distanceKm - a.rating * 0.35;
         const bScore = b.distanceKm - b.rating * 0.35;

@@ -14,7 +14,7 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import { useToast } from '@/context/ToastContext';
 import { useI18n } from '@/context/I18nContext';
 import { formatPrice, formatCondition, formatResponseTime, wazeLink } from '@/lib/format';
-import type { Listing, User, MarketEvent } from '@/types';
+import type { Listing, User, DriverProfile, MarketEvent } from '@/types';
 
 export default function ListingDetailsClient({ listingId }: { listingId: string }) {
   const toast = useToast();
@@ -22,7 +22,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   const { user, isFavorite, toggleFavorite: contextToggleFavorite } = useAuth();
   const [listing, setListing] = useState<Listing | 'not_found' | null>(null);
   const [seller, setSeller] = useState<User | null>(null);
-  const [drivers, setDrivers] = useState<Listing[]>([]);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -83,16 +83,20 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         }
 
         // Fetch drivers for delivery option
-        const driversRes = await fetch(`${API_ROUTES.LISTINGS}?listing_kind=driver&page=1&limit=40&sort=newest`, {
+        const [lat, lng] = Array.isArray(listingData.location) ? listingData.location : [];
+        const driverParams = new URLSearchParams({ online: 'true' });
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          driverParams.set('lat', String(lat));
+          driverParams.set('lng', String(lng));
+          driverParams.set('radiusKm', '40');
+        }
+
+        const driversRes = await fetch(`${API_ROUTES.DRIVERS}?${driverParams.toString()}`, {
           signal: controller.signal,
         });
         if (driversRes.ok) {
           const payload = await driversRes.json();
-          if (payload && Array.isArray(payload.data)) {
-            setDrivers(payload.data);
-          } else if (Array.isArray(payload)) {
-            setDrivers(payload.filter((l: Listing) => l.listingKind === 'driver'));
-          }
+          setDrivers(Array.isArray(payload?.data) ? payload.data : []);
         }
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') {
