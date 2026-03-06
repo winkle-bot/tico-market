@@ -6,6 +6,7 @@ import { sendPushToUser, sendWhatsAppToUser } from '@/lib/push';
 import { z } from 'zod';
 
 const orderIdSchema = z.string().min(3).max(120).regex(/^[a-zA-Z0-9-_]+$/);
+const terminalStatuses = new Set(['completed', 'cancelled']);
 const orderStatusSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'in_transit', 'completed', 'cancelled']).optional(),
   driverAssignment: z.object({
@@ -21,6 +22,86 @@ const orderStatusSchema = z.object({
 }).refine((value) => Boolean(value.status || value.driverAssignment || value.trackingEvent), {
   message: 'At least one update field is required',
 });
+
+type OrderRole = 'buyer' | 'seller' | 'driver';
+type OrderStatusValue = 'pending' | 'confirmed' | 'in_transit' | 'completed' | 'cancelled';
+type OrderTypeValue = 'delivery' | 'pickup';
+type TrackingPayload = {
+  message?: string;
+  phase?: 'awaiting_confirmation' | 'awaiting_pickup' | 'picked_up' | 'near_buyer' | 'delivered';
+  etaMinutes?: number | null;
+  driverLocationLabel?: string | null;
+};
+
+function getAllowedStatuses(
+  role: OrderRole,
+  currentStatus: OrderStatusValue,
+  orderType: OrderTypeValue
+): OrderStatusValue[] {
+  if (role === 'buyer') {
+    if (currentStatus === 'pending') return ['cancelled'];
+    if (currentStatus === 'in_transit') return ['completed'];
+    return [];
+  }
+
+  if (role === 'seller') {
+    if (currentStatus === 'pending') return ['confirmed', 'cancelled'];
+    if (currentStatus === 'confirmed') {
+      return orderType === 'delivery' ? ['in_transit', 'completed'] : ['completed'];
+    }
+    if (currentStatus === 'in_transit') return ['completed'];
+    return [];
+  }
+
+  if (currentStatus === 'confirmed') return ['in_transit'];
+  if (currentStatus === 'in_transit') return ['completed'];
+  return [];
+}
+
+function validateTrackingEvent(
+  trackingEvent: TrackingPayload | undefined,
+  role: OrderRole,
+  currentStatus: OrderStatusValue,
+  nextStatus: OrderStatusValue,
+  orderType: OrderTypeValue
+): string | null {
+  if (!trackingEvent) return null;
+
+  if (terminalStatuses.has(currentStatus) || terminalStatuses.has(nextStatus)) {
+    const hasSignalBeyondCompletion =
+      trackingEvent.phase !== undefined ||
+      trackingEvent.etaMinutes !== undefined ||
+      trackingEvent.driverLocationLabel !== undefined;
+    if (hasSignalBeyondCompletion) {
+      return 'Tracking updates are not allowed on completed or cancelled orders';
+    }
+  }
+
+  if (
+    (trackingEvent.etaMinutes !== undefined || trackingEvent.driverLocationLabel !== undefined) &&
+    role !== 'driver'
+  ) {
+    return 'Only the assigned driver can update ETA or live location';
+  }
+
+  if (!trackingEvent.phase) return null;
+
+  if (orderType !== 'delivery' && trackingEvent.phase !== 'delivered') {
+    return 'Pickup orders do not support delivery tracking phases';
+  }
+
+  const allowedPhasesByRole: Record<OrderRole, TrackingPayload['phase'][]> = {
+    buyer: ['delivered'],
+    seller: ['awaiting_pickup', 'picked_up', 'delivered'],
+    driver: ['picked_up', 'near_buyer', 'delivered'],
+  };
+
+  if (!allowedPhasesByRole[role].includes(trackingEvent.phase)) {
+    return 'Not authorized to post this tracking update';
+  }
+
+  return null;
+}
 
 // GET single order
 export async function GET(
@@ -148,6 +229,38 @@ export async function PATCH(
       return ApiResponse.forbidden('Only the seller can assign a driver');
     }
 
+    const actorRole: OrderRole = isSeller ? 'seller' : isDriver ? 'driver' : 'buyer';
+    const currentStatus = existing.status as OrderStatusValue;
+    const orderType = existing.type as OrderTypeValue;
+    const nextStatus = (status ?? currentStatus) as OrderStatusValue;
+
+    if (status) {
+      const allowedStatuses = getAllowedStatuses(actorRole, currentStatus, orderType);
+      if (!allowedStatuses.includes(status)) {
+        return ApiResponse.forbidden('Not authorized to set this order status');
+      }
+    }
+
+    if (driverAssignment) {
+      if (orderType !== 'delivery') {
+        return ApiResponse.badRequest('Driver assignment is only supported for delivery orders');
+      }
+      if (!['pending', 'confirmed'].includes(currentStatus)) {
+        return ApiResponse.badRequest('Driver assignment is only allowed before delivery starts');
+      }
+    }
+
+    const trackingValidationError = validateTrackingEvent(
+      trackingEvent,
+      actorRole,
+      currentStatus,
+      nextStatus,
+      orderType
+    );
+    if (trackingValidationError) {
+      return ApiResponse.forbidden(trackingValidationError);
+    }
+
     const nextSnapshot = (existing.listing_snapshot ?? {}) as Record<string, unknown>;
     const previousDeliveryMeta = (nextSnapshot.deliveryMeta ?? {}) as Record<string, unknown>;
     const previousUpdates = Array.isArray(previousDeliveryMeta.updates)
@@ -165,9 +278,6 @@ export async function PATCH(
       updatePayload.driver_id = driverAssignment.driverId;
       updatePayload.driver_name = sanitizeOptionalText(driverAssignment.driverName, 100);
     }
-
-    const actorRole: 'buyer' | 'seller' | 'driver' =
-      isSeller ? 'seller' : isDriver ? 'driver' : 'buyer';
 
     const messageFromStatus: Record<string, string> = {
       pending: 'Order is pending confirmation.',

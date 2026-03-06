@@ -5,7 +5,6 @@ Items are removed as they are completed and committed.
 
 ## Fixes
 
-- [ ] Enforce order status transition permissions on the server so buyers, sellers, and drivers can only perform allowed actions.
 - [ ] Restrict delivery request and bid visibility to authorized participants and drivers only.
 - [ ] Fix CSRF failures in delivery creation flows.
 - [ ] Repair the delivery negotiation/manage flow, including missing backend endpoints and broken client fetch logic.
