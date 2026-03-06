@@ -9,6 +9,9 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     // Try by UUID first, then by slug
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -36,11 +39,31 @@ export async function GET(
       .select('*', { count: 'exact', head: true })
       .eq('feria_id', (feria as any).id);
 
-    return ApiResponse.cached({
+    let isFollowing = false;
+
+    if (user) {
+      const { data: follower } = await supabase
+        .from('feria_followers')
+        .select('id')
+        .eq('feria_id', (feria as any).id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      isFollowing = Boolean(follower);
+    }
+
+    const payload = {
       ...(feria as Record<string, unknown>),
       vendors: vendors || [],
       follower_count: followerCount || 0,
-    });
+      is_following: isFollowing,
+    };
+
+    if (!user) {
+      return ApiResponse.cached(payload);
+    }
+
+    return ApiResponse.success(payload);
   } catch (error) {
     return ApiResponse.serverError(error);
   }

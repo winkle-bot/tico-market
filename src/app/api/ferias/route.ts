@@ -47,7 +47,33 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     if (error) return ApiResponse.error(error.message, 500);
 
-    return ApiResponse.cached(data || []);
+    const ferias = (data || []) as Array<Record<string, unknown> & { id: string }>;
+    const feriaIds = ferias.map((feria) => feria.id);
+    let followerCounts = new Map<string, number>();
+
+    if (feriaIds.length > 0) {
+      const { data: followers, error: followersError } = await supabase
+        .from('feria_followers')
+        .select('feria_id')
+        .in('feria_id', feriaIds);
+
+      if (followersError) {
+        return ApiResponse.error(followersError.message, 500);
+      }
+
+      followerCounts = ((followers || []) as Array<{ feria_id: string }>).reduce((counts, follower) => {
+        const feriaId = follower.feria_id as string;
+        counts.set(feriaId, (counts.get(feriaId) || 0) + 1);
+        return counts;
+      }, new Map<string, number>());
+    }
+
+    const transformed = ferias.map((feria) => ({
+      ...feria,
+      follower_count: followerCounts.get(feria.id) || 0,
+    }));
+
+    return ApiResponse.cached(transformed);
   } catch (error) {
     return ApiResponse.serverError(error);
   }

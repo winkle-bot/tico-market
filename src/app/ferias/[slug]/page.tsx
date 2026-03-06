@@ -40,6 +40,7 @@ interface FeriaDetail {
   photos: string[];
   vendor_count: number;
   follower_count: number;
+  is_following?: boolean;
   vendors: FeriaVendor[];
 }
 
@@ -51,7 +52,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
   const [feria, setFeria] = useState<FeriaDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<'not_found' | 'error' | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     fetch(`/api/ferias/${slug}`)
@@ -73,15 +74,72 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
         setFetchError('error');
       })
       .finally(() => setIsLoading(false));
-  }, [slug]);
+  }, [slug, user?.id]);
 
   const handleFollow = async () => {
     if (!user) {
       toast.error('Please log in to follow ferias');
       return;
     }
-    setIsFollowing(!isFollowing);
-    // TODO: API call to follow/unfollow
+    if (!feria || followLoading) {
+      return;
+    }
+
+    const nextFollowing = !feria.is_following;
+    const previousFollowerCount = feria.follower_count;
+    const optimisticFollowerCount = Math.max(
+      0,
+      previousFollowerCount + (nextFollowing ? 1 : -1)
+    );
+
+    setFollowLoading(true);
+    setFeria((current) => (
+      current
+        ? {
+            ...current,
+            is_following: nextFollowing,
+            follower_count: optimisticFollowerCount,
+          }
+        : current
+    ));
+
+    try {
+      const response = await fetch(`/api/ferias/${feria.slug}/follow`, {
+        method: nextFollowing ? 'POST' : 'DELETE',
+        headers: withCsrfHeaders(),
+      });
+
+      const payload = await response.json().catch(() => ({} as { error?: string; followerCount?: number; isFollowing?: boolean }));
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Could not update feria follow status');
+      }
+
+      setFeria((current) => (
+        current
+          ? {
+              ...current,
+              is_following: payload.isFollowing ?? nextFollowing,
+              follower_count: payload.followerCount ?? optimisticFollowerCount,
+            }
+          : current
+      ));
+
+      toast.success(nextFollowing ? 'Feria followed' : 'Feria unfollowed');
+    } catch (error) {
+      setFeria((current) => (
+        current
+          ? {
+              ...current,
+              is_following: !nextFollowing,
+              follower_count: previousFollowerCount,
+            }
+          : current
+      ));
+      toast.error(error instanceof Error ? error.message : 'Could not update feria follow status');
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -180,13 +238,14 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
                 <div className="flex gap-3">
                   <button
                     onClick={handleFollow}
-                    className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors ${isFollowing
+                    disabled={followLoading}
+                    className={`px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${feria.is_following
                       ? 'bg-red-50 text-red-600 border border-red-200'
                       : 'bg-green-600 text-white hover:bg-green-700'
                       }`}
                   >
-                    <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
-                    {isFollowing ? 'Following' : 'Follow'}
+                    <Heart className={`w-4 h-4 ${feria.is_following ? 'fill-current' : ''}`} />
+                    {followLoading ? 'Saving...' : feria.is_following ? 'Following' : 'Follow'}
                   </button>
                   {feria.waze_link && (
                     <a
