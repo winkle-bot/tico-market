@@ -9,6 +9,7 @@ interface CheckoutConfirmStepProps {
   method: OrderType | null;
   selectedEvent: MarketEvent | undefined;
   selectedLocation: PickupLocation | undefined;
+  isFeriaPreorder: boolean;
   scheduledWindow: string;
   deliveryAddress: string;
   deliveryMode: 'express' | 'scheduled';
@@ -35,6 +36,7 @@ export function CheckoutConfirmStep({
   method,
   selectedEvent,
   selectedLocation,
+  isFeriaPreorder,
   scheduledWindow,
   deliveryAddress,
   deliveryMode,
@@ -87,7 +89,7 @@ export function CheckoutConfirmStep({
           <span className="font-bold text-gray-900 flex items-center gap-1">
             {method === 'pickup' ? (
               <>
-                <MapPin className="w-4 h-4 text-green-600" /> {t('checkout.pickup')}
+                <MapPin className="w-4 h-4 text-green-600" /> {isFeriaPreorder ? t('checkout.feriaPickup', 'Feria Pickup') : t('checkout.pickup')}
               </>
             ) : (
               <>
@@ -106,6 +108,10 @@ export function CheckoutConfirmStep({
                 <h4 className="font-bold text-gray-900 mb-1">{selectedEvent.name}</h4>
                 <p className="text-sm text-blue-600 font-bold">{selectedEvent.date}</p>
                 <p className="text-sm text-gray-500">{selectedEvent.timeWindow}</p>
+                <p className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-800">
+                  {t('checkout.reservationPending', 'Reservation will be sent to the vendor for confirmation.')}
+                </p>
+                {scheduledWindow && <p className="text-sm text-orange-700 mt-2">{t('checkout.noteSeller', 'Note to seller')}: {scheduledWindow}</p>}
               </>
             ) : selectedLocation ? (
               <>
@@ -167,14 +173,20 @@ export function CheckoutConfirmStep({
       >
         {isSubmitting
           ? t('checkout.placingOrder')
-          : paymentMethod === 'sinpe_movil'
+          : isFeriaPreorder
+            ? t('checkout.reserveFeriaPickup', 'Reserve Feria Pickup')
+            : paymentMethod === 'sinpe_movil'
             ? t('checkout.confirmSinpe', 'Confirm SINPE Order')
             : paymentMethod === 'cash'
               ? t('checkout.confirmCash', 'Confirm Cash Order')
               : t('checkout.confirm')}
       </button>
 
-      <p className="text-xs text-center text-gray-400">{t('checkout.sellerNotified', 'The seller will be notified and will confirm your order')}</p>
+      <p className="text-xs text-center text-gray-400">
+        {isFeriaPreorder
+          ? t('checkout.vendorConfirmsReservation', 'The vendor will review and confirm your feria reservation.')
+          : t('checkout.sellerNotified', 'The seller will be notified and will confirm your order')}
+      </p>
     </div>
   );
 }

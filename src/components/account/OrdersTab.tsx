@@ -7,11 +7,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Clock, MapPin, Route, ShoppingBag, Truck, XCircle, Zap } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { withCsrfHeaders } from '@/lib/csrf';
+import { getFeriaPreorderMeta } from '@/lib/feria-preorders';
 import { useI18n } from '@/context/I18nContext';
 import { DeliveryRoomModal } from '@/components/account/DeliveryRoomModal';
 import { OrderDriverLiveMap } from '@/components/account/OrderDriverLiveMap';
 import { OpenDisputeModal } from '@/components/disputes/OpenDisputeModal';
-import type { DeliveryMeta, DeliveryTrackingPhase, Order, Review } from '@/types';
+import type { DeliveryMeta, DeliveryTrackingPhase, FeriaPreorderMeta, Order, Review } from '@/types';
 
 const deliveryPhaseOrder: DeliveryTrackingPhase[] = [
   'awaiting_confirmation',
@@ -66,6 +67,18 @@ function getLatLngPair(value: unknown): [number, number] | null {
   const [lat, lng] = value;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return [Number(lat), Number(lng)];
+}
+
+function getFeriaReservationLabel(preorder: FeriaPreorderMeta, status: Order['status']): string {
+  if (preorder.reservationStatus === 'confirmed' || status === 'confirmed' || status === 'completed') {
+    return 'Feria reservation confirmed.';
+  }
+
+  if (status === 'cancelled') {
+    return 'Feria reservation cancelled.';
+  }
+
+  return 'Waiting for the vendor to confirm this feria reservation.';
 }
 
 export function OrdersTab({ 
@@ -277,6 +290,7 @@ export function OrdersTab({
         const driverEtaDraft = deliveryEtaByOrder[order.id] ?? (driverEta !== undefined ? String(driverEta) : '');
         const driverLocationDraft = deliveryLocationByOrder[order.id] ?? (deliveryMeta?.driverLocationLabel || '');
         const pickupCoords = getLatLngPair(order.listingSnapshot?.location);
+        const feriaPreorder = getFeriaPreorderMeta(order.listingSnapshot);
         
         return (
           <div key={order.id} className="bg-white rounded-2xl p-4 border border-gray-100">
@@ -294,6 +308,11 @@ export function OrdersTab({
                 </p>
               </div>
               <div className="flex items-center gap-1 text-xs font-bold">
+                {feriaPreorder && (
+                  <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700">
+                    Feria Pre-Order
+                  </span>
+                )}
                 {order.type === 'pickup' ? (
                   <span className="text-green-600 flex items-center gap-1">
                     <MapPin className="w-3 h-3" /> Pickup
@@ -336,6 +355,16 @@ export function OrdersTab({
                 <p className="text-gray-600">{order.pickupLocation.address}</p>
                 {order.scheduledWindow && (
                   <p className="text-blue-600 mt-1">Preferred: {order.scheduledWindow}</p>
+                )}
+                {feriaPreorder && (
+                  <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+                      {feriaPreorder.eventDate} • {feriaPreorder.timeWindow}
+                    </p>
+                    <p className="mt-1 font-semibold text-orange-900">
+                      {getFeriaReservationLabel(feriaPreorder, order.status)}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

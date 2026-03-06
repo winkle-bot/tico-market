@@ -19,6 +19,7 @@ import {
 } from '@/lib/payments';
 import { useI18n } from '@/context/I18nContext';
 import { useOverlayDialog } from '@/lib/use-overlay-dialog';
+import { buildFeriaPreorderMeta } from '@/lib/feria-preorders';
 import type {
   CheckoutPaymentMethod,
   Listing,
@@ -44,6 +45,7 @@ interface CheckoutModalProps {
   onSuccess: (orderId: string) => void;
   onAuthRequired: () => void;
   preferredMethod?: OrderType | null;
+  initialPickupLocationId?: string | null;
 }
 
 export function CheckoutModal({
@@ -56,6 +58,7 @@ export function CheckoutModal({
   onSuccess,
   onAuthRequired,
   preferredMethod,
+  initialPickupLocationId,
 }: CheckoutModalProps) {
   const { t } = useI18n();
   const [step, setStep] = useState<CheckoutStep>('method');
@@ -78,6 +81,19 @@ export function CheckoutModal({
     onClose,
     initialFocusRef: closeButtonRef,
   });
+  const pickupLocations = seller?.pickupLocations || [];
+  const marketEvents = listing?.pickupConfig?.marketEvents || [];
+  const deliveryAvailable = seller?.acceptsDelivery !== false &&
+    (listing?.pickupConfig?.deliveryAvailable !== false) &&
+    !listing?.pickupConfig?.pickupOnly;
+
+  const pickupAvailable = (listing?.pickupConfig?.pickupAvailable !== false) &&
+    (pickupLocations.length > 0 || marketEvents.length > 0);
+
+  const selectedLocation = pickupLocations.find((location) => location.id === selectedLocationId);
+  const selectedEvent = marketEvents.find((event) => event.id === selectedLocationId);
+  const isFeriaPreorder = Boolean(selectedEvent);
+  const currency: PaymentCurrency = listing?.currency === 'USD' ? 'USD' : 'CRC';
 
   useEffect(() => {
     if (isOpen) {
@@ -85,7 +101,7 @@ export function CheckoutModal({
       setStep(startMethod === 'delivery' ? 'delivery-details' : startMethod === 'pickup' ? 'pickup-details' : 'method');
       setMethod(startMethod);
       setDeliveryMode('express');
-      setSelectedLocationId(null);
+      setSelectedLocationId(initialPickupLocationId ?? null);
       setScheduledWindow('');
       setDeliveryAddress('');
       setSelectedDriverId(null);
@@ -95,7 +111,7 @@ export function CheckoutModal({
       setSenderPhone('');
       setError(null);
     }
-  }, [isOpen, preferredMethod]);
+  }, [initialPickupLocationId, isOpen, preferredMethod]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -116,19 +132,6 @@ export function CheckoutModal({
 
     void fetchSinpeConfig();
   }, [isOpen]);
-
-  const pickupLocations = seller?.pickupLocations || [];
-  const marketEvents = listing?.pickupConfig?.marketEvents || [];
-  const deliveryAvailable = seller?.acceptsDelivery !== false &&
-    (listing?.pickupConfig?.deliveryAvailable !== false) &&
-    !listing?.pickupConfig?.pickupOnly;
-
-  const pickupAvailable = (listing?.pickupConfig?.pickupAvailable !== false) &&
-    (pickupLocations.length > 0 || marketEvents.length > 0);
-
-  const selectedLocation = pickupLocations.find((location) => location.id === selectedLocationId);
-  const selectedEvent = marketEvents.find((event) => event.id === selectedLocationId);
-  const currency: PaymentCurrency = listing?.currency === 'USD' ? 'USD' : 'CRC';
 
   const driverOptions = useMemo<DriverOption[]>(() => {
     if (!Array.isArray(drivers) || !Array.isArray(listing?.location) || listing.location.length !== 2) {
@@ -323,8 +326,9 @@ export function CheckoutModal({
             schedule: {},
             notes: `Event Date: ${selectedEvent.date} ${selectedEvent.timeWindow}`,
           };
+          listingSnapshot.feriaPreorder = buildFeriaPreorderMeta(selectedEvent);
         }
-        orderData.scheduledWindow = scheduledWindow || undefined;
+        orderData.scheduledWindow = scheduledWindow || (selectedEvent ? `${selectedEvent.date} • ${selectedEvent.timeWindow}` : undefined);
       } else {
         orderData.deliveryAddress = deliveryAddress;
         orderData.deliveryFee = deliveryFee;
@@ -502,6 +506,7 @@ export function CheckoutModal({
                   marketEvents={marketEvents}
                   pickupLocations={pickupLocations}
                   selectedLocationId={selectedLocationId}
+                  selectedEvent={selectedEvent}
                   scheduledWindow={scheduledWindow}
                   setSelectedLocationId={setSelectedLocationId}
                   setScheduledWindow={setScheduledWindow}
@@ -530,6 +535,7 @@ export function CheckoutModal({
                   method={method}
                   selectedEvent={selectedEvent}
                   selectedLocation={selectedLocation}
+                  isFeriaPreorder={isFeriaPreorder}
                   scheduledWindow={scheduledWindow}
                   deliveryAddress={deliveryAddress}
                   deliveryMode={deliveryMode}

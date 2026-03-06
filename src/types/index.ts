@@ -296,18 +296,34 @@ export interface DeliveryMeta {
   updates?: DeliveryTrackingUpdate[];
 }
 
+export type FeriaReservationStatus = 'pending_confirmation' | 'confirmed';
+
+export interface FeriaPreorderMeta {
+  kind: 'feria_preorder';
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  timeWindow: string;
+  locationName: string;
+  reservationStatus: FeriaReservationStatus;
+  reservedAt: string;
+}
+
+export interface ListingSnapshot {
+  title: string;
+  price?: string;
+  priceCents?: number;
+  imageUrl?: string;
+  deliveryMeta?: DeliveryMeta;
+  feriaPreorder?: FeriaPreorderMeta;
+  [key: string]: unknown;
+}
+
 export interface Order {
   id: string;
   listingId: number;
   // Snapshot of listing at time of order
-  listingSnapshot: {
-    title: string;
-    price?: string;
-    priceCents?: number;
-    imageUrl?: string;
-    deliveryMeta?: DeliveryMeta;
-    [key: string]: unknown;
-  };
+  listingSnapshot: ListingSnapshot;
   buyerId: string;
   buyerName: string;
   sellerId: string;

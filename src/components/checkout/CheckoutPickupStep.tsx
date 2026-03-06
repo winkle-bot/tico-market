@@ -7,6 +7,7 @@ interface CheckoutPickupStepProps {
   marketEvents: MarketEvent[];
   pickupLocations: PickupLocation[];
   selectedLocationId: string | null;
+  selectedEvent: MarketEvent | undefined;
   scheduledWindow: string;
   setSelectedLocationId: (value: string) => void;
   setScheduledWindow: (value: string) => void;
@@ -17,6 +18,7 @@ export function CheckoutPickupStep({
   marketEvents,
   pickupLocations,
   selectedLocationId,
+  selectedEvent,
   scheduledWindow,
   setSelectedLocationId,
   setScheduledWindow,
@@ -27,6 +29,19 @@ export function CheckoutPickupStep({
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#6f83ad] font-medium">{t('checkout.selectPickupLocation', 'Select where you\'ll pick it up:')}</p>
+
+      {marketEvents.length > 0 && (
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+            {t('checkout.feriaPreorder', 'Feria Pre-Order')}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-orange-900">
+            {selectedEvent
+              ? `${t('checkout.reservingFor', 'Reserving for')} ${selectedEvent.name}.`
+              : t('checkout.chooseFeriaSlot', 'Choose a feria event below to reserve pickup ahead of time.')}
+          </p>
+        </div>
+      )}
 
       {marketEvents.length > 0 && (
         <div className="mb-4">
@@ -88,11 +103,15 @@ export function CheckoutPickupStep({
 
       <div className="pt-4">
         <label className="block text-[10px] font-black text-[#7d91b8] uppercase tracking-widest mb-2">
-          {t('checkout.preferredPickupTime', 'Preferred pickup time (optional)')}
+          {selectedEvent
+            ? t('checkout.reservationNote', 'Reservation note (optional)')
+            : t('checkout.preferredPickupTime', 'Preferred pickup time (optional)')}
         </label>
         <input
           type="text"
-          placeholder={t('checkout.pickupTimePlaceholder', 'e.g., Saturday morning')}
+          placeholder={selectedEvent
+            ? t('checkout.reservationNotePlaceholder', 'e.g., I can arrive closer to 10:30')
+            : t('checkout.pickupTimePlaceholder', 'e.g., Saturday morning')}
           className="tm-input"
           value={scheduledWindow}
           onChange={(e) => setScheduledWindow(e.target.value)}
@@ -100,7 +119,9 @@ export function CheckoutPickupStep({
       </div>
 
       <button onClick={onContinue} className="w-full tm-btn bg-green-600 text-white hover:bg-green-700 mt-4">
-        {t('common.continue')}
+        {selectedEvent
+          ? t('checkout.reviewReservation', 'Review Reservation')
+          : t('common.continue')}
       </button>
     </div>
   );

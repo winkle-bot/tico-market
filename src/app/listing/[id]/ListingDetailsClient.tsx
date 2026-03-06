@@ -32,6 +32,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [preferredCheckoutMethod, setPreferredCheckoutMethod] = useState<'delivery' | 'pickup' | null>(null);
+  const [initialPickupLocationId, setInitialPickupLocationId] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
@@ -114,7 +115,7 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
     return () => {
       controller.abort();
     };
-  }, [listingId, reloadToken]);
+  }, [listingId, reloadToken, t]);
 
   // Derive isLiked from context
   const isLiked = listing && listing !== 'not_found' ? isFavorite(listing.id) : false;
@@ -130,12 +131,16 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
     }
   };
 
-  const handleGetItem = (preferredMethod: 'delivery' | 'pickup' | null = null) => {
+  const handleGetItem = (
+    preferredMethod: 'delivery' | 'pickup' | null = null,
+    pickupLocationId: string | null = null
+  ) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
     setPreferredCheckoutMethod(preferredMethod);
+    setInitialPickupLocationId(pickupLocationId);
     setIsCheckoutOpen(true);
   };
 
@@ -255,6 +260,12 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
   // Check if this is the user's own listing
   const isOwnListing = user?.id === listing.sellerId;
   const displayPrice = listing.itemType === 'free' ? 'Free' : formatPrice(listing.priceCents, listing.currency, listing.price);
+  const marketEvents = listing.pickupConfig?.marketEvents || [];
+  const nextMarketEvent = marketEvents[0];
+  const sellerAvgResponseMinutes =
+    typeof (seller as (User & { avgResponseMinutes?: number }) | null)?.avgResponseMinutes === 'number'
+      ? (seller as User & { avgResponseMinutes: number }).avgResponseMinutes
+      : null;
   const hasValidLocation =
     Array.isArray(listing.location) &&
     listing.location.length === 2 &&
@@ -291,15 +302,18 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
         onClose={() => {
           setIsCheckoutOpen(false);
           setPreferredCheckoutMethod(null);
+          setInitialPickupLocationId(null);
         }}
         listing={listing}
         seller={seller}
         currentUser={user}
         drivers={drivers}
         preferredMethod={preferredCheckoutMethod}
+        initialPickupLocationId={initialPickupLocationId}
         onSuccess={handleOrderSuccess}
         onAuthRequired={() => {
           setIsCheckoutOpen(false);
+          setInitialPickupLocationId(null);
           setIsAuthModalOpen(true);
         }}
       />
@@ -680,10 +694,10 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                     <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('listing.reputation', 'Reputation')}</div>
                     <div className="font-black text-gray-900">{seller?.rating ?? listing.rating} / 5</div>
                   </div>
-                  {(seller as any)?.avgResponseMinutes != null && (
+                  {sellerAvgResponseMinutes != null && (
                     <div className="flex-1 bg-white p-3 rounded-2xl border border-gray-100 text-center">
                       <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('listing.response', 'Response')}</div>
-                      <div className="font-black text-gray-900">{formatResponseTime((seller as any).avgResponseMinutes)}</div>
+                      <div className="font-black text-gray-900">{formatResponseTime(sellerAvgResponseMinutes)}</div>
                     </div>
                   )}
                 </div>
@@ -708,6 +722,26 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                   <h2 className="text-xs font-black text-orange-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Truck className="w-4 h-4" /> Availability & Pickup
                   </h2>
+
+                  {nextMarketEvent && (
+                    <div className="mb-5 rounded-3xl border border-orange-200 bg-white/80 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+                        {t('listing.feriaPreorders', 'Feria Pre-Orders')}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-gray-900">
+                        {t('listing.reserveBeforeFeria', 'Reserve this item ahead of the next feria pickup window.')}
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-orange-700">
+                        {nextMarketEvent.name} • {nextMarketEvent.date} • {nextMarketEvent.timeWindow}
+                      </p>
+                      <button
+                        onClick={() => handleGetItem('pickup', nextMarketEvent.id)}
+                        className="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black uppercase tracking-widest text-white transition-colors hover:bg-orange-600"
+                      >
+                        {t('listing.reserveForFeria', 'Reserve For Feria Pickup')}
+                      </button>
+                    </div>
+                  )}
                   
                   {listing.pickupConfig.leadTime && (
                     <div className="mb-4">
@@ -722,21 +756,29 @@ export default function ListingDetailsClient({ listingId }: { listingId: string 
                       <div className="space-y-2">
                         {listing.pickupConfig.marketEvents.map((event: MarketEvent) => (
                           <div key={event.id} className="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex justify-between items-center group hover:border-orange-300 transition-colors">
-                              <div>
+                              <div className="min-w-0 pr-3">
                                 <div className="font-black text-sm text-gray-900">{event.name}</div>
                                 <div className="text-xs font-bold text-gray-500 mt-1">{event.date} • {event.timeWindow}</div>
-                              </div>
-                              {event.wazeLink && (
-                                <a 
-                                  href={event.wazeLink} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
-                                  title="Open in Waze"
+                                <button
+                                  onClick={() => handleGetItem('pickup', event.id)}
+                                  className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-orange-100 px-3 py-2 text-[11px] font-black uppercase tracking-widest text-orange-700 transition-colors hover:bg-orange-200"
                                 >
-                                  <MapPin className="w-5 h-5" />
-                                </a>
-                              )}
+                                  {t('listing.reservePickupSlot', 'Reserve Pickup Slot')}
+                                </button>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                {event.wazeLink && (
+                                  <a 
+                                    href={event.wazeLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
+                                    title="Open in Waze"
+                                  >
+                                    <MapPin className="w-5 h-5" />
+                                  </a>
+                                )}
+                              </div>
                           </div>
                         ))}
                       </div>

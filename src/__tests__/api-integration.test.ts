@@ -254,6 +254,89 @@ describe('API integration tests', () => {
     expect(body.notes).toBe('alert(1)Hello');
   });
 
+  test('POST /api/orders preserves feria preorder metadata in the order snapshot', async () => {
+    const orderInsertRow = {
+      id: 'ord_pre_1',
+      listing_id: 8,
+      listing_snapshot: {
+        id: 8,
+        title: 'Fresh strawberries',
+        feriaPreorder: {
+          kind: 'feria_preorder',
+          eventId: 'feria-zapote-sun',
+          eventName: 'Feria de Zapote',
+          eventDate: '2026-03-08',
+          timeWindow: '08:00 - 12:00',
+          locationName: 'Zapote',
+          reservationStatus: 'pending_confirmation',
+          reservedAt: '2026-03-06T21:00:00.000Z',
+        },
+      },
+      buyer_id: AUTH_USER_ID,
+      buyer_name: 'Buyer',
+      seller_id: SELLER_ID,
+      seller_name: 'Seller',
+      type: 'pickup',
+      status: 'pending',
+      driver_id: null,
+      driver_name: null,
+      delivery_address: null,
+      delivery_fee: null,
+      pickup_location_id: 'feria-zapote-sun',
+      pickup_location: {
+        id: 'feria-zapote-sun',
+        name: 'Feria de Zapote',
+        address: 'Zapote',
+      },
+      scheduled_window: '2026-03-08 • 08:00 - 12:00',
+      notes: null,
+      payment_status: 'pending',
+      payment_amount: null,
+      payment_currency: null,
+      created_at: '2026-03-06T21:00:00.000Z',
+      updated_at: '2026-03-06T21:00:00.000Z',
+    };
+    const { supabase, ordersInsert } = buildMockSupabase({
+      userId: AUTH_USER_ID,
+      orderInsertRow,
+    });
+    mockCreateSupabaseServerClient.mockResolvedValue(supabase);
+
+    const response = await postOrders(
+      requestWithJson('http://localhost/api/orders', {
+        listingId: 8,
+        listingSnapshot: orderInsertRow.listing_snapshot,
+        buyerId: AUTH_USER_ID,
+        buyerName: 'Buyer',
+        sellerId: SELLER_ID,
+        sellerName: 'Seller',
+        type: 'pickup',
+        pickupLocationId: 'feria-zapote-sun',
+        pickupLocation: orderInsertRow.pickup_location,
+        scheduledWindow: orderInsertRow.scheduled_window,
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(ordersInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        listing_snapshot: expect.objectContaining({
+          feriaPreorder: expect.objectContaining({
+            eventId: 'feria-zapote-sun',
+            reservationStatus: 'pending_confirmation',
+          }),
+        }),
+      })
+    );
+    expect(body.listingSnapshot).toMatchObject({
+      feriaPreorder: {
+        eventId: 'feria-zapote-sun',
+        reservationStatus: 'pending_confirmation',
+      },
+    });
+  });
+
   test('POST /api/reviews blocks non-completed orders', async () => {
     const { supabase } = buildMockSupabase({
       userId: AUTH_USER_ID,
