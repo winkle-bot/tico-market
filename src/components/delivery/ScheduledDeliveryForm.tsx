@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { API_ROUTES } from '@/config/constants';
+import { withCsrfHeaders } from '@/lib/csrf';
 
 export function ScheduledDeliveryForm() {
   const [pickupAddress, setPickupAddress] = useState('');
@@ -23,7 +24,7 @@ export function ScheduledDeliveryForm() {
     try {
       const res = await fetch(API_ROUTES.DELIVERY_REQUESTS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           pickupAddress,
           dropoffAddress,

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { API_ROUTES } from '@/config/constants';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type { DriverProfile } from '@/types';
 
 interface QuickDeliveryFormProps {
@@ -56,7 +57,7 @@ export function QuickDeliveryForm({ drivers }: QuickDeliveryFormProps) {
     try {
       const res = await fetch(API_ROUTES.DELIVERY_REQUESTS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           pickupAddress,
           pickupLat,
@@ -77,7 +78,7 @@ export function QuickDeliveryForm({ drivers }: QuickDeliveryFormProps) {
       if (selectedDriverId) {
         await fetch(`${API_ROUTES.DELIVERY_REQUESTS}/${payload.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ assignedDriverId: selectedDriverId, status: 'assigned', finalAmount: estimatedPrice }),
         });
       }

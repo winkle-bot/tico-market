@@ -5,7 +5,6 @@ Items are removed as they are completed and committed.
 
 ## Fixes
 
-- [ ] Fix CSRF failures in delivery creation flows.
 - [ ] Repair the delivery negotiation/manage flow, including missing backend endpoints and broken client fetch logic.
 - [ ] Unify checkout driver selection with the real `driver_profiles` source instead of driver listings.
 - [ ] Fix automated test configuration and stale schema expectations so unit tests reflect the current API shape.
