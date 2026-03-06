@@ -47,6 +47,14 @@ interface Conversation {
   messages: Message[];
 }
 
+function createClientMutationId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function ChatModal({ isOpen, onClose, listing, currentUser, onAuthRequired, chatWithName, chatWithId }: ChatModalProps) {
   const { t } = useI18n();
   const toast = useToast();
@@ -210,6 +218,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
           },
         ]
       : [];
+    const clientMutationId = createClientMutationId();
     const queuedPayload = {
       listingId: listing.id,
       buyerId,
@@ -232,6 +241,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         method: 'POST',
         body: queuedPayload,
         headers: { 'Content-Type': 'application/json' },
+        clientMutationId,
       });
 
       setMessages((prev) => [
@@ -258,7 +268,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
         pendingImage || pendingLocation
           ? {
               method: 'POST',
-              headers: withCsrfHeaders(),
+              headers: withCsrfHeaders({ 'x-client-mutation-id': clientMutationId }),
               body: (() => {
                 const formData = new FormData();
                 formData.set('listingId', String(listing.id));
@@ -282,7 +292,10 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
             }
           : {
               method: 'POST',
-              headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+              headers: withCsrfHeaders({
+                'Content-Type': 'application/json',
+                'x-client-mutation-id': clientMutationId,
+              }),
               body: JSON.stringify(queuedPayload),
             };
 
@@ -307,6 +320,7 @@ export default function ChatModal({ isOpen, onClose, listing, currentUser, onAut
           method: 'POST',
           body: queuedPayload,
           headers: { 'Content-Type': 'application/json' },
+          clientMutationId,
         });
         setMessages((prev) => [
           ...prev,

@@ -1,0 +1,69 @@
+# Next Focus Todo
+
+Working rule: completed items get removed from this file when they land and are committed.
+
+## 1. Stabilize New Features
+
+- Browser QA for feria follows
+- Browser QA for saved searches
+- Browser QA for translation surfaces
+- Browser QA for chat attachments
+- Browser QA for offline queue replay
+- Test reconnect edge cases
+- Verify storage migrations and buckets in each deployed environment
+- Add e2e happy-path coverage for feria follows
+- Add e2e happy-path coverage for saved searches
+- Add e2e happy-path coverage for translation
+- Add e2e happy-path coverage for chat attachments
+- Add e2e happy-path coverage for offline queue replay
+
+## 2. Delivery Trust And Coordination
+
+- Implement three-way buyer/seller/driver delivery chat
+- Add real-time driver tracking in active orders
+- Add clearer delivery state transitions in account and order views
+- Add ETA updates in account and order views
+- Improve queued and offline handling for delivery-request creation
+- Improve queued and offline handling for delivery status updates
+
+## 3. Feria Commerce Loop
+
+- Build deeper feria vendor storefronts
+- Add weekly availability publishing for feria vendors
+- Implement feria pre-orders
+- Implement reservation confirmation
+- Add QR-based feria pickup completion
+- Support feria-specific batching logic for delivery requests
+
+## 4. Translation And Messaging
+
+- Add translation provider configuration
+- Add translation failure handling
+- Add translation usage limits
+- Add translation caching where privacy permits
+- Improve quick replies for marketplace contexts
+- Improve quick replies for feria contexts
+- Extend translation controls to more listing surfaces
+- Extend translation controls to more messaging surfaces
+- Decide whether voice notes are the next attachment to ship
+
+## 5. Notifications And Background Processing
+
+- Move saved-search alert dispatch to background jobs
+- Move other fan-out async work to background jobs
+- Add delivery notification preference granularity
+- Add order notification preference granularity
+- Add search-alert notification preference granularity
+- Audit push delivery reliability
+- Clean up unsubscribe failures and stale subscriptions
+- Add failure telemetry for push and async jobs
+- Add structured operational logging for important async flows
+
+## 6. Payments And Protection
+
+- Design the Stripe-backed escrow and release model
+- Tie disputes, evidence, and order-state history together more tightly
+- Define the boundary between platform-facilitated and cash/SINPE flows
+- Improve admin tooling for refunds
+- Improve admin tooling for disputes
+- Improve admin tooling for failed payment recovery

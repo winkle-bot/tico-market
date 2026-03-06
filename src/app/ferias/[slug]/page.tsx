@@ -105,10 +105,12 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
     ));
 
     try {
+      const queueKey = `feria-follow:${feria.slug}`;
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         await enqueueJsonMutation({
           url: `/api/ferias/${feria.slug}/follow`,
           method: nextFollowing ? 'POST' : 'DELETE',
+          queueKey,
         });
         toast.success(nextFollowing ? 'Feria follow queued' : 'Feria unfollow queued');
         return;
@@ -141,6 +143,7 @@ export default function FeriaDetailPage({ params }: { params: Promise<{ slug: st
         await enqueueJsonMutation({
           url: `/api/ferias/${feria.slug}/follow`,
           method: nextFollowing ? 'POST' : 'DELETE',
+          queueKey: `feria-follow:${feria.slug}`,
         });
         toast.success(nextFollowing ? 'Feria follow queued' : 'Feria unfollow queued');
         return;

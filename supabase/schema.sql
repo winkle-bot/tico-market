@@ -125,6 +125,7 @@ create table if not exists public.messages (
   id bigserial primary key,
   listing_id bigint references public.listings(id) on delete cascade not null,
   sender_id uuid references public.profiles(id) on delete cascade not null,
+  client_mutation_id text,
   text text not null,
   attachments jsonb default '[]'::jsonb,
   created_at timestamptz default now(),
@@ -136,6 +137,7 @@ create table if not exists public.messages (
 );
 
 alter table public.messages add column if not exists attachments jsonb default '[]'::jsonb;
+alter table public.messages add column if not exists client_mutation_id text;
 
 -- Indexes for messages
 create index if not exists idx_messages_listing_id on public.messages(listing_id);
@@ -143,6 +145,9 @@ create index if not exists idx_messages_sender_id on public.messages(sender_id);
 create index if not exists idx_messages_buyer_id on public.messages(buyer_id);
 create index if not exists idx_messages_seller_id on public.messages(seller_id);
 create index if not exists idx_messages_created_at on public.messages(created_at);
+create unique index if not exists idx_messages_sender_client_mutation
+  on public.messages(sender_id, client_mutation_id)
+  where client_mutation_id is not null;
 
 -- ==================== ORDERS TABLE ====================
 

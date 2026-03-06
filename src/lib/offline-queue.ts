@@ -11,6 +11,8 @@ export type QueuedMutation = {
   headers: Record<string, string>;
   body?: string;
   createdAt: string;
+  queueKey?: string;
+  clientMutationId?: string;
 };
 
 function readQueue(): QueuedMutation[] {
@@ -41,6 +43,18 @@ export function getQueuedMutationCount() {
   return readQueue().length;
 }
 
+export function removeQueuedMutationByKey(queueKey: string) {
+  const queue = readQueue();
+  const nextQueue = queue.filter((item) => item.queueKey !== queueKey);
+
+  if (nextQueue.length === queue.length) {
+    return false;
+  }
+
+  writeQueue(nextQueue);
+  return true;
+}
+
 export function subscribeToOfflineQueue(callback: (count: number) => void) {
   if (typeof window === 'undefined') {
     return () => {};
@@ -69,8 +83,12 @@ export async function enqueueJsonMutation(input: {
   method: 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   headers?: HeadersInit;
+  queueKey?: string;
+  clientMutationId?: string;
 }) {
-  const queue = readQueue();
+  const queue = input.queueKey
+    ? readQueue().filter((item) => item.queueKey !== input.queueKey)
+    : readQueue();
   const normalizedHeaders = Object.fromEntries(new Headers(input.headers || {}).entries());
 
   queue.push({
@@ -80,6 +98,8 @@ export async function enqueueJsonMutation(input: {
     headers: normalizedHeaders,
     body: input.body === undefined ? undefined : JSON.stringify(input.body),
     createdAt: new Date().toISOString(),
+    queueKey: input.queueKey,
+    clientMutationId: input.clientMutationId,
   });
 
   writeQueue(queue);
@@ -107,6 +127,7 @@ export async function flushOfflineQueue() {
       const headers = withCsrfHeaders({
         'Content-Type': 'application/json',
         ...item.headers,
+        ...(item.clientMutationId ? { 'x-client-mutation-id': item.clientMutationId } : {}),
       });
 
       const response = await fetch(item.url, {

@@ -38,6 +38,7 @@ interface MessageRow {
   id: number;
   listing_id: number;
   sender_id: string;
+  client_mutation_id?: string | null;
   text: string;
   attachments: MessageAttachment[] | null;
   created_at: string;
@@ -74,6 +75,40 @@ async function expandAttachments(
       };
     })
   );
+}
+
+function normalizeClientMutationId(value: string | null) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, 120);
+}
+
+async function buildMessageResponse(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  message: MessageRow,
+  fallbackAttachments: MessageAttachment[] = []
+) {
+  const responseAttachments = await expandAttachments(
+    admin,
+    (message.attachments as MessageAttachment[] | null | undefined) || fallbackAttachments
+  );
+
+  return {
+    id: message.id,
+    listingId: message.listing_id,
+    senderId: message.sender_id,
+    text: message.text,
+    attachments: responseAttachments,
+    createdAt: message.created_at,
+    read: message.read,
+    buyerId: message.buyer_id,
+    buyerName: message.buyer_name,
+    sellerId: message.seller_id,
+    sellerName: message.seller_name,
+  };
 }
 
 // GET messages for a user
@@ -200,6 +235,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+    const clientMutationId = normalizeClientMutationId(
+      request.headers?.get?.('x-client-mutation-id') || null
+    );
     
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -300,11 +338,32 @@ export async function POST(request: Request) {
       return ApiResponse.badRequest('Message must include text or an attachment');
     }
 
+    const admin = createSupabaseAdminClient();
+    if (clientMutationId) {
+      const { data: existingMessage, error: existingMessageError } = await (supabase
+        .from('messages') as any)
+        .select('*')
+        .eq('sender_id', user.id)
+        .eq('client_mutation_id', clientMutationId)
+        .maybeSingle();
+
+      if (existingMessageError) {
+        return ApiResponse.error(existingMessageError.message, 500);
+      }
+
+      if (existingMessage) {
+        return ApiResponse.success(
+          await buildMessageResponse(admin, existingMessage as MessageRow, storedAttachments)
+        );
+      }
+    }
+
     const { data: message, error } = await (supabase
       .from('messages') as any)
       .insert({
         listing_id: listingId,
         sender_id: user.id,
+        client_mutation_id: clientMutationId,
         text: sanitizedText,
         attachments: storedAttachments,
         buyer_id: buyerId,
@@ -319,12 +378,6 @@ export async function POST(request: Request) {
     if (error) {
       return ApiResponse.error(error.message, 500);
     }
-
-    const admin = createSupabaseAdminClient();
-    const responseAttachments = await expandAttachments(
-      admin,
-      (message.attachments as MessageAttachment[] | null | undefined) || storedAttachments
-    );
 
     // Fire-and-forget push notification to the other party
     const recipientId = user.id === buyerId ? sellerId : buyerId;
@@ -344,19 +397,7 @@ export async function POST(request: Request) {
       `New message from ${senderName}: ${notificationBody.length > 100 ? notificationBody.slice(0, 97) + '...' : notificationBody}`
     ).catch(() => {});
 
-    return ApiResponse.success({
-      id: message.id,
-      listingId: message.listing_id,
-      senderId: message.sender_id,
-      text: message.text,
-      attachments: responseAttachments,
-      createdAt: message.created_at,
-      read: message.read,
-      buyerId: message.buyer_id,
-      buyerName: message.buyer_name,
-      sellerId: message.seller_id,
-      sellerName: message.seller_name,
-    });
+    return ApiResponse.success(await buildMessageResponse(admin, message as MessageRow, storedAttachments));
   } catch (error) {
     if (error instanceof Error && error.message === 'Invalid JSON body') {
       return ApiResponse.badRequest('Invalid JSON body');

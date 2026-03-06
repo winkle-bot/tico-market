@@ -35,27 +35,56 @@ jest.mock('@/lib/supabase-admin', () => ({
 
 import { POST as postMessage } from '@/app/api/messages/route';
 
-function jsonRequest(body: unknown): Request {
+function jsonRequest(body: unknown, headers?: Record<string, string>): Request {
   return {
-    headers: { get: () => 'application/json' },
+    headers: {
+      get: (name: string) => {
+        const normalizedName = name.toLowerCase();
+        if (normalizedName === 'content-type') {
+          return 'application/json';
+        }
+
+        return headers?.[normalizedName] ?? headers?.[name] ?? null;
+      },
+    },
     json: async () => body,
   } as unknown as Request;
 }
 
-function buildSupabase(userId: string, insertedMessage?: Record<string, unknown>) {
+function buildSupabase(
+  userId: string,
+  options?: {
+    insertedMessage?: Record<string, unknown>;
+    existingMessage?: Record<string, unknown> | null;
+  }
+) {
   const insert = jest.fn((payload: Record<string, unknown>) => ({
     select: () => ({
       single: jest.fn().mockResolvedValue({
-        data: insertedMessage
+        data: options?.insertedMessage
           ? {
-              ...insertedMessage,
+              ...options.insertedMessage,
               text: payload.text,
               attachments: payload.attachments,
+              client_mutation_id: payload.client_mutation_id,
             }
           : null,
         error: null,
       }),
     }),
+  }));
+  const maybeSingle = jest.fn().mockResolvedValue({
+    data: options?.existingMessage ?? null,
+    error: null,
+  });
+  const eqClientMutationId = jest.fn(() => ({
+    maybeSingle,
+  }));
+  const eqSenderId = jest.fn(() => ({
+    eq: eqClientMutationId,
+  }));
+  const select = jest.fn(() => ({
+    eq: eqSenderId,
   }));
 
   return {
@@ -66,7 +95,7 @@ function buildSupabase(userId: string, insertedMessage?: Record<string, unknown>
     },
     from: jest.fn((table: string) => {
       if (table === 'messages') {
-        return { insert };
+        return { insert, select };
       }
       throw new Error(`Unexpected table: ${table}`);
     }),
@@ -105,6 +134,7 @@ describe('messages api attachments', () => {
   test('accepts attachment-only location messages', async () => {
     mockCreateSupabaseServerClient.mockResolvedValue(
       buildSupabase('11111111-1111-1111-1111-111111111111', {
+        insertedMessage: {
         id: 12,
         listing_id: 1,
         sender_id: '11111111-1111-1111-1111-111111111111',
@@ -114,6 +144,7 @@ describe('messages api attachments', () => {
         buyer_name: 'Buyer',
         seller_id: '22222222-2222-2222-2222-222222222222',
         seller_name: 'Seller',
+        },
       })
     );
 
@@ -147,5 +178,48 @@ describe('messages api attachments', () => {
         label: 'Meet here',
       },
     ]);
+  });
+
+  test('returns the existing message for a replayed client mutation id', async () => {
+    const existingMessage = {
+      id: 77,
+      listing_id: 1,
+      sender_id: '11111111-1111-1111-1111-111111111111',
+      client_mutation_id: 'msg-123',
+      text: 'Hola',
+      attachments: [],
+      created_at: '2026-03-06T01:00:00Z',
+      read: false,
+      buyer_id: '11111111-1111-1111-1111-111111111111',
+      buyer_name: 'Buyer',
+      seller_id: '22222222-2222-2222-2222-222222222222',
+      seller_name: 'Seller',
+    };
+    const supabase = buildSupabase('11111111-1111-1111-1111-111111111111', {
+      existingMessage,
+    });
+    mockCreateSupabaseServerClient.mockResolvedValue(supabase);
+
+    const response = await postMessage(
+      jsonRequest(
+        {
+          listingId: 1,
+          buyerId: '11111111-1111-1111-1111-111111111111',
+          buyerName: 'Buyer',
+          sellerId: '22222222-2222-2222-2222-222222222222',
+          sellerName: 'Seller',
+          text: 'Hola',
+        },
+        { 'x-client-mutation-id': 'msg-123' }
+      )
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.id).toBe(77);
+    expect(body.text).toBe('Hola');
+    expect(mockSendPushToUser).not.toHaveBeenCalled();
+    expect(mockSendWhatsAppToUser).not.toHaveBeenCalled();
+    expect(supabase.from('messages').insert).not.toHaveBeenCalled();
   });
 });

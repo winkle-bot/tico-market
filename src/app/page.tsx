@@ -25,6 +25,7 @@ import { withCsrfHeaders } from '@/lib/csrf';
 import {
   enqueueJsonMutation,
   isOfflineMutationError,
+  removeQueuedMutationByKey,
   subscribeToOfflineFlush,
 } from '@/lib/offline-queue';
 import type { Listing, Category, AuthFormState } from '@/types';
@@ -257,6 +258,7 @@ export default function Home() {
           method: 'POST',
           body: requestBody,
           headers: { 'Content-Type': 'application/json' },
+          queueKey: `saved-search:${currentSavedSearchFingerprint}`,
         });
         setSavedSearches((previous) => [
           {
@@ -302,6 +304,7 @@ export default function Home() {
             alertEnabled: true,
           },
           headers: { 'Content-Type': 'application/json' },
+          queueKey: `saved-search:${currentSavedSearchFingerprint}`,
         });
         toast.success('Search alert queued for sync');
       } else {
@@ -312,24 +315,33 @@ export default function Home() {
     }
   };
 
-  const deleteSavedSearch = async (id: string) => {
+  const deleteSavedSearch = async (savedSearch: SavedSearch) => {
     if (!user) {
       return;
     }
 
     try {
       setSavedSearchActionLoading(true);
+      const queueKey = `saved-search:${savedSearch.fingerprint}`;
+
+      if (savedSearch.id.startsWith('queued-')) {
+        removeQueuedMutationByKey(queueKey);
+        setSavedSearches((previous) => previous.filter((item) => item.id !== savedSearch.id));
+        toast.success('Queued saved search removed');
+        return;
+      }
+
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         await enqueueJsonMutation({
-          url: `/api/saved-searches/${id}`,
+          url: `/api/saved-searches/${savedSearch.id}`,
           method: 'DELETE',
         });
-        setSavedSearches((previous) => previous.filter((item) => item.id !== id));
+        setSavedSearches((previous) => previous.filter((item) => item.id !== savedSearch.id));
         toast.success('Saved search removal queued');
         return;
       }
 
-      const res = await fetch(`/api/saved-searches/${id}`, {
+      const res = await fetch(`/api/saved-searches/${savedSearch.id}`, {
         method: 'DELETE',
         headers: withCsrfHeaders(),
       });
@@ -338,15 +350,15 @@ export default function Home() {
         throw new Error(payload.error || 'Could not delete saved search');
       }
 
-      setSavedSearches((previous) => previous.filter((item) => item.id !== id));
+      setSavedSearches((previous) => previous.filter((item) => item.id !== savedSearch.id));
       toast.success('Saved search removed');
     } catch (error) {
       if (isOfflineMutationError(error)) {
         await enqueueJsonMutation({
-          url: `/api/saved-searches/${id}`,
+          url: `/api/saved-searches/${savedSearch.id}`,
           method: 'DELETE',
         });
-        setSavedSearches((previous) => previous.filter((item) => item.id !== id));
+        setSavedSearches((previous) => previous.filter((item) => item.id !== savedSearch.id));
         toast.success('Saved search removal queued');
       } else {
         toast.error(error instanceof Error ? error.message : 'Could not delete saved search');
@@ -426,7 +438,7 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   if (currentSavedSearch) {
-                    void deleteSavedSearch(currentSavedSearch.id);
+                    void deleteSavedSearch(currentSavedSearch);
                   } else {
                     void saveCurrentSearch();
                   }
@@ -480,7 +492,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => {
-                      void deleteSavedSearch(savedSearch.id);
+                      void deleteSavedSearch(savedSearch);
                     }}
                     className="rounded-full p-1 text-[#8aa1cc] hover:bg-[#dde8fb] hover:text-[#3f5f9d]"
                     aria-label={`Remove saved search ${savedSearch.name}`}
