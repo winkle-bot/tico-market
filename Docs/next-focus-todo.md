@@ -4,14 +4,7 @@ Working rule: completed items get removed from this file when they land and are 
 
 ## 1. Stabilize New Features
 
-- Browser QA for feria follows
-- Browser QA for saved searches
-- Browser QA for translation surfaces
-- Browser QA for chat attachments
-- Browser QA for offline queue replay
-- Test reconnect edge cases
 - Verify storage migrations and buckets in each deployed environment
-- Add e2e happy-path coverage for offline queue replay
 
 ## 2. Delivery Trust And Coordination
 
