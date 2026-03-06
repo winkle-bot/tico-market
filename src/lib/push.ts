@@ -1,7 +1,7 @@
 // Server-side push notification helper
 // Uses Web Crypto API for VAPID signing (Cloudflare Workers compatible)
 
-import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { createSupabaseAdminClient } from '@/lib/supabase-admin';
 import { logger } from '@/lib/logger';
 
 interface PushPayload {
@@ -118,7 +118,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
       return; // Push not configured, silently skip
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseAdminClient();
 
     const { data: subscriptions } = await (supabase
       .from('push_subscriptions') as any)
@@ -181,7 +181,7 @@ export async function sendWhatsAppToUser(userId: string, message: string): Promi
       return; // WhatsApp not configured, silently skip
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseAdminClient();
 
     const { data: profile } = await (supabase
       .from('profiles') as any)

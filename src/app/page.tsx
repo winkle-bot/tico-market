@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { BellPlus, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -17,7 +17,11 @@ import {
 } from '@/components';
 import { BottomNav } from '@/components/BottomNav';
 import { API_ROUTES } from '@/config/constants';
+import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/I18nContext';
+import { useToast } from '@/context/ToastContext';
+import { buildSavedSearchFingerprint } from '@/lib/saved-searches';
+import { withCsrfHeaders } from '@/lib/csrf';
 import type { Listing, Category, AuthFormState } from '@/types';
 
 interface ListingsApiResponse {
@@ -32,10 +36,22 @@ interface ListingsApiResponse {
   };
 }
 
+interface SavedSearch {
+  id: string;
+  name: string;
+  query?: string | null;
+  categories: string[];
+  sort: 'newest' | 'price_asc' | 'price_desc' | 'distance';
+  alertEnabled: boolean;
+  fingerprint: string;
+}
+
 const PAGE_LIMIT = 24;
 
 export default function Home() {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const toast = useToast();
   // View/filter state
   const [view, setView] = useState<'list' | 'map'>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +73,9 @@ export default function Home() {
   const [isListingsLoading, setIsListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
   const [onlineDriversCount, setOnlineDriversCount] = useState(0);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [savedSearchesLoading, setSavedSearchesLoading] = useState(false);
+  const [savedSearchActionLoading, setSavedSearchActionLoading] = useState(false);
 
   // Modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -140,6 +159,31 @@ export default function Home() {
     fetchListings();
   }, [page, debouncedSearch, selectedCategories, sort]);
 
+  useEffect(() => {
+    const loadSavedSearches = async () => {
+      if (!user) {
+        setSavedSearches([]);
+        return;
+      }
+
+      try {
+        setSavedSearchesLoading(true);
+        const res = await fetch('/api/saved-searches');
+        if (!res.ok) {
+          throw new Error('Failed to load saved searches');
+        }
+        const payload = await res.json();
+        setSavedSearches(Array.isArray(payload?.data) ? payload.data : []);
+      } catch {
+        setSavedSearches([]);
+      } finally {
+        setSavedSearchesLoading(false);
+      }
+    };
+
+    void loadSavedSearches();
+  }, [user?.id]);
+
   const toggleCategory = (category: Category) => {
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
@@ -165,6 +209,95 @@ export default function Home() {
   };
 
   const hasFilters = debouncedSearch !== '' || selectedCategories.length > 0 || sort !== 'newest';
+  const hasSavableSearch = debouncedSearch !== '' || selectedCategories.length > 0;
+  const currentSavedSearchFingerprint = buildSavedSearchFingerprint({
+    query: debouncedSearch,
+    categories: selectedCategories,
+    sort,
+  });
+  const currentSavedSearch = savedSearches.find(
+    (savedSearch) => savedSearch.fingerprint === currentSavedSearchFingerprint
+  );
+
+  const saveCurrentSearch = async () => {
+    if (!hasSavableSearch) {
+      toast.error('Add a search or category filter first');
+      return;
+    }
+
+    if (!user) {
+      setAuthMode('login');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    try {
+      setSavedSearchActionLoading(true);
+      const res = await fetch('/api/saved-searches', {
+        method: 'POST',
+        headers: withCsrfHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          query: debouncedSearch || null,
+          categories: selectedCategories,
+          sort,
+          alertEnabled: true,
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({} as { error?: string }));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Could not save search');
+      }
+
+      setSavedSearches((previous) => {
+        const next = [payload as SavedSearch, ...previous.filter((item) => item.id !== payload.id)];
+        return next.slice(0, 8);
+      });
+      toast.success('Search alert saved');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save search');
+    } finally {
+      setSavedSearchActionLoading(false);
+    }
+  };
+
+  const deleteSavedSearch = async (id: string) => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      setSavedSearchActionLoading(true);
+      const res = await fetch(`/api/saved-searches/${id}`, {
+        method: 'DELETE',
+        headers: withCsrfHeaders(),
+      });
+      const payload = await res.json().catch(() => ({} as { error?: string }));
+      if (!res.ok) {
+        throw new Error(payload.error || 'Could not delete saved search');
+      }
+
+      setSavedSearches((previous) => previous.filter((item) => item.id !== id));
+      toast.success('Saved search removed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not delete saved search');
+    } finally {
+      setSavedSearchActionLoading(false);
+    }
+  };
+
+  const applySavedSearch = (savedSearch: SavedSearch) => {
+    const nextSort =
+      savedSearch.sort === 'price_asc' || savedSearch.sort === 'price_desc'
+        ? savedSearch.sort
+        : 'newest';
+
+    setSearchQuery(savedSearch.query || '');
+    setDebouncedSearch(savedSearch.query || '');
+    setSelectedCategories(savedSearch.categories as Category[]);
+    setSort(nextSort);
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -218,17 +351,81 @@ export default function Home() {
                 ? t('home.listingsFoundSingular', '1 listing found')
                 : t('home.listingsFoundPlural', `${pagination.total} listings found`).replace('{count}', String(pagination.total))}
             </p>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as 'newest' | 'price_asc' | 'price_desc')}
-              className="tm-input w-auto min-h-10 text-sm"
-              aria-label="Sort listings"
-            >
-              <option value="newest">{t('home.sortNewest', 'Newest')}</option>
-              <option value="price_asc">{t('home.sortPriceAsc', 'Price: Low to high')}</option>
-              <option value="price_desc">{t('home.sortPriceDesc', 'Price: High to low')}</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentSavedSearch) {
+                    void deleteSavedSearch(currentSavedSearch.id);
+                  } else {
+                    void saveCurrentSearch();
+                  }
+                }}
+                disabled={savedSearchActionLoading || (!hasSavableSearch && !currentSavedSearch)}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-black uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  currentSavedSearch
+                    ? 'bg-[#e8f3ff] text-[#1c4fa3] border border-[#cfe0ff]'
+                    : 'bg-[#18284a] text-white'
+                }`}
+              >
+                <BellPlus className="h-4 w-4" />
+                {currentSavedSearch ? 'Saved Alert' : 'Save Alert'}
+              </button>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as 'newest' | 'price_asc' | 'price_desc')}
+                className="tm-input w-auto min-h-10 text-sm"
+                aria-label="Sort listings"
+              >
+                <option value="newest">{t('home.sortNewest', 'Newest')}</option>
+                <option value="price_asc">{t('home.sortPriceAsc', 'Price: Low to high')}</option>
+                <option value="price_desc">{t('home.sortPriceDesc', 'Price: High to low')}</option>
+              </select>
+            </div>
           </div>
+          {user && savedSearches.length > 0 && (
+            <div className="tm-shell mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-widest text-[#7690bd]">
+                Saved Searches
+              </span>
+              {savedSearches.map((savedSearch) => (
+                <div
+                  key={savedSearch.id}
+                  className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs font-bold transition-colors ${
+                    savedSearch.fingerprint === currentSavedSearchFingerprint
+                      ? 'border-[#cfe0ff] bg-[#edf4ff] text-[#1d4fa1]'
+                      : 'border-[#dce5f7] bg-white text-[#4d638f] hover:border-[#bdd0ef]'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => applySavedSearch(savedSearch)}
+                    className="inline-flex items-center gap-2 rounded-full px-1 py-0.5 text-left"
+                  >
+                    <span>{savedSearch.name}</span>
+                    <span className="text-[#8aa1cc]">
+                      {savedSearch.query || savedSearch.categories.join(', ')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void deleteSavedSearch(savedSearch.id);
+                    }}
+                    className="rounded-full p-1 text-[#8aa1cc] hover:bg-[#dde8fb] hover:text-[#3f5f9d]"
+                    aria-label={`Remove saved search ${savedSearch.name}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {user && savedSearchesLoading && (
+            <div className="tm-shell mt-2 text-xs font-medium text-[#7690bd]">
+              Loading saved searches...
+            </div>
+          )}
         </div>
 
         <div className="px-4 py-4 border-b border-[#dce5f7] bg-gradient-to-r from-[#e9f0ff] via-[#f5f8ff] to-[#ecf6ff]">

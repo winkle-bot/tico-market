@@ -1,9 +1,12 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { createSupabaseAdminClient } from '@/lib/supabase-admin';
 import { ApiResponse } from '@/lib/api-response';
 import type { Listing } from '@/lib/supabase-types';
 import type { Json } from '@/lib/database.types';
 import { toFrontendListing } from '@/lib/listing-utils';
+import { matchesSavedSearch } from '@/lib/saved-searches';
 import { sanitizeText } from '@/lib/security';
+import { sendPushToUser } from '@/lib/push';
 import { z } from 'zod';
 
 const LISTINGS_BUCKET = 'listings';
@@ -27,6 +30,52 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 60;
 const DEFAULT_RADIUS_KM = 20;
+
+async function notifySavedSearchSubscribers(
+  listing: Listing
+) {
+  const admin = createSupabaseAdminClient();
+
+  const { data: savedSearches, error } = await (admin
+    .from('saved_searches') as any)
+    .select('*')
+    .eq('alert_enabled', true);
+
+  if (error || !savedSearches?.length) {
+    return;
+  }
+
+  await Promise.allSettled(
+    (savedSearches as Record<string, unknown>[])
+      .filter((savedSearch) => String(savedSearch.user_id) !== listing.seller_id)
+      .filter((savedSearch) =>
+        matchesSavedSearch(listing, {
+          query: typeof savedSearch.query_text === 'string' ? savedSearch.query_text : null,
+          categories: Array.isArray(savedSearch.categories) ? (savedSearch.categories as string[]) : [],
+          listingKind:
+            savedSearch.listing_kind === 'seller' || savedSearch.listing_kind === 'driver'
+              ? savedSearch.listing_kind
+              : null,
+          minPrice: typeof savedSearch.min_price === 'number' ? savedSearch.min_price : null,
+          maxPrice: typeof savedSearch.max_price === 'number' ? savedSearch.max_price : null,
+          sort:
+            savedSearch.sort === 'price_asc' ||
+            savedSearch.sort === 'price_desc' ||
+            savedSearch.sort === 'distance' ||
+            savedSearch.sort === 'newest'
+              ? savedSearch.sort
+              : 'newest',
+        })
+      )
+      .map((savedSearch) =>
+        sendPushToUser(String(savedSearch.user_id), {
+          title: 'New listing match',
+          body: `${listing.title} matches your saved search "${String(savedSearch.name || 'Saved search')}"`,
+          url: `/listing/${listing.id}`,
+        })
+      )
+  );
+}
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
@@ -387,6 +436,7 @@ export async function POST(request: Request) {
     }
 
     const typedListing = listing as unknown as Listing;
+    void notifySavedSearchSubscribers(typedListing);
     return ApiResponse.success(toFrontendListing(typedListing), 201);
   } catch (error) {
     return ApiResponse.serverError(error, { route: '/api/listings', method: 'POST' });
